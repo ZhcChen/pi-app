@@ -155,6 +155,12 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：文档明确 shell 已不再依赖 `part`，feature root 仍内部使用 `part`，并解释兼容 shim 的用途
 
+## 后续承接
+
+当前计划对应的组件化与壳层收缩工作已完成。剩余真实系统能力、真实数据接入与 feature 内部边界复核，转入：
+
+- `docs/plans/2026-07-26-desktop-follow-up-roadmap.md`
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`
