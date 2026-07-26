@@ -1,4 +1,6 @@
-part of 'desktop_shell.dart';
+import 'package:flutter/material.dart';
+
+import 'desktop_design.dart';
 
 // Shared desktop UI primitives used by both settings and workspace surfaces.
 class _DesktopPrimitiveSpec {
@@ -6,8 +8,8 @@ class _DesktopPrimitiveSpec {
 }
 
 /// Generic bordered desktop surface with configurable radius and padding.
-class _DesktopSurface extends StatelessWidget {
-  const _DesktopSurface({
+class DesktopSurface extends StatelessWidget {
+  const DesktopSurface({
     required this.child,
     required this.color,
     required this.radius,
@@ -32,7 +34,7 @@ class _DesktopSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     final body = padding == null
         ? child
@@ -56,13 +58,14 @@ class _DesktopSurface extends StatelessWidget {
   }
 }
 
-class _DesktopFieldSurface extends StatelessWidget {
-  const _DesktopFieldSurface({
+class DesktopFieldSurface extends StatelessWidget {
+  const DesktopFieldSurface({
     this.fieldKey,
     required this.child,
     this.padding = const EdgeInsets.symmetric(horizontal: 10),
     this.radius = 12,
     this.constraints,
+    super.key,
   });
 
   final Key? fieldKey;
@@ -73,9 +76,9 @@ class _DesktopFieldSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
-    return _DesktopSurface(
+    return DesktopSurface(
       key: fieldKey,
       color: palette.settingsField,
       radius: radius,
@@ -87,8 +90,8 @@ class _DesktopFieldSurface extends StatelessWidget {
 }
 
 /// Shared compact text action button used in sidebars and composer controls.
-class _DesktopTextActionButton extends StatelessWidget {
-  const _DesktopTextActionButton({
+class DesktopTextActionButton extends StatelessWidget {
+  const DesktopTextActionButton({
     this.buttonKey,
     required this.label,
     required this.onPressed,
@@ -98,6 +101,7 @@ class _DesktopTextActionButton extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
     this.radius = 8,
     this.textStyle,
+    super.key,
   });
 
   final Key? buttonKey;
@@ -112,11 +116,11 @@ class _DesktopTextActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
     final style = TextButton.styleFrom(
       alignment: alignment,
       foregroundColor: palette.textSecondary,
-      textStyle: textStyle ?? _AppTypography.controlLabel(palette),
+      textStyle: textStyle ?? DesktopTypography.controlLabel(palette),
       padding: padding,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
@@ -145,14 +149,15 @@ class _DesktopTextActionButton extends StatelessWidget {
 }
 
 /// Shared compact icon action button for desktop tool surfaces.
-class _DesktopIconActionButton extends StatelessWidget {
-  const _DesktopIconActionButton({
+class DesktopIconActionButton extends StatelessWidget {
+  const DesktopIconActionButton({
     required this.onPressed,
     required this.icon,
     this.tooltip,
     required this.backgroundColor,
     this.foregroundColor,
     this.buttonSize = const Size(28, 28),
+    super.key,
   });
 
   final VoidCallback onPressed;
@@ -164,7 +169,7 @@ class _DesktopIconActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return IconButton(
       onPressed: onPressed,
@@ -182,14 +187,15 @@ class _DesktopIconActionButton extends StatelessWidget {
 }
 
 /// Shared selected/unselected row tile used by desktop sidebars.
-class _DesktopSelectionTile extends StatelessWidget {
-  const _DesktopSelectionTile({
+class DesktopSelectionTile extends StatelessWidget {
+  const DesktopSelectionTile({
     required this.selected,
     this.onTap,
     this.height,
     required this.radius,
     required this.child,
     this.animated = true,
+    super.key,
   });
 
   final bool selected;
@@ -201,7 +207,7 @@ class _DesktopSelectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
     final decoration = BoxDecoration(
       color: selected ? palette.selection : Colors.transparent,
       borderRadius: BorderRadius.circular(radius),
@@ -229,17 +235,17 @@ class _DesktopSelectionTile extends StatelessWidget {
 }
 
 /// Shared icon + label pill for compact desktop status summaries.
-class _DesktopStatusPill extends StatelessWidget {
-  const _DesktopStatusPill({required this.icon, required this.label});
+class DesktopStatusPill extends StatelessWidget {
+  const DesktopStatusPill({required this.icon, required this.label, super.key});
 
   final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
-    return _DesktopSurface(
+    return DesktopSurface(
       color: palette.settingsField,
       radius: 999,
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
@@ -248,7 +254,7 @@ class _DesktopStatusPill extends StatelessWidget {
         children: [
           Icon(icon, size: 13, color: palette.textSecondary),
           const SizedBox(width: 6),
-          Text(label, style: _AppTypography.controlLabel(palette)),
+          Text(label, style: DesktopTypography.controlLabel(palette)),
         ],
       ),
     );

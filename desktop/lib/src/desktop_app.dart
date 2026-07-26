@@ -134,7 +134,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   int _selectedActionIndex = 0;
   int _selectedProjectIndex = 0;
 
-  _ProjectGroup get _selectedProject => _projects[_selectedProjectIndex];
+  WorkspaceProjectGroup get _selectedProject =>
+      _projects[_selectedProjectIndex];
   _AppCopy get _copy => _AppCopy(widget.preferences.language);
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
 
@@ -187,13 +188,19 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       builder: (context, constraints) {
         final palette = context.appPalette;
         final sidebarWidth = constraints.maxWidth >= 1540 ? 318.0 : 296.0;
+        final actions = _buildPrimaryActions(_copy);
+        final promptCards = widget.preferences.suggestedPrompts
+            ? _buildPromptCards(_copy)
+            : const <WorkspacePromptCard>[];
 
         return Row(
           children: [
             SizedBox(
               width: sidebarWidth,
-              child: _Sidebar(
+              child: WorkspaceSidebar(
                 copy: _copy,
+                actions: actions,
+                projects: _projects,
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
@@ -212,10 +219,11 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
             ),
             Container(width: 1, color: palette.divider),
             Expanded(
-              child: _WorkspaceCanvas(
+              child: WorkspaceCanvas(
                 copy: _copy,
                 preferences: widget.preferences,
                 project: _selectedProject,
+                promptCards: promptCards,
               ),
             ),
           ],

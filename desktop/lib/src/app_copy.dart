@@ -1,6 +1,8 @@
+// ignore_for_file: annotate_overrides
+
 part of 'desktop_shell.dart';
 
-class _AppCopy {
+class _AppCopy implements WorkspaceCopy {
   const _AppCopy(this.language);
 
   final AppLanguage language;

@@ -6,6 +6,9 @@ import 'src/desktop_shell.dart';
 export 'src/app_preferences.dart';
 export 'src/app_persistence.dart';
 export 'src/app_runtime.dart';
+export 'src/desktop_design.dart';
+export 'src/desktop_primitives.dart';
+export 'src/workspace_feature.dart';
 export 'src/desktop_shell.dart';
 
 Future<void> main() async {

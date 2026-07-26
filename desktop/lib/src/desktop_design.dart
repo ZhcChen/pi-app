@@ -1,7 +1,10 @@
-part of 'desktop_shell.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
-class _AppPalette {
-  const _AppPalette({
+import 'app_preferences.dart';
+
+class DesktopPalette {
+  const DesktopPalette({
     required this.canvas,
     required this.sidebar,
     required this.settingsSidebar,
@@ -46,7 +49,7 @@ class _AppPalette {
   final Color textMuted;
 }
 
-const _darkPalette = _AppPalette(
+const _darkDesktopPalette = DesktopPalette(
   canvas: Color(0xFF181818),
   sidebar: Color(0xFF242424),
   settingsSidebar: Color(0xFF252525),
@@ -69,7 +72,7 @@ const _darkPalette = _AppPalette(
   textMuted: Color(0xFF8C8C8C),
 );
 
-const _lightPalette = _AppPalette(
+const _lightDesktopPalette = DesktopPalette(
   canvas: Color(0xFFF5F7FA),
   sidebar: Color(0xFFEDEFF3),
   settingsSidebar: Color(0xFFF0F2F5),
@@ -92,16 +95,18 @@ const _lightPalette = _AppPalette(
   textMuted: Color(0xFF8792A0),
 );
 
-_AppPalette _paletteForBrightness(Brightness brightness) {
-  return brightness == Brightness.dark ? _darkPalette : _lightPalette;
+DesktopPalette _paletteForBrightness(Brightness brightness) {
+  return brightness == Brightness.dark
+      ? _darkDesktopPalette
+      : _lightDesktopPalette;
 }
 
-extension _AppThemeLookup on BuildContext {
-  _AppPalette get appPalette =>
+extension DesktopThemeContext on BuildContext {
+  DesktopPalette get desktopPalette =>
       _paletteForBrightness(Theme.of(this).brightness);
 }
 
-ThemeMode _themeModeForPreference(AppThemeMode themeMode) {
+ThemeMode desktopThemeModeForPreference(AppThemeMode themeMode) {
   return switch (themeMode) {
     AppThemeMode.dark => ThemeMode.dark,
     AppThemeMode.light => ThemeMode.light,
@@ -109,7 +114,7 @@ ThemeMode _themeModeForPreference(AppThemeMode themeMode) {
   };
 }
 
-ThemeData _buildAppTheme(Brightness brightness, AppPreferences preferences) {
+ThemeData buildDesktopTheme(Brightness brightness, AppPreferences preferences) {
   final palette = _paletteForBrightness(brightness);
   final scheme = ColorScheme.fromSeed(
     seedColor: palette.accent,
@@ -132,176 +137,176 @@ ThemeData _buildAppTheme(Brightness brightness, AppPreferences preferences) {
   );
 }
 
-class _AppTypography {
-  static TextStyle brandTitle(_AppPalette palette) => TextStyle(
+class DesktopTypography {
+  static TextStyle brandTitle(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.15,
   );
 
-  static TextStyle brandAccentTitle(_AppPalette palette) => TextStyle(
+  static TextStyle brandAccentTitle(DesktopPalette palette) => TextStyle(
     color: palette.accent,
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.15,
   );
 
-  static TextStyle heroTitle(_AppPalette palette) => TextStyle(
+  static TextStyle heroTitle(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 24,
     fontWeight: FontWeight.w400,
     height: 1.14,
   );
 
-  static TextStyle promptTitle(_AppPalette palette) => TextStyle(
+  static TextStyle promptTitle(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.35,
   );
 
-  static TextStyle composerInput(_AppPalette palette) => TextStyle(
+  static TextStyle composerInput(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
   );
 
-  static TextStyle composerHint(_AppPalette palette) => TextStyle(
+  static TextStyle composerHint(DesktopPalette palette) => TextStyle(
     color: palette.textMuted,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
   );
 
-  static TextStyle composerTag(_AppPalette palette) => TextStyle(
+  static TextStyle composerTag(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle controlLabel(_AppPalette palette) => TextStyle(
+  static TextStyle controlLabel(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle sidebarItem(_AppPalette palette) => TextStyle(
+  static TextStyle sidebarItem(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle projectItem(_AppPalette palette) => TextStyle(
+  static TextStyle projectItem(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle sectionLabel(_AppPalette palette) => TextStyle(
+  static TextStyle sectionLabel(DesktopPalette palette) => TextStyle(
     color: palette.textMuted,
     fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsBackLabel(_AppPalette palette) => TextStyle(
+  static TextStyle settingsBackLabel(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsSearchText(_AppPalette palette) => TextStyle(
+  static TextStyle settingsSearchText(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsSearchHint(_AppPalette palette) => TextStyle(
+  static TextStyle settingsSearchHint(DesktopPalette palette) => TextStyle(
     color: palette.textMuted,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsGroupLabel(_AppPalette palette) => TextStyle(
+  static TextStyle settingsGroupLabel(DesktopPalette palette) => TextStyle(
     color: palette.textMuted,
     fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsNavItem(_AppPalette palette) => TextStyle(
+  static TextStyle settingsNavItem(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle settingsPageTitle(_AppPalette palette) => TextStyle(
+  static TextStyle settingsPageTitle(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 22,
     fontWeight: FontWeight.w500,
     height: 1.15,
   );
 
-  static TextStyle settingsSectionTitle(_AppPalette palette) => TextStyle(
+  static TextStyle settingsSectionTitle(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
-  static TextStyle settingsRowTitle(_AppPalette palette) => TextStyle(
+  static TextStyle settingsRowTitle(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
-  static TextStyle settingsRowDescription(_AppPalette palette) => TextStyle(
+  static TextStyle settingsRowDescription(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
-  static TextStyle settingsDropdownValue(_AppPalette palette) => TextStyle(
+  static TextStyle settingsDropdownValue(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
-  static TextStyle placeholderBody(_AppPalette palette) => TextStyle(
+  static TextStyle placeholderBody(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
-  static TextStyle previewHeadline(_AppPalette palette) => TextStyle(
+  static TextStyle previewHeadline(DesktopPalette palette) => TextStyle(
     color: palette.textStrong,
     fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.25,
   );
 
-  static TextStyle previewBody(_AppPalette palette) => TextStyle(
+  static TextStyle previewBody(DesktopPalette palette) => TextStyle(
     color: palette.textSecondary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
-  static TextStyle codePreview(_AppPalette palette) => TextStyle(
+  static TextStyle codePreview(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
@@ -309,7 +314,7 @@ class _AppTypography {
   );
 }
 
-TextTheme _buildAppTextTheme(_AppPalette palette, Brightness brightness) {
+TextTheme _buildAppTextTheme(DesktopPalette palette, Brightness brightness) {
   final typography = Typography.material2021(platform: defaultTargetPlatform);
   final base = brightness == Brightness.dark
       ? typography.white
@@ -371,7 +376,7 @@ VisualDensity _visualDensityForDensity(AppInterfaceDensity density) {
   };
 }
 
-double _textScaleForUiScale(AppUiScale scale) {
+double desktopTextScaleForUiScale(AppUiScale scale) {
   return switch (scale) {
     AppUiScale.small => 0.94,
     AppUiScale.regular => 1.0,
@@ -379,7 +384,7 @@ double _textScaleForUiScale(AppUiScale scale) {
   };
 }
 
-double _densityValue(
+double desktopDensityValue(
   AppInterfaceDensity density, {
   required double compact,
   required double comfortable,
@@ -396,7 +401,7 @@ String _systemMonoFontFamily() {
   };
 }
 
-TextStyle _withCodeFont(TextStyle base, AppCodeFont codeFont) {
+TextStyle desktopWithCodeFont(TextStyle base, AppCodeFont codeFont) {
   return switch (codeFont) {
     AppCodeFont.jetBrainsMono => base.copyWith(fontFamily: _codeFontFamily),
     AppCodeFont.systemMono => base.copyWith(
@@ -408,4 +413,4 @@ TextStyle _withCodeFont(TextStyle base, AppCodeFont codeFont) {
 
 const _appFontFamily = 'Inter';
 const _codeFontFamily = 'JetBrainsMono';
-const _piDarkMarkAsset = '../assets/branding/source/dark/pi-mark.svg';
+const piDarkMarkAsset = '../assets/branding/source/dark/pi-mark.svg';

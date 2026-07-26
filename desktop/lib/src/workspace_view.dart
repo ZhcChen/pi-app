@@ -1,17 +1,22 @@
-part of 'desktop_shell.dart';
+part of 'workspace_feature.dart';
 
-class _Sidebar extends StatelessWidget {
-  const _Sidebar({
+class WorkspaceSidebar extends StatelessWidget {
+  const WorkspaceSidebar({
     required this.copy,
+    required this.actions,
+    required this.projects,
     required this.preferences,
     required this.selectedActionIndex,
     required this.selectedProjectIndex,
     required this.onActionSelected,
     required this.onProjectSelected,
     required this.onOpenSettings,
+    super.key,
   });
 
-  final _AppCopy copy;
+  final WorkspaceCopy copy;
+  final List<WorkspaceAction> actions;
+  final List<WorkspaceProjectGroup> projects;
   final AppPreferences preferences;
   final int selectedActionIndex;
   final int selectedProjectIndex;
@@ -21,17 +26,16 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
-    final actions = _buildPrimaryActions(copy);
+    final palette = context.desktopPalette;
     final density = preferences.interfaceDensity;
 
     return Container(
       color: palette.sidebar,
       padding: EdgeInsets.fromLTRB(
         10,
-        _densityValue(density, compact: 14, comfortable: 18),
+        desktopDensityValue(density, compact: 14, comfortable: 18),
         10,
-        _densityValue(density, compact: 8, comfortable: 10),
+        desktopDensityValue(density, compact: 8, comfortable: 10),
       ),
       child: Column(
         children: [
@@ -43,11 +47,11 @@ class _Sidebar extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: 'Pi ',
-                        style: _AppTypography.brandTitle(palette),
+                        style: DesktopTypography.brandTitle(palette),
                       ),
                       TextSpan(
                         text: 'App',
-                        style: _AppTypography.brandAccentTitle(palette),
+                        style: DesktopTypography.brandAccentTitle(palette),
                       ),
                     ],
                   ),
@@ -67,7 +71,7 @@ class _Sidebar extends StatelessWidget {
             ],
           ),
           SizedBox(
-            height: _densityValue(density, compact: 12, comfortable: 14),
+            height: desktopDensityValue(density, compact: 12, comfortable: 14),
           ),
           for (var i = 0; i < actions.length; i++)
             _SidebarActionTile(
@@ -77,7 +81,7 @@ class _Sidebar extends StatelessWidget {
               onTap: () => onActionSelected(i),
             ),
           SizedBox(
-            height: _densityValue(density, compact: 14, comfortable: 18),
+            height: desktopDensityValue(density, compact: 14, comfortable: 18),
           ),
           _SectionLabel(label: copy.projectsLabel),
           const SizedBox(height: 8),
@@ -85,17 +89,17 @@ class _Sidebar extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                for (var i = 0; i < _projects.length; i++)
+                for (var i = 0; i < projects.length; i++)
                   Padding(
                     padding: EdgeInsets.only(
-                      bottom: _densityValue(
+                      bottom: desktopDensityValue(
                         density,
                         compact: 6,
                         comfortable: 8,
                       ),
                     ),
                     child: _ProjectTile(
-                      project: _projects[i],
+                      project: projects[i],
                       interfaceDensity: density,
                       selected: i == selectedProjectIndex,
                       onTap: () => onProjectSelected(i),
@@ -112,7 +116,7 @@ class _Sidebar extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _DesktopTextActionButton(
+                child: DesktopTextActionButton(
                   buttonKey: const Key('open-settings-button'),
                   onPressed: onOpenSettings,
                   icon: const Icon(Icons.settings_outlined, size: 18),
@@ -120,7 +124,7 @@ class _Sidebar extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   padding: EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: _densityValue(
+                    vertical: desktopDensityValue(
                       density,
                       compact: 10,
                       comfortable: 12,
@@ -128,7 +132,7 @@ class _Sidebar extends StatelessWidget {
                   ),
                 ),
               ),
-              _DesktopIconActionButton(
+              DesktopIconActionButton(
                 onPressed: () {},
                 tooltip: copy.downloadRuntimeTooltip,
                 icon: const Icon(Icons.download_rounded, size: 18),
@@ -143,23 +147,23 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
-class _WorkspaceCanvas extends StatelessWidget {
-  const _WorkspaceCanvas({
+class WorkspaceCanvas extends StatelessWidget {
+  const WorkspaceCanvas({
     required this.copy,
     required this.preferences,
     required this.project,
+    required this.promptCards,
+    super.key,
   });
 
-  final _AppCopy copy;
+  final WorkspaceCopy copy;
   final AppPreferences preferences;
-  final _ProjectGroup project;
+  final WorkspaceProjectGroup project;
+  final List<WorkspacePromptCard> promptCards;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
-    final promptCards = preferences.suggestedPrompts
-        ? _buildPromptCards(copy)
-        : const <_PromptCard>[];
+    final palette = context.desktopPalette;
 
     return ColoredBox(
       color: palette.canvas,
@@ -204,7 +208,7 @@ class _WorkspaceCanvas extends StatelessWidget {
                                       ],
                                     ),
                                     textAlign: TextAlign.center,
-                                    style: _AppTypography.heroTitle(palette),
+                                    style: DesktopTypography.heroTitle(palette),
                                   ),
                                   if (promptCards.isNotEmpty) ...[
                                     const SizedBox(height: 34),

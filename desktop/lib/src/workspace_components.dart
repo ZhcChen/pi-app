@@ -1,4 +1,4 @@
-part of 'desktop_shell.dart';
+part of 'workspace_feature.dart';
 
 // Workspace primitives live here so the page file can focus on shell composition.
 class _WorkspaceComponentSpec {
@@ -19,7 +19,7 @@ class _HeroMark extends StatelessWidget {
   Widget build(BuildContext context) {
     return Opacity(
       opacity: 0.4,
-      child: SvgPicture.asset(_piDarkMarkAsset, width: 58, height: 58),
+      child: SvgPicture.asset(piDarkMarkAsset, width: 58, height: 58),
     );
   }
 }
@@ -28,13 +28,13 @@ class _HeroMark extends StatelessWidget {
 class _PromptCardTile extends StatelessWidget {
   const _PromptCardTile({required this.card});
 
-  final _PromptCard card;
+  final WorkspacePromptCard card;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
-    return _DesktopSurface(
+    return DesktopSurface(
       color: palette.panel,
       radius: _WorkspaceComponentSpec.promptCardRadius,
       width: _WorkspaceComponentSpec.promptCardWidth,
@@ -45,7 +45,7 @@ class _PromptCardTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Icon(card.icon, size: 17, color: card.color),
-          Text(card.title, style: _AppTypography.promptTitle(palette)),
+          Text(card.title, style: DesktopTypography.promptTitle(palette)),
         ],
       ),
     );
@@ -60,18 +60,18 @@ class _Composer extends StatelessWidget {
     required this.project,
   });
 
-  final _AppCopy copy;
+  final WorkspaceCopy copy;
   final AppPreferences preferences;
-  final _ProjectGroup project;
+  final WorkspaceProjectGroup project;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
     final density = preferences.interfaceDensity;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
-      child: _DesktopSurface(
+      child: DesktopSurface(
         color: palette.composerShell,
         radius: _WorkspaceComponentSpec.composerShellRadius,
         boxShadow: const [
@@ -87,14 +87,18 @@ class _Composer extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 18,
-                _densityValue(density, compact: 10, comfortable: 12),
+                desktopDensityValue(density, compact: 10, comfortable: 12),
                 18,
                 0,
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Wrap(
-                  spacing: _densityValue(density, compact: 12, comfortable: 16),
+                  spacing: desktopDensityValue(
+                    density,
+                    compact: 12,
+                    comfortable: 16,
+                  ),
                   runSpacing: 8,
                   children: [
                     _ComposerTag(
@@ -116,35 +120,35 @@ class _Composer extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 14,
-                _densityValue(density, compact: 8, comfortable: 10),
+                desktopDensityValue(density, compact: 8, comfortable: 10),
                 14,
                 0,
               ),
-              child: _DesktopSurface(
+              child: DesktopSurface(
                 color: palette.composerInput,
                 radius: _WorkspaceComponentSpec.composerInputRadius,
                 borderColor: Colors.transparent,
                 padding: EdgeInsets.fromLTRB(
                   16,
-                  _densityValue(density, compact: 14, comfortable: 16),
+                  desktopDensityValue(density, compact: 14, comfortable: 16),
                   16,
-                  _densityValue(density, compact: 10, comfortable: 12),
+                  desktopDensityValue(density, compact: 10, comfortable: 12),
                 ),
                 child: Column(
                   children: [
                     TextField(
                       minLines: 3,
                       maxLines: 3,
-                      style: _withCodeFont(
-                        _AppTypography.composerInput(palette),
+                      style: desktopWithCodeFont(
+                        DesktopTypography.composerInput(palette),
                         preferences.codeFont,
                       ),
                       decoration: InputDecoration(
                         isCollapsed: true,
                         border: InputBorder.none,
                         hintText: copy.composerHint,
-                        hintStyle: _withCodeFont(
-                          _AppTypography.composerHint(palette),
+                        hintStyle: desktopWithCodeFont(
+                          DesktopTypography.composerHint(palette),
                           preferences.codeFont,
                         ),
                       ),
@@ -152,7 +156,7 @@ class _Composer extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _DesktopTextActionButton(
+                        DesktopTextActionButton(
                           onPressed: () {},
                           icon: const Icon(Icons.add_rounded, size: 18),
                           label: copy.customLabel,
@@ -165,18 +169,18 @@ class _Composer extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.right,
-                            style: _AppTypography.sectionLabel(palette),
+                            style: DesktopTypography.sectionLabel(palette),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _DesktopTextActionButton(
+                        DesktopTextActionButton(
                           onPressed: () {},
                           iconAlignment: IconAlignment.end,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded),
                           label: copy.modelPresetLabel,
                         ),
                         const SizedBox(width: 8),
-                        _DesktopIconActionButton(
+                        DesktopIconActionButton(
                           onPressed: () {},
                           tooltip: copy.submitTaskTooltip,
                           icon: const Icon(Icons.arrow_upward_rounded),
@@ -190,7 +194,11 @@ class _Composer extends StatelessWidget {
               ),
             ),
             SizedBox(
-              height: _densityValue(density, compact: 12, comfortable: 14),
+              height: desktopDensityValue(
+                density,
+                compact: 12,
+                comfortable: 14,
+              ),
             ),
           ],
         ),
@@ -207,14 +215,14 @@ class _ComposerTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 15, color: palette.textPrimary),
         const SizedBox(width: 6),
-        Text(label, style: _AppTypography.composerTag(palette)),
+        Text(label, style: DesktopTypography.composerTag(palette)),
       ],
     );
   }
@@ -224,16 +232,16 @@ class _ComposerTag extends StatelessWidget {
 class _WorkspaceBottomPanel extends StatelessWidget {
   const _WorkspaceBottomPanel({required this.copy, required this.preferences});
 
-  final _AppCopy copy;
+  final WorkspaceCopy copy;
   final AppPreferences preferences;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
-      child: _DesktopSurface(
+      child: DesktopSurface(
         key: const Key('workspace-bottom-panel'),
         color: palette.panel,
         radius: _WorkspaceComponentSpec.bottomPanelRadius,
@@ -244,7 +252,7 @@ class _WorkspaceBottomPanel extends StatelessWidget {
           children: [
             Text(
               copy.executionDefaultsTitle,
-              style: _AppTypography.settingsGroupLabel(palette),
+              style: DesktopTypography.settingsGroupLabel(palette),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -292,7 +300,7 @@ class _WorkspaceStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _DesktopStatusPill(icon: icon, label: label);
+    return DesktopStatusPill(icon: icon, label: label);
   }
 }
 
@@ -305,21 +313,25 @@ class _SidebarActionTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final _SidebarAction action;
+  final WorkspaceAction action;
   final AppInterfaceDensity interfaceDensity;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: _DesktopSelectionTile(
+      child: DesktopSelectionTile(
         selected: selected,
         onTap: onTap,
-        height: _densityValue(interfaceDensity, compact: 34, comfortable: 38),
+        height: desktopDensityValue(
+          interfaceDensity,
+          compact: 34,
+          comfortable: 38,
+        ),
         radius: _WorkspaceComponentSpec.sidebarTileRadius,
         animated: false,
         child: Padding(
@@ -331,7 +343,7 @@ class _SidebarActionTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   action.label,
-                  style: _AppTypography.sidebarItem(palette),
+                  style: DesktopTypography.sidebarItem(palette),
                 ),
               ),
             ],
@@ -351,16 +363,16 @@ class _ProjectTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final _ProjectGroup project;
+  final WorkspaceProjectGroup project;
   final AppInterfaceDensity interfaceDensity;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
-    return _DesktopSelectionTile(
+    return DesktopSelectionTile(
       selected: selected,
       radius: _WorkspaceComponentSpec.projectTileRadius,
       animated: false,
@@ -374,7 +386,7 @@ class _ProjectTile extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: 10,
-                vertical: _densityValue(
+                vertical: desktopDensityValue(
                   interfaceDensity,
                   compact: 5,
                   comfortable: 7,
@@ -391,7 +403,7 @@ class _ProjectTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       project.name,
-                      style: _AppTypography.sidebarItem(palette),
+                      style: DesktopTypography.sidebarItem(palette),
                     ),
                   ),
                 ],
@@ -428,15 +440,19 @@ class _ProjectItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return SizedBox(
-      height: _densityValue(interfaceDensity, compact: 30, comfortable: 34),
+      height: desktopDensityValue(
+        interfaceDensity,
+        compact: 30,
+        comfortable: 34,
+      ),
       child: Row(
         children: [
           const SizedBox(width: 2),
           Expanded(
-            child: Text(label, style: _AppTypography.projectItem(palette)),
+            child: Text(label, style: DesktopTypography.projectItem(palette)),
           ),
         ],
       ),
@@ -451,13 +467,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(label, style: _AppTypography.sectionLabel(palette)),
+        child: Text(label, style: DesktopTypography.sectionLabel(palette)),
       ),
     );
   }
@@ -470,13 +486,13 @@ class _CollapsedSectionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
+    final palette = context.desktopPalette;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
-          Text(label, style: _AppTypography.sectionLabel(palette)),
+          Text(label, style: DesktopTypography.sectionLabel(palette)),
           const SizedBox(width: 4),
           Icon(Icons.chevron_right_rounded, size: 16, color: palette.textMuted),
         ],

@@ -16,11 +16,13 @@
 
 ## 开发约定
 
-- 字体与文字 token：`desktop/lib/src/app_theme.dart`
+- 字体与文字 token：`desktop/lib/src/desktop_design.dart`
 - 公开偏好模型：`desktop/lib/src/app_preferences.dart`
 - 偏好持久化：`desktop/lib/src/app_persistence.dart`
 - 运行时桥接：`desktop/lib/src/app_runtime.dart`
-- shared desktop primitives：`desktop/lib/src/ui_primitives.dart`
+- 共享 design helpers：`desktop/lib/src/desktop_design.dart`
+- shared desktop primitives：`desktop/lib/src/desktop_primitives.dart`
+- workspace feature root：`desktop/lib/src/workspace_feature.dart`
 - 设置页基础组件：`desktop/lib/src/settings_components.dart`
 - 工作区基础组件：`desktop/lib/src/workspace_components.dart`
 - settings 组件说明：`docs/solutions/2026-07-26-desktop-settings-components.md`
@@ -30,9 +32,11 @@
 
 当前 `desktop/lib/` 采用 hybrid 结构：
 - `main.dart` 负责启动入口与对外导出公开类型
-- `desktop_shell.dart` 作为当前 UI library root，挂接仍在 `part` 层的 shell / settings / workspace / theme / primitives 文件
+- `desktop_shell.dart` 作为当前 app shell / settings library root，挂接仍在 `part` 层的 shell、settings、copy、app-level data 文件
+- `workspace_feature.dart` 作为独立的 workspace feature root，挂接 `workspace_view.dart` 与 `workspace_components.dart`
+- `desktop_design.dart` 与 `desktop_primitives.dart` 提供跨 shell / workspace 共享的 design helpers 与基础 UI primitives
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
-- `settings_view.dart`、`workspace_view.dart`、`app_copy.dart`、`app_theme.dart` 等仍大量共享私有 UI helper 的文件，继续保留在 `desktop_shell.dart` 的 `part` 层，等后续 feature module 边界更清晰后再迁
+- `settings_view.dart`、`settings_components.dart`、`app_copy.dart`、app-level settings data 仍保留在 `desktop_shell.dart` 的 `part` 层，等 settings feature root 边界更清晰后再迁
 
 设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。
 

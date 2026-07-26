@@ -23,37 +23,6 @@ enum _SettingsCategory {
   archivedTasks,
 }
 
-class _SidebarAction {
-  const _SidebarAction({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-}
-
-class _ProjectGroup {
-  const _ProjectGroup({
-    required this.name,
-    required this.branch,
-    required this.items,
-  });
-
-  final String name;
-  final String branch;
-  final List<String> items;
-}
-
-class _PromptCard {
-  const _PromptCard({
-    required this.title,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final IconData icon;
-  final Color color;
-}
-
 class _SettingsNavSection {
   const _SettingsNavSection({required this.label, required this.items});
 

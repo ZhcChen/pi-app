@@ -19,8 +19,10 @@
 
 ## 关键结论
 
+- 工作区 feature root 统一放在 `desktop/lib/src/workspace_feature.dart`
 - 工作区基础组件统一放在 `desktop/lib/src/workspace_components.dart`
 - 页面容器和组合逻辑保留在 `desktop/lib/src/workspace_view.dart`
+- `desktop_shell.dart` 只负责注入 `WorkspaceCopy`、工作区数据和应用级偏好，不再直接承载工作区内部组件实现
 - 新增或调整工作区基础元素时，优先在 `workspace_components.dart` 中扩展，而不是把新控件直接堆回页面文件
 - 工作区常用尺寸收口到 `_WorkspaceComponentSpec`，避免后续继续散写魔法数字
 
@@ -43,10 +45,11 @@
 ## 验证 / 证据
 
 - 命令：`cd desktop && flutter analyze`、`cd desktop && flutter test`
-- 文件：`desktop/lib/src/workspace_view.dart`、`desktop/lib/src/workspace_components.dart`
-- 输出或观察：页面壳层与工作区基础组件职责分离，后续细化时可以直接定位到独立组件文件
+- 文件：`desktop/lib/src/workspace_feature.dart`、`desktop/lib/src/workspace_view.dart`、`desktop/lib/src/workspace_components.dart`
+- 输出或观察：工作区已形成独立 feature root，页面壳层与工作区基础组件职责分离，`desktop_shell.dart` 只保留状态编排与数据注入
 
 ## 后续事项
 
 - 若后续把设置页和工作区的部分基础控件进一步统一，可继续抽成更上层的 `desktop` primitives
 - 如果未来引入真实会话列表和消息流，可以按同样方式拆出 `conversation_components.dart`
+- 后续如继续按 feature 迁移，可优先把 settings 也收成与 `workspace_feature.dart` 对称的 feature root

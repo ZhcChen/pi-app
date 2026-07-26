@@ -1,44 +1,44 @@
 part of 'desktop_shell.dart';
 
-List<_SidebarAction> _buildPrimaryActions(_AppCopy copy) {
+List<WorkspaceAction> _buildPrimaryActions(_AppCopy copy) {
   return [
-    _SidebarAction(
+    WorkspaceAction(
       label: copy.isChinese ? '新任务' : 'New task',
       icon: Icons.edit_outlined,
     ),
-    _SidebarAction(
+    WorkspaceAction(
       label: copy.isChinese ? '计划任务' : 'Scheduled',
       icon: Icons.schedule_outlined,
     ),
-    _SidebarAction(
+    WorkspaceAction(
       label: copy.isChinese ? '插件' : 'Plugins',
       icon: Icons.extension_outlined,
     ),
-    _SidebarAction(
+    WorkspaceAction(
       label: copy.isChinese ? '拉取请求' : 'Pull requests',
       icon: Icons.call_split_outlined,
     ),
   ];
 }
 
-List<_PromptCard> _buildPromptCards(_AppCopy copy) {
+List<WorkspacePromptCard> _buildPromptCards(_AppCopy copy) {
   return [
-    _PromptCard(
+    WorkspacePromptCard(
       title: copy.promptExplore,
       icon: Icons.travel_explore_outlined,
       color: const Color(0xFF3CA4FF),
     ),
-    _PromptCard(
+    WorkspacePromptCard(
       title: copy.promptBuild,
       icon: Icons.auto_fix_high_outlined,
       color: const Color(0xFFB57BFF),
     ),
-    _PromptCard(
+    WorkspacePromptCard(
       title: copy.promptReview,
       icon: Icons.sync_alt_rounded,
       color: const Color(0xFF39D273),
     ),
-    _PromptCard(
+    WorkspacePromptCard(
       title: copy.promptFix,
       icon: Icons.local_fire_department_outlined,
       color: const Color(0xFFFF8A3C),
@@ -188,16 +188,20 @@ List<_SettingsNavSection> _filterSettingsSections(
   return filtered;
 }
 
-const _projects = [
-  _ProjectGroup(
+const List<WorkspaceProjectGroup> _projects = [
+  WorkspaceProjectGroup(
     name: 'pi-app',
     branch: 'main',
     items: ['desktop shell redesign', 'runtime bridge', 'branding assets'],
   ),
-  _ProjectGroup(
+  WorkspaceProjectGroup(
     name: 'yuance',
     branch: 'feature/ui',
     items: ['analyze project', 'analyze project', 'analyze project'],
   ),
-  _ProjectGroup(name: 'novel-1', branch: 'local', items: ['draft scene']),
+  WorkspaceProjectGroup(
+    name: 'novel-1',
+    branch: 'local',
+    items: ['draft scene'],
+  ),
 ];

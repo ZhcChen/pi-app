@@ -83,6 +83,24 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：文档明确 `main.dart`、`desktop_shell.dart` 与 core import 模块的职责边界
 
+### 单元 10
+
+- 目标：将共享 design helpers 与 desktop primitives 迁为 import 模块
+- 涉及文件 / 模块：`desktop/lib/src/desktop_design.dart`、`desktop/lib/src/desktop_primitives.dart`、`desktop/lib/src/desktop_shell.dart`
+- 完成标准：主题、排版、density、code font 与 shared primitives 不再依赖 shell `part` 链
+
+### 单元 11
+
+- 目标：将 workspace 收拢为独立 feature root
+- 涉及文件 / 模块：`desktop/lib/src/workspace_feature.dart`、`desktop/lib/src/workspace_view.dart`、`desktop/lib/src/workspace_components.dart`、`desktop/lib/src/desktop_app.dart`
+- 完成标准：workspace 通过公开 copy contract 与数据模型接收注入，不再挂在 `desktop_shell.dart` 下
+
+### 单元 12
+
+- 目标：更新 workspace feature root 与 hybrid modularization 文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：文档明确 `desktop_shell.dart`、`workspace_feature.dart` 与 shared UI foundation 的职责边界
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`
