@@ -53,6 +53,24 @@
 - 涉及文件 / 模块：`desktop/test/widget_test.dart`
 - 完成标准：`flutter analyze`、`flutter test`、`flutter build macos --debug` 通过
 
+### 单元 5
+
+- 目标：将公开偏好模型独立为 import 模块
+- 涉及文件 / 模块：`desktop/lib/src/app_preferences.dart`、`desktop/lib/src/app_models.dart`
+- 完成标准：`AppPreferences` 与公开枚举不再依赖 `part` 链路，仍可被测试与应用入口复用
+
+### 单元 6
+
+- 目标：将持久化与运行时桥接迁为 import/export 模块
+- 涉及文件 / 模块：`desktop/lib/main.dart`、`desktop/lib/src/app_persistence.dart`、`desktop/lib/src/app_runtime.dart`
+- 完成标准：`main.dart` 通过 `import/export` 暴露 core 类型，`app_persistence.dart` 与 `app_runtime.dart` 不再使用 `part of`
+
+### 单元 7
+
+- 目标：补充 import-based modularization 边界文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：明确记录当前 hybrid 结构，以及哪些模块继续保留在 `part` 层
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`

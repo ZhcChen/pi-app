@@ -1,4 +1,6 @@
-part of '../main.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
+import 'app_preferences.dart';
 
 abstract class DesktopRuntimeController {
   Future<void> sync(AppPreferences preferences);

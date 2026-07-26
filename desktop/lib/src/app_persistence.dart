@@ -1,4 +1,7 @@
-part of '../main.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'app_preferences.dart';
 
 abstract class DesktopPreferencesStore {
   Future<AppPreferences> loadPreferences();
