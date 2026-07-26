@@ -8,6 +8,14 @@
   - `docs/plans/2026-07-26-desktop-follow-up-roadmap.md`
   - `docs/solutions/2026-07-26-pi-integration-modes.md`
 
+## 当前优先切片
+
+在主功能链路正式进入 `pi-host` 之前，先处理一条更靠前的设置侧任务：
+
+- `docs/plans/2026-07-26-desktop-pi-config-center.md`
+
+这条任务的优先级高于 host spike 的直接 UI 接线，因为它先把 `pi` 的全局配置面收进 GUI：模型偏好、全局系统提示词、追加系统提示词，以及全局 `AGENTS.md`。
+
 ## 目标
 
 这个任务完成后，`desktop` 必须从“界面壳 + 设置 + 若干桥接能力”进入“可真实使用的 `pi` GUI client”状态，至少具备：
