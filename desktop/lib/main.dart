@@ -16,6 +16,7 @@ part 'src/app_runtime.dart';
 part 'src/desktop_app.dart';
 part 'src/workspace_view.dart';
 part 'src/settings_view.dart';
+part 'src/settings_components.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -528,7 +528,7 @@ class _WorkspaceBottomPanel extends StatelessWidget {
       child: Container(
         key: const Key('workspace-bottom-panel'),
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
           color: palette.panel,
           borderRadius: BorderRadius.circular(18),
@@ -590,7 +590,7 @@ class _WorkspaceStatusPill extends StatelessWidget {
     final palette = context.appPalette;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: palette.settingsField,
         borderRadius: BorderRadius.circular(999),
@@ -599,7 +599,7 @@ class _WorkspaceStatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: palette.textSecondary),
+          Icon(icon, size: 13, color: palette.textSecondary),
           const SizedBox(width: 6),
           Text(label, style: _AppTypography.controlLabel(palette)),
         ],
@@ -631,7 +631,7 @@ class _SidebarActionTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          height: _densityValue(interfaceDensity, compact: 36, comfortable: 40),
+          height: _densityValue(interfaceDensity, compact: 34, comfortable: 38),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: selected ? palette.selection : Colors.transparent,
@@ -639,8 +639,8 @@ class _SidebarActionTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(action.icon, size: 18, color: palette.textSecondary),
-              const SizedBox(width: 12),
+              Icon(action.icon, size: 17, color: palette.textSecondary),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   action.label,
@@ -687,18 +687,18 @@ class _ProjectTile extends StatelessWidget {
                 horizontal: 10,
                 vertical: _densityValue(
                   interfaceDensity,
-                  compact: 6,
-                  comfortable: 8,
+                  compact: 5,
+                  comfortable: 7,
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.folder_outlined,
-                    size: 18,
+                    size: 17,
                     color: palette.textSecondary,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 9),
                   Expanded(
                     child: Text(
                       project.name,

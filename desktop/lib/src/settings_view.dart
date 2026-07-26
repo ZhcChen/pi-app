@@ -55,11 +55,11 @@ class _SettingsView extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 318,
+          width: 306,
           color: palette.settingsSidebar,
           padding: EdgeInsets.fromLTRB(
             12,
-            _densityValue(density, compact: 16, comfortable: 20),
+            _densityValue(density, compact: 14, comfortable: 18),
             10,
             12,
           ),
@@ -70,18 +70,19 @@ class _SettingsView extends StatelessWidget {
                 child: TextButton.icon(
                   key: const Key('back-to-app-button'),
                   onPressed: onBackToApp,
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 17),
                   label: Text(copy.backToAppLabel),
                   style: TextButton.styleFrom(
                     foregroundColor: palette.textSecondary,
                     textStyle: _AppTypography.settingsBackLabel(palette),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 10,
+                      vertical: 8,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
               ),
@@ -93,7 +94,7 @@ class _SettingsView extends StatelessWidget {
                   isDense: true,
                   prefixIcon: Icon(
                     Icons.search_rounded,
-                    size: 18,
+                    size: 17,
                     color: palette.textMuted,
                   ),
                   hintText: copy.searchSettingsHint,
@@ -101,18 +102,18 @@ class _SettingsView extends StatelessWidget {
                   filled: true,
                   fillColor: palette.settingsField,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: palette.dividerLight),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: palette.dividerLight),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: palette.dividerStrong),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 9),
                 ),
               ),
               const SizedBox(height: 14),
@@ -801,12 +802,12 @@ class _PreviewSidebarItem extends StatelessWidget {
     final palette = context.appPalette;
 
     return Container(
-      height: 30,
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 28,
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9),
       decoration: BoxDecoration(
         color: selected ? palette.selection : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
       ),
       alignment: Alignment.centerLeft,
       child: Text(label, style: _AppTypography.sectionLabel(palette)),
@@ -837,8 +838,8 @@ class _SettingsPlaceholderContent extends StatelessWidget {
               _SettingsCard(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 22,
+                    horizontal: 18,
+                    vertical: 18,
                   ),
                   child: Text(
                     body,
@@ -848,391 +849,6 @@ class _SettingsPlaceholderContent extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsCategoryTile extends StatelessWidget {
-  const _SettingsCategoryTile({
-    required this.item,
-    required this.interfaceDensity,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final _SettingsNavItem item;
-  final AppInterfaceDensity interfaceDensity;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        height: _densityValue(interfaceDensity, compact: 30, comfortable: 34),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: selected ? palette.selection : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Icon(item.icon, size: 17, color: palette.textSecondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                item.label,
-                style: _AppTypography.settingsNavItem(palette),
-              ),
-            ),
-            if (item.external)
-              Icon(
-                Icons.north_east_rounded,
-                size: 14,
-                color: palette.textMuted,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsGroupLabel extends StatelessWidget {
-  const _SettingsGroupLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
-      child: Text(label, style: _AppTypography.settingsGroupLabel(palette)),
-    );
-  }
-}
-
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.panelRaised,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: palette.dividerLight),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _SettingsFieldBlock extends StatelessWidget {
-  const _SettingsFieldBlock({
-    required this.title,
-    required this.description,
-    required this.child,
-  });
-
-  final String title;
-  final String description;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: _AppTypography.settingsRowTitle(palette)),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            style: _AppTypography.settingsRowDescription(palette),
-          ),
-          const SizedBox(height: 14),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsSegmentedControl<T> extends StatelessWidget {
-  const _SettingsSegmentedControl({
-    required this.values,
-    required this.currentValue,
-    required this.labelBuilder,
-    required this.onChanged,
-  });
-
-  final List<T> values;
-  final T currentValue;
-  final String Function(T value) labelBuilder;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SegmentedButton<T>(
-        showSelectedIcon: false,
-        style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return palette.selection;
-            }
-            return palette.settingsField;
-          }),
-          foregroundColor: WidgetStateProperty.resolveWith((states) {
-            return states.contains(WidgetState.selected)
-                ? palette.textStrong
-                : palette.textSecondary;
-          }),
-          side: WidgetStateProperty.all(
-            BorderSide(color: palette.dividerLight),
-          ),
-        ),
-        segments: values
-            .map(
-              (value) => ButtonSegment<T>(
-                value: value,
-                label: Text(labelBuilder(value)),
-              ),
-            )
-            .toList(),
-        selected: {currentValue},
-        onSelectionChanged: (selection) {
-          if (selection.isNotEmpty) {
-            onChanged(selection.first);
-          }
-        },
-      ),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.interfaceDensity,
-    required this.title,
-    required this.description,
-    required this.trailing,
-  });
-
-  final AppInterfaceDensity interfaceDensity;
-  final String title;
-  final String description;
-  final Widget trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 520;
-        final verticalPadding = _densityValue(
-          interfaceDensity,
-          compact: 14,
-          comfortable: 16,
-        );
-
-        if (compact) {
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              verticalPadding,
-              18,
-              verticalPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: _AppTypography.settingsRowTitle(palette)),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: _AppTypography.settingsRowDescription(palette),
-                ),
-                const SizedBox(height: 12),
-                Align(alignment: Alignment.centerLeft, child: trailing),
-              ],
-            ),
-          );
-        }
-
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            verticalPadding,
-            18,
-            verticalPadding,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: _AppTypography.settingsRowTitle(palette),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: _AppTypography.settingsRowDescription(palette),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Align(alignment: Alignment.topRight, child: trailing),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  const _SettingsDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-    return Divider(height: 1, color: palette.dividerSoft);
-  }
-}
-
-class _SettingsActionButton extends StatelessWidget {
-  const _SettingsActionButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return FilledButton.tonal(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        foregroundColor: palette.textStrong,
-        backgroundColor: palette.settingsField,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        minimumSize: const Size(0, 38),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: _AppTypography.controlLabel(palette),
-      ),
-      child: Text(label),
-    );
-  }
-}
-
-class _SettingsSwitch extends StatelessWidget {
-  const _SettingsSwitch({
-    this.switchKey,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final Key? switchKey;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Switch(
-      key: switchKey,
-      value: value,
-      onChanged: onChanged,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      activeThumbColor: Colors.white,
-      activeTrackColor: palette.switchActive,
-      inactiveThumbColor: Colors.white,
-      inactiveTrackColor: palette.switchInactive,
-    );
-  }
-}
-
-class _SettingsDropdown<T> extends StatelessWidget {
-  const _SettingsDropdown({
-    this.dropdownKey,
-    required this.value,
-    required this.onChanged,
-    required this.entries,
-  });
-
-  final Key? dropdownKey;
-  final T value;
-  final ValueChanged<T> onChanged;
-  final List<_DropdownEntry<T>> entries;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Container(
-      key: dropdownKey,
-      constraints: const BoxConstraints(minWidth: 228),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: palette.settingsField,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.dividerLight),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isDense: true,
-          dropdownColor: palette.panelRaised,
-          borderRadius: BorderRadius.circular(14),
-          icon: Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: palette.textMuted,
-          ),
-          style: _AppTypography.settingsDropdownValue(palette),
-          onChanged: (next) {
-            if (next != null) {
-              onChanged(next);
-            }
-          },
-          items: entries
-              .map(
-                (entry) => DropdownMenuItem<T>(
-                  value: entry.value,
-                  child: Text(entry.label),
-                ),
-              )
-              .toList(),
         ),
       ),
     );

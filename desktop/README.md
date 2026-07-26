@@ -14,6 +14,14 @@
 - `linux/`、`macos/`、`windows/`：各桌面平台 runner
 - `test/`：基础 Widget 测试
 
+## 开发约定
+
+- 字体与文字 token：`desktop/lib/src/app_theme.dart`
+- 设置页基础组件：`desktop/lib/src/settings_components.dart`
+- 设置组件使用说明：`docs/solutions/2026-07-26-desktop-settings-components.md`
+
+设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。
+
 ## 常用命令
 
 ```bash

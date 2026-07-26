@@ -56,6 +56,18 @@
 - 涉及文件 / 模块：`desktop/test/widget_test.dart`
 - 完成标准：`flutter analyze`、`flutter test` 通过
 
+### 单元 5
+
+- 目标：继续收紧字号与表单控件尺寸
+- 涉及文件 / 模块：`desktop/lib/src/app_theme.dart`、`desktop/lib/src/settings_view.dart`、`desktop/lib/src/workspace_view.dart`
+- 完成标准：全局文字层级再收一档，`Switch`、下拉、按钮与状态胶囊尺寸更贴近桌面工具界面
+
+### 单元 6
+
+- 目标：整理设置页基础组件并补充开发文档
+- 涉及文件 / 模块：`desktop/lib/src/settings_components.dart`、`desktop/README.md`、`docs/solutions/**`
+- 完成标准：设置基础组件从页面实现中分离，并有清晰的组件使用说明
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`

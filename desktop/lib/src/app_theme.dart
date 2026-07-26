@@ -135,175 +135,175 @@ ThemeData _buildAppTheme(Brightness brightness, AppPreferences preferences) {
 class _AppTypography {
   static TextStyle brandTitle(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.15,
   );
 
   static TextStyle brandAccentTitle(_AppPalette palette) => TextStyle(
     color: palette.accent,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.15,
   );
 
   static TextStyle heroTitle(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 27,
+    fontSize: 24,
     fontWeight: FontWeight.w400,
     height: 1.14,
   );
 
   static TextStyle promptTitle(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.35,
   );
 
   static TextStyle composerInput(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
   );
 
   static TextStyle composerHint(_AppPalette palette) => TextStyle(
     color: palette.textMuted,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
   );
 
   static TextStyle composerTag(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle controlLabel(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle sidebarItem(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle projectItem(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle sectionLabel(_AppPalette palette) => TextStyle(
     color: palette.textMuted,
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsBackLabel(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsSearchText(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsSearchHint(_AppPalette palette) => TextStyle(
     color: palette.textMuted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsGroupLabel(_AppPalette palette) => TextStyle(
     color: palette.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsNavItem(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle settingsPageTitle(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: FontWeight.w500,
     height: 1.15,
   );
 
   static TextStyle settingsSectionTitle(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
   static TextStyle settingsRowTitle(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
   static TextStyle settingsRowDescription(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
   static TextStyle settingsDropdownValue(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.2,
   );
 
   static TextStyle placeholderBody(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
   static TextStyle previewHeadline(_AppPalette palette) => TextStyle(
     color: palette.textStrong,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.25,
   );
 
   static TextStyle previewBody(_AppPalette palette) => TextStyle(
     color: palette.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.45,
   );
 
   static TextStyle codePreview(_AppPalette palette) => TextStyle(
     color: palette.textPrimary,
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.55,
   );
@@ -319,37 +319,37 @@ TextTheme _buildAppTextTheme(_AppPalette palette, Brightness brightness) {
       .copyWith(
         bodyLarge: base.bodyLarge?.copyWith(
           color: palette.textPrimary,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w400,
           height: 1.35,
         ),
         bodyMedium: base.bodyMedium?.copyWith(
           color: palette.textPrimary,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w400,
           height: 1.35,
         ),
         bodySmall: base.bodySmall?.copyWith(
           color: palette.textSecondary,
-          fontSize: 11.5,
+          fontSize: 11,
           fontWeight: FontWeight.w400,
           height: 1.3,
         ),
         titleMedium: base.titleMedium?.copyWith(
           color: palette.textStrong,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           height: 1.25,
         ),
         labelLarge: base.labelLarge?.copyWith(
           color: palette.textSecondary,
-          fontSize: 12,
+          fontSize: 11.5,
           fontWeight: FontWeight.w400,
           height: 1.2,
         ),
         labelMedium: base.labelMedium?.copyWith(
           color: palette.textSecondary,
-          fontSize: 11.5,
+          fontSize: 11,
           fontWeight: FontWeight.w400,
           height: 1.2,
         ),
