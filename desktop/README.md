@@ -29,9 +29,10 @@
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
-- `main.dart` 负责启动入口、对外导出公开 core 类型、挂接仍在 `part` 层的 UI library
+- `main.dart` 负责启动入口与对外导出公开类型
+- `desktop_shell.dart` 作为当前 UI library root，挂接仍在 `part` 层的 shell / settings / workspace / theme / primitives 文件
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
-- `settings_view.dart`、`workspace_view.dart`、`app_copy.dart`、`app_theme.dart` 等仍大量共享私有 UI helper 的文件，继续保留在 `part` 层，等后续 feature module 边界更清晰后再迁
+- `settings_view.dart`、`workspace_view.dart`、`app_copy.dart`、`app_theme.dart` 等仍大量共享私有 UI helper 的文件，继续保留在 `desktop_shell.dart` 的 `part` 层，等后续 feature module 边界更清晰后再迁
 
 设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。
 

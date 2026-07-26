@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'desktop_shell.dart';
 
 // Workspace primitives live here so the page file can focus on shell composition.
 class _WorkspaceComponentSpec {

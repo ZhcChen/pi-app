@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'desktop_shell.dart';
 
 List<_SidebarAction> _buildPrimaryActions(_AppCopy copy) {
   return [

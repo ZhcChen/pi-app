@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'desktop_shell.dart';
 
 class _Sidebar extends StatelessWidget {
   const _Sidebar({

@@ -71,6 +71,18 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：明确记录当前 hybrid 结构，以及哪些模块继续保留在 `part` 层
 
+### 单元 8
+
+- 目标：将剩余 UI `part` 链迁到独立的 shell library root
+- 涉及文件 / 模块：`desktop/lib/main.dart`、`desktop/lib/src/desktop_shell.dart`、`desktop/lib/src/*.dart`
+- 完成标准：`main.dart` 只保留启动入口与导出，UI `part` 文件改为挂接 `desktop_shell.dart`
+
+### 单元 9
+
+- 目标：更新 hybrid modularization 文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：文档明确 `main.dart`、`desktop_shell.dart` 与 core import 模块的职责边界
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`

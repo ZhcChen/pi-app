@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'desktop_shell.dart';
 
 // Shared desktop UI primitives used by both settings and workspace surfaces.
 class _DesktopPrimitiveSpec {

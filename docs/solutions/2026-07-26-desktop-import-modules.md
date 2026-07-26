@@ -10,12 +10,13 @@
 
 ## 当前结构
 
-- 启动与 library 装配：`desktop/lib/main.dart`
+- 启动入口与公共导出：`desktop/lib/main.dart`
+- UI library root：`desktop/lib/src/desktop_shell.dart`
 - 独立 import/export core 模块：
   - `desktop/lib/src/app_preferences.dart`
   - `desktop/lib/src/app_persistence.dart`
   - `desktop/lib/src/app_runtime.dart`
-- 暂时保留 `part` 的 UI library：
+- 当前挂在 `desktop_shell.dart` 下的 UI `part` 文件：
   - `desktop/lib/src/app_copy.dart`
   - `desktop/lib/src/app_theme.dart`
   - `desktop/lib/src/app_data.dart`
@@ -35,9 +36,9 @@
 - 逻辑边界稳定：偏好模型、持久化、运行时桥接本身职责单一
 - UI 私有耦合低：不依赖 `_SettingsCategory`、`_AppCopy`、`context.appPalette` 这类同 library 私有 helper
 
-这类文件继续放在 `part` 层，只会让 `main.dart` 充当过大的共享命名空间。
+这类文件继续放在 `main.dart` 或分散的全局 `part` 链里，只会让入口文件继续充当过大的共享命名空间。
 
-## 为什么其他 UI 文件暂时不迁
+## 为什么其他 UI 文件暂时不继续拆
 
 以下文件目前仍然共享大量私有实现细节：
 
@@ -66,10 +67,10 @@
 ## 验证 / 证据
 
 - 命令：`cd desktop && flutter analyze`、`cd desktop && flutter test`、`cd desktop && flutter build macos --debug`
-- 代码观察：`main.dart` 已改为 `import/export` core 模块，不再通过 `part` 挂接 `app_persistence.dart` 与 `app_runtime.dart`
-- 兼容性观察：`package:pi_desktop/main.dart` 仍可被测试直接引用 `AppPreferences`、`MemoryDesktopPreferencesStore`、`MemoryDesktopRuntimeController`
+- 代码观察：`main.dart` 已只保留入口与 `export`，剩余 UI `part` 文件改为挂在 `desktop_shell.dart`
+- 兼容性观察：`package:pi_desktop/main.dart` 仍可被测试直接引用 `PiDesktopApp`、`AppPreferences`、`MemoryDesktopPreferencesStore`、`MemoryDesktopRuntimeController`
 
 ## 后续事项
 
 - 后续如继续推进 import-based modularization，优先按 feature 边界迁移，而不是按文件名平铺拆散
-- `settings` 和 `workspace` 如后续形成更清晰的 feature root，再考虑把 view / components / copy / data 迁成真正的 import modules
+- 下一步可以考虑把 `settings` 或 `workspace` 各自收拢成独立 feature root library，再决定是否拆分 `app_copy.dart`、`app_data.dart` 与 feature-specific models

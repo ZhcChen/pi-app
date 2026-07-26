@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'desktop_shell.dart';
 
 // Settings page primitives live here so page content can focus on data and layout.
 class _SettingsComponentSpec {
