@@ -19,8 +19,11 @@
 
 ## 关键结论
 
+- 设置 feature root 统一放在 `desktop/lib/src/settings_feature.dart`
 - 设置页基础组件统一放在 `desktop/lib/src/settings_components.dart`
-- 字体 token 统一放在 `desktop/lib/src/app_theme.dart` 的 `_AppTypography`
+- 页面容器和组合逻辑保留在 `desktop/lib/src/settings_view.dart`
+- `desktop_shell.dart` 只负责注入 `SettingsCopy`、导航分组、当前选中项和应用级偏好，不再直接承载设置页内部组件实现
+- 字体 token 统一放在 `desktop/lib/src/desktop_design.dart` 的 `DesktopTypography`
 - 桌面设置页的主要控件高度默认收敛到 `34px` 左右
 - `Switch` 不直接裸用 Material 默认尺寸，而通过 `_SettingsSwitch` 做桌面化缩放包装
 - 新增设置项时，优先复用 `_SettingsRow` / `_SettingsFieldBlock` / `_SettingsDropdown<T>` / `_SettingsSegmentedControl<T>`，不要在页面里重新手写一套样式
@@ -45,10 +48,11 @@
 ## 验证 / 证据
 
 - 命令：`cd desktop && flutter analyze`、`cd desktop && flutter test`
-- 文件：`desktop/lib/src/settings_components.dart`、`desktop/lib/src/app_theme.dart`、`desktop/lib/src/settings_view.dart`
-- 输出或观察：设置页基础控件从页面实现中拆出；字号、下拉、按钮、分段控件和 `Switch` 尺寸统一收紧
+- 文件：`desktop/lib/src/settings_feature.dart`、`desktop/lib/src/settings_components.dart`、`desktop/lib/src/settings_view.dart`、`desktop/lib/src/desktop_design.dart`
+- 输出或观察：设置页已形成独立 feature root，基础控件与页面壳层分离，`desktop_shell.dart` 只保留状态编排与数据注入
 
 ## 后续事项
 
-- 如工作区和设置页继续积累更多通用桌面控件，可再抽出 `desktop/lib/src/ui_primitives.dart`
+- 如工作区和设置页继续积累更多通用桌面控件，可再抽出更上层的 shared foundation；这轮已落到 `desktop_design.dart` 与 `desktop_primitives.dart`
 - 若后续引入更多表单页，可考虑为组件补示例截图或 widgetbook / story 风格预览
+- 后续如继续按 feature 迁移，可进一步把 `app_copy.dart` 与应用级 settings data 从 `desktop_shell.dart` 中收缩出去

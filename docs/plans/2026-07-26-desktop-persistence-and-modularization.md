@@ -101,6 +101,24 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：文档明确 `desktop_shell.dart`、`workspace_feature.dart` 与 shared UI foundation 的职责边界
 
+### 单元 13
+
+- 目标：将 settings 收拢为独立 feature root
+- 涉及文件 / 模块：`desktop/lib/src/settings_feature.dart`、`desktop/lib/src/settings_view.dart`、`desktop/lib/src/settings_components.dart`、`desktop/lib/src/desktop_app.dart`
+- 完成标准：settings 通过公开 copy contract 与导航模型接收注入，不再挂在 `desktop_shell.dart` 下
+
+### 单元 14
+
+- 目标：把 settings 导航模型与分组构建从 shell 中迁出
+- 涉及文件 / 模块：`desktop/lib/src/settings_feature.dart`、`desktop/lib/src/app_models.dart`、`desktop/lib/src/app_data.dart`、`desktop/lib/src/app_copy.dart`
+- 完成标准：`SettingsCategory`、`SettingsNavSection`、`SettingsNavItem` 与 settings section builders 归 settings feature 所有
+
+### 单元 15
+
+- 目标：更新 settings feature root 与 hybrid modularization 文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：文档明确 `desktop_shell.dart`、`settings_feature.dart`、`workspace_feature.dart` 与 shared UI foundation 的职责边界
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`

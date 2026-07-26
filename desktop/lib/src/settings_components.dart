@@ -1,4 +1,4 @@
-part of 'desktop_shell.dart';
+part of 'settings_feature.dart';
 
 // Settings page primitives live here so page content can focus on data and layout.
 class _SettingsComponentSpec {
@@ -14,15 +14,16 @@ class _SettingsComponentSpec {
 }
 
 /// Reusable category tile for the left settings navigation.
-class _SettingsCategoryTile extends StatelessWidget {
-  const _SettingsCategoryTile({
+class SettingsCategoryTile extends StatelessWidget {
+  const SettingsCategoryTile({
+    super.key,
     required this.item,
     required this.interfaceDensity,
     required this.selected,
     required this.onTap,
   });
 
-  final _SettingsNavItem item;
+  final SettingsNavItem item;
   final AppInterfaceDensity interfaceDensity;
   final bool selected;
   final VoidCallback onTap;

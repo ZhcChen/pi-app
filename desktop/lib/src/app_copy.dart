@@ -2,7 +2,7 @@
 
 part of 'desktop_shell.dart';
 
-class _AppCopy implements WorkspaceCopy {
+class _AppCopy implements WorkspaceCopy, SettingsCopy {
   const _AppCopy(this.language);
 
   final AppLanguage language;
@@ -174,28 +174,27 @@ class _AppCopy implements WorkspaceCopy {
   String get codingGroupLabel => isChinese ? '编码' : 'Coding';
   String get archivedGroupLabel => isChinese ? '归档' : 'Archived';
 
-  String settingsCategoryLabel(_SettingsCategory category) {
+  String settingsCategoryLabel(SettingsCategory category) {
     return switch (category) {
-      _SettingsCategory.general => isChinese ? '通用' : 'General',
-      _SettingsCategory.appearance => isChinese ? '外观' : 'Appearance',
-      _SettingsCategory.voice => isChinese ? '语音' : 'Voice',
-      _SettingsCategory.configuration => isChinese ? '配置' : 'Configuration',
-      _SettingsCategory.personalization =>
-        isChinese ? '个性化' : 'Personalization',
-      _SettingsCategory.pets => isChinese ? '宠物' : 'Pets',
-      _SettingsCategory.keyboardShortcuts =>
+      SettingsCategory.general => isChinese ? '通用' : 'General',
+      SettingsCategory.appearance => isChinese ? '外观' : 'Appearance',
+      SettingsCategory.voice => isChinese ? '语音' : 'Voice',
+      SettingsCategory.configuration => isChinese ? '配置' : 'Configuration',
+      SettingsCategory.personalization => isChinese ? '个性化' : 'Personalization',
+      SettingsCategory.pets => isChinese ? '宠物' : 'Pets',
+      SettingsCategory.keyboardShortcuts =>
         isChinese ? '键盘快捷键' : 'Keyboard shortcuts',
-      _SettingsCategory.account => isChinese ? '账户' : 'Account',
-      _SettingsCategory.appshots => isChinese ? '快照' : 'Appshots',
-      _SettingsCategory.plugins => isChinese ? '插件' : 'Plugins',
-      _SettingsCategory.browser => isChinese ? '浏览器' : 'Browser',
-      _SettingsCategory.computerUse => isChinese ? '计算机使用' : 'Computer use',
-      _SettingsCategory.hooks => 'Hooks',
-      _SettingsCategory.connections => isChinese ? '连接' : 'Connections',
-      _SettingsCategory.git => 'Git',
-      _SettingsCategory.environments => isChinese ? '环境' : 'Environments',
-      _SettingsCategory.worktrees => isChinese ? '工作树' : 'Worktrees',
-      _SettingsCategory.archivedTasks => isChinese ? '归档任务' : 'Archived tasks',
+      SettingsCategory.account => isChinese ? '账户' : 'Account',
+      SettingsCategory.appshots => isChinese ? '快照' : 'Appshots',
+      SettingsCategory.plugins => isChinese ? '插件' : 'Plugins',
+      SettingsCategory.browser => isChinese ? '浏览器' : 'Browser',
+      SettingsCategory.computerUse => isChinese ? '计算机使用' : 'Computer use',
+      SettingsCategory.hooks => 'Hooks',
+      SettingsCategory.connections => isChinese ? '连接' : 'Connections',
+      SettingsCategory.git => 'Git',
+      SettingsCategory.environments => isChinese ? '环境' : 'Environments',
+      SettingsCategory.worktrees => isChinese ? '工作树' : 'Worktrees',
+      SettingsCategory.archivedTasks => isChinese ? '归档任务' : 'Archived tasks',
     };
   }
 

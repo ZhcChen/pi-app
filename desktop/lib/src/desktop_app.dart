@@ -130,7 +130,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       TextEditingController();
 
   _DesktopRoute _route = _DesktopRoute.workspace;
-  _SettingsCategory _selectedSettingsCategory = _SettingsCategory.general;
+  SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
   int _selectedActionIndex = 0;
   int _selectedProjectIndex = 0;
 
@@ -233,13 +233,13 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   }
 
   Widget _buildSettingsShell() {
-    final sections = _buildSettingsSections(_copy);
-    final filteredSections = _filterSettingsSections(
+    final sections = buildSettingsSections(_copy);
+    final filteredSections = filterSettingsSections(
       sections,
       _settingsSearchQuery,
     );
 
-    return _SettingsView(
+    return SettingsView(
       copy: _copy,
       preferences: widget.preferences,
       searchController: _settingsSearchController,

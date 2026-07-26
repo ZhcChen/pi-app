@@ -9,6 +9,7 @@ export 'src/app_runtime.dart';
 export 'src/desktop_design.dart';
 export 'src/desktop_primitives.dart';
 export 'src/workspace_feature.dart';
+export 'src/settings_feature.dart';
 export 'src/desktop_shell.dart';
 
 Future<void> main() async {

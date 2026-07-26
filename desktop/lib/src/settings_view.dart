@@ -1,7 +1,8 @@
-part of 'desktop_shell.dart';
+part of 'settings_feature.dart';
 
-class _SettingsView extends StatelessWidget {
-  const _SettingsView({
+class SettingsView extends StatelessWidget {
+  const SettingsView({
+    super.key,
     required this.copy,
     required this.preferences,
     required this.searchController,
@@ -25,12 +26,12 @@ class _SettingsView extends StatelessWidget {
     required this.onShowLicenses,
   });
 
-  final _AppCopy copy;
+  final SettingsCopy copy;
   final AppPreferences preferences;
   final TextEditingController searchController;
-  final List<_SettingsNavSection> sections;
-  final _SettingsCategory selectedCategory;
-  final ValueChanged<_SettingsCategory> onCategorySelected;
+  final List<SettingsNavSection> sections;
+  final SettingsCategory selectedCategory;
+  final ValueChanged<SettingsCategory> onCategorySelected;
   final VoidCallback onBackToApp;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<AppThemeMode> onThemeModeChanged;
@@ -116,7 +117,7 @@ class _SettingsView extends StatelessWidget {
                       for (final item in section.items)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 2),
-                          child: _SettingsCategoryTile(
+                          child: SettingsCategoryTile(
                             item: item,
                             interfaceDensity: density,
                             selected: item.category == selectedCategory,
@@ -144,7 +145,7 @@ class _SettingsView extends StatelessWidget {
           child: ColoredBox(
             color: palette.canvas,
             child: switch (selectedCategory) {
-              _SettingsCategory.general => _GeneralSettingsContent(
+              SettingsCategory.general => _GeneralSettingsContent(
                 copy: copy,
                 preferences: preferences,
                 onLanguageChanged: onLanguageChanged,
@@ -158,7 +159,7 @@ class _SettingsView extends StatelessWidget {
                 onSuggestedPromptsChanged: onSuggestedPromptsChanged,
                 onShowLicenses: onShowLicenses,
               ),
-              _SettingsCategory.appearance => _AppearanceSettingsContent(
+              SettingsCategory.appearance => _AppearanceSettingsContent(
                 copy: copy,
                 preferences: preferences,
                 onThemeModeChanged: onThemeModeChanged,
@@ -196,7 +197,7 @@ class _GeneralSettingsContent extends StatelessWidget {
     required this.onShowLicenses,
   });
 
-  final _AppCopy copy;
+  final SettingsCopy copy;
   final AppPreferences preferences;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<AppOpenDestination> onOpenDestinationChanged;
@@ -420,7 +421,7 @@ class _AppearanceSettingsContent extends StatelessWidget {
     required this.onCodeFontChanged,
   });
 
-  final _AppCopy copy;
+  final SettingsCopy copy;
   final AppPreferences preferences;
   final ValueChanged<AppThemeMode> onThemeModeChanged;
   final ValueChanged<AppUiScale> onUiScaleChanged;
@@ -568,7 +569,7 @@ class _AppearanceSettingsContent extends StatelessWidget {
 class _AppearancePreview extends StatelessWidget {
   const _AppearancePreview({required this.copy, required this.preferences});
 
-  final _AppCopy copy;
+  final SettingsCopy copy;
   final AppPreferences preferences;
 
   @override
@@ -638,7 +639,7 @@ class _AppearancePreview extends StatelessWidget {
                       ),
                       _PreviewSidebarItem(
                         label: copy.settingsCategoryLabel(
-                          _SettingsCategory.appearance,
+                          SettingsCategory.appearance,
                         ),
                       ),
                       _PreviewSidebarItem(label: copy.projectsLabel),
