@@ -29,7 +29,12 @@
   - macOS 原生层新增 menu bar status item 与关闭主窗口后保活恢复逻辑
   - Windows / Linux 当前明确降级为不支持，并在设置页禁用对应开关
   - 补齐 runtime sync 与 unsupported 状态的自动化测试
-- 待执行：阶段 2-5
+- 已完成：阶段 2 / 单元 5-8
+  - 为 workspace 引入显式 `workspaceRootPath -> workspacePath / targetPath` 输入链路
+  - `PlatformDesktopRuntimeController` 新增 `openTarget(...)`，打通 VS Code / Cursor / Terminal 的跨平台启动策略
+  - 工作区项目与项目项新增真实打开入口，并默认遵循当前 `openDestination`
+  - 补齐打开请求、路径透传与失败反馈的自动化测试
+- 待执行：阶段 3-5
 
 ## 目标
 

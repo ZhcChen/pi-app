@@ -22,6 +22,9 @@ abstract interface class WorkspaceCopy {
   String get modelPresetLabel;
   String get submitTaskTooltip;
   String get executionDefaultsTitle;
+  String openTargetTooltip(AppOpenDestination destination);
+  String get openTargetUnavailableLabel;
+  String openFailedMessage(AppOpenDestination destination, String reason);
 
   String composerExecutionSummary(AppPreferences preferences);
   String openDestinationSummaryLabel(AppOpenDestination destination);
@@ -38,16 +41,25 @@ class WorkspaceAction {
   final IconData icon;
 }
 
+class WorkspaceProjectItem {
+  const WorkspaceProjectItem({required this.label, this.targetPath});
+
+  final String label;
+  final String? targetPath;
+}
+
 class WorkspaceProjectGroup {
   const WorkspaceProjectGroup({
     required this.name,
     required this.branch,
     required this.items,
+    this.workspacePath,
   });
 
   final String name;
   final String branch;
-  final List<String> items;
+  final List<WorkspaceProjectItem> items;
+  final String? workspacePath;
 }
 
 class WorkspacePromptCard {

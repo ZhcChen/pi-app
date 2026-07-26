@@ -357,16 +357,24 @@ class _SidebarActionTile extends StatelessWidget {
 /// Expandable project tile in the workspace sidebar.
 class _ProjectTile extends StatelessWidget {
   const _ProjectTile({
+    required this.copy,
     required this.project,
     required this.interfaceDensity,
+    required this.openDestination,
     required this.selected,
     required this.onTap,
+    required this.onOpenProject,
+    required this.onOpenProjectItem,
   });
 
+  final WorkspaceCopy copy;
   final WorkspaceProjectGroup project;
   final AppInterfaceDensity interfaceDensity;
+  final AppOpenDestination openDestination;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback onOpenProject;
+  final ValueChanged<WorkspaceProjectItem> onOpenProjectItem;
 
   @override
   Widget build(BuildContext context) {
@@ -378,36 +386,53 @@ class _ProjectTile extends StatelessWidget {
       animated: false,
       child: Column(
         children: [
-          InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(
-              _WorkspaceComponentSpec.projectTileRadius,
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: desktopDensityValue(
-                  interfaceDensity,
-                  compact: 5,
-                  comfortable: 7,
-                ),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: desktopDensityValue(
+                interfaceDensity,
+                compact: 5,
+                comfortable: 7,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.folder_outlined,
-                    size: 17,
-                    color: palette.textSecondary,
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      project.name,
-                      style: DesktopTypography.sidebarItem(palette),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(
+                      _WorkspaceComponentSpec.projectTileRadius,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.folder_outlined,
+                          size: 17,
+                          color: palette.textSecondary,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            project.name,
+                            style: DesktopTypography.sidebarItem(palette),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
+                if (selected && project.workspacePath != null) ...[
+                  const SizedBox(width: 8),
+                  DesktopIconActionButton(
+                    key: Key('open-project-button-${project.name}'),
+                    onPressed: onOpenProject,
+                    tooltip: copy.openTargetTooltip(openDestination),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    backgroundColor: palette.settingsField,
+                    foregroundColor: palette.textSecondary,
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
           if (selected)
@@ -419,8 +444,13 @@ class _ProjectTile extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: _ProjectItemRow(
+                        copy: copy,
                         interfaceDensity: interfaceDensity,
-                        label: item,
+                        openDestination: openDestination,
+                        item: item,
+                        onOpen: item.targetPath == null
+                            ? null
+                            : () => onOpenProjectItem(item),
                       ),
                     ),
                 ],
@@ -433,10 +463,19 @@ class _ProjectTile extends StatelessWidget {
 }
 
 class _ProjectItemRow extends StatelessWidget {
-  const _ProjectItemRow({required this.interfaceDensity, required this.label});
+  const _ProjectItemRow({
+    required this.copy,
+    required this.interfaceDensity,
+    required this.openDestination,
+    required this.item,
+    this.onOpen,
+  });
 
+  final WorkspaceCopy copy;
   final AppInterfaceDensity interfaceDensity;
-  final String label;
+  final AppOpenDestination openDestination;
+  final WorkspaceProjectItem item;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -452,8 +491,20 @@ class _ProjectItemRow extends StatelessWidget {
         children: [
           const SizedBox(width: 2),
           Expanded(
-            child: Text(label, style: DesktopTypography.projectItem(palette)),
+            child: Text(
+              item.label,
+              style: DesktopTypography.projectItem(palette),
+            ),
           ),
+          if (onOpen != null)
+            DesktopIconActionButton(
+              key: Key('open-project-item-button-${item.label}'),
+              onPressed: onOpen!,
+              tooltip: copy.openTargetTooltip(openDestination),
+              icon: const Icon(Icons.open_in_new_rounded, size: 15),
+              backgroundColor: palette.settingsField,
+              foregroundColor: palette.textSecondary,
+            ),
         ],
       ),
     );

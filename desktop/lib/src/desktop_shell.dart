@@ -15,11 +15,13 @@ class PiDesktopApp extends StatefulWidget {
     this.enablePersistence = true,
     this.preferencesStore,
     this.runtimeController,
+    this.workspaceRootPath,
   });
 
   final bool enablePersistence;
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
+  final String? workspaceRootPath;
 
   @override
   State<PiDesktopApp> createState() => _PiDesktopAppState();
@@ -100,6 +102,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       home: _PiDesktopShell(
         preferences: _preferences,
         runtimeCapabilities: _runtimeController.capabilities,
+        runtimeController: _runtimeController,
+        workspaceRootPath: widget.workspaceRootPath,
         onPreferencesChanged: _handlePreferencesChanged,
       ),
     );
@@ -128,11 +132,15 @@ class _PiDesktopShell extends StatefulWidget {
   const _PiDesktopShell({
     required this.preferences,
     required this.runtimeCapabilities,
+    required this.runtimeController,
+    required this.workspaceRootPath,
     required this.onPreferencesChanged,
   });
 
   final AppPreferences preferences;
   final DesktopRuntimeCapabilities runtimeCapabilities;
+  final DesktopRuntimeController runtimeController;
+  final String? workspaceRootPath;
   final ValueChanged<AppPreferences> onPreferencesChanged;
 
   @override
@@ -148,8 +156,11 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   int _selectedActionIndex = 0;
   int _selectedProjectIndex = 0;
 
+  List<WorkspaceProjectGroup> get _projects =>
+      buildDesktopProjects(widget.workspaceRootPath);
+
   WorkspaceProjectGroup get _selectedProject =>
-      desktopProjects[_selectedProjectIndex];
+      _projects[_selectedProjectIndex];
   AppCopy get _copy => AppCopy(widget.preferences.language);
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
 
@@ -187,6 +198,58 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     widget.onPreferencesChanged(next);
   }
 
+  Future<void> _openProject(WorkspaceProjectGroup project) async {
+    await _openTarget(
+      targetPath: project.workspacePath,
+      workspacePath: project.workspacePath,
+    );
+  }
+
+  Future<void> _openProjectItem(
+    WorkspaceProjectGroup project,
+    WorkspaceProjectItem item,
+  ) async {
+    await _openTarget(
+      targetPath: item.targetPath,
+      workspacePath: project.workspacePath,
+    );
+  }
+
+  Future<void> _openTarget({
+    required String? targetPath,
+    required String? workspacePath,
+  }) async {
+    if (targetPath == null) {
+      _showNotice(_copy.openTargetUnavailableLabel);
+      return;
+    }
+
+    final result = await widget.runtimeController.openTarget(
+      DesktopOpenRequest(
+        destination: widget.preferences.openDestination,
+        targetPath: targetPath,
+        workspacePath: workspacePath,
+      ),
+    );
+
+    if (!mounted || result.launched) {
+      return;
+    }
+
+    _showNotice(
+      _copy.openFailedMessage(
+        widget.preferences.openDestination,
+        result.errorMessage ?? 'Unknown error.',
+      ),
+    );
+  }
+
+  void _showNotice(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -214,7 +277,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
               child: WorkspaceSidebar(
                 copy: _copy,
                 actions: actions,
-                projects: desktopProjects,
+                projects: _projects,
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
@@ -228,6 +291,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                     _selectedProjectIndex = index;
                   });
                 },
+                onOpenProject: _openProject,
+                onOpenProjectItem: _openProjectItem,
                 onOpenSettings: _openSettings,
               ),
             ),

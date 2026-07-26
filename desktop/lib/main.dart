@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -15,7 +17,24 @@ export 'src/desktop_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _prepareDesktopWindow();
-  runApp(const PiDesktopApp());
+  runApp(PiDesktopApp(workspaceRootPath: _defaultWorkspaceRootPath()));
+}
+
+String? _defaultWorkspaceRootPath() {
+  final configured = Platform.environment['PI_WORKSPACE_ROOT'];
+  if (configured != null && configured.isNotEmpty) {
+    return configured;
+  }
+
+  try {
+    final currentDirectory = Directory.current;
+    if (currentDirectory.path.endsWith('${Platform.pathSeparator}desktop')) {
+      return currentDirectory.parent.path;
+    }
+    return currentDirectory.path;
+  } catch (_) {
+    return null;
+  }
 }
 
 Future<void> _prepareDesktopWindow() async {

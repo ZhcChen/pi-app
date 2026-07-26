@@ -10,6 +10,8 @@ class WorkspaceSidebar extends StatelessWidget {
     required this.selectedProjectIndex,
     required this.onActionSelected,
     required this.onProjectSelected,
+    required this.onOpenProject,
+    required this.onOpenProjectItem,
     required this.onOpenSettings,
     super.key,
   });
@@ -22,6 +24,9 @@ class WorkspaceSidebar extends StatelessWidget {
   final int selectedProjectIndex;
   final ValueChanged<int> onActionSelected;
   final ValueChanged<int> onProjectSelected;
+  final ValueChanged<WorkspaceProjectGroup> onOpenProject;
+  final void Function(WorkspaceProjectGroup project, WorkspaceProjectItem item)
+  onOpenProjectItem;
   final VoidCallback onOpenSettings;
 
   @override
@@ -99,10 +104,15 @@ class WorkspaceSidebar extends StatelessWidget {
                       ),
                     ),
                     child: _ProjectTile(
+                      copy: copy,
                       project: projects[i],
                       interfaceDensity: density,
+                      openDestination: preferences.openDestination,
                       selected: i == selectedProjectIndex,
                       onTap: () => onProjectSelected(i),
+                      onOpenProject: () => onOpenProject(projects[i]),
+                      onOpenProjectItem: (item) =>
+                          onOpenProjectItem(projects[i], item),
                     ),
                   ),
                 const SizedBox(height: 12),

@@ -97,6 +97,29 @@ void main() {
     },
   );
 
+  test('platform runtime controller delegates open target requests', () async {
+    DesktopOpenRequest? capturedRequest;
+    final controller = PlatformDesktopRuntimeController(
+      openTarget: (request) async {
+        capturedRequest = request;
+        return const DesktopOpenResult.success();
+      },
+    );
+
+    const request = DesktopOpenRequest(
+      destination: AppOpenDestination.cursor,
+      targetPath: '/workspace/pi-app',
+      workspacePath: '/workspace/pi-app',
+    );
+
+    final result = await controller.openTarget(request);
+
+    expect(result.launched, true);
+    expect(capturedRequest?.destination, AppOpenDestination.cursor);
+    expect(capturedRequest?.targetPath, '/workspace/pi-app');
+    expect(capturedRequest?.workspacePath, '/workspace/pi-app');
+  });
+
   testWidgets('renders settings views and switches language', (tester) async {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
@@ -228,6 +251,82 @@ void main() {
       find.text('This behavior is currently supported only on macOS.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('workspace open actions follow the current open destination', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final runtimeController = MemoryDesktopRuntimeController();
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        runtimeController: runtimeController,
+        workspaceRootPath: '/workspace/pi-app',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-project-button-pi-app')));
+    await tester.pumpAndSettle();
+
+    expect(
+      runtimeController.lastOpenRequest?.destination,
+      AppOpenDestination.vscode,
+    );
+    expect(runtimeController.lastOpenRequest?.targetPath, '/workspace/pi-app');
+    expect(
+      runtimeController.lastOpenRequest?.workspacePath,
+      '/workspace/pi-app',
+    );
+
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-destination-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Terminal').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('back-to-app-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('open-project-item-button-runtime bridge')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      runtimeController.lastOpenRequest?.destination,
+      AppOpenDestination.terminal,
+    );
+    expect(
+      runtimeController.lastOpenRequest?.targetPath,
+      '/workspace/pi-app/desktop/lib/src/app_runtime.dart',
+    );
+    expect(runtimeController.openCount, 2);
+  });
+
+  testWidgets('workspace open action shows failure feedback', (tester) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final runtimeController = MemoryDesktopRuntimeController(
+      openResult: const DesktopOpenResult.failure('boom'),
+    );
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        runtimeController: runtimeController,
+        workspaceRootPath: '/workspace/pi-app',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-project-button-pi-app')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not open in VS Code: boom'), findsOneWidget);
   });
 
   testWidgets('theme mode switch updates material app theme mode', (

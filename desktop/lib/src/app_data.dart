@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'app_copy.dart';
@@ -49,20 +51,61 @@ List<WorkspacePromptCard> buildPromptCards(AppCopy copy) {
   ];
 }
 
-const List<WorkspaceProjectGroup> desktopProjects = [
-  WorkspaceProjectGroup(
-    name: 'pi-app',
-    branch: 'main',
-    items: ['desktop shell redesign', 'runtime bridge', 'branding assets'],
-  ),
-  WorkspaceProjectGroup(
-    name: 'yuance',
-    branch: 'feature/ui',
-    items: ['analyze project', 'analyze project', 'analyze project'],
-  ),
-  WorkspaceProjectGroup(
-    name: 'novel-1',
-    branch: 'local',
-    items: ['draft scene'],
-  ),
-];
+List<WorkspaceProjectGroup> buildDesktopProjects(String? workspaceRootPath) {
+  return [
+    WorkspaceProjectGroup(
+      name: 'pi-app',
+      branch: 'main',
+      workspacePath: workspaceRootPath,
+      items: [
+        WorkspaceProjectItem(
+          label: 'desktop shell redesign',
+          targetPath: _resolveWorkspacePath(
+            workspaceRootPath,
+            'docs/plans/2026-07-26-desktop-shell-redesign.md',
+          ),
+        ),
+        WorkspaceProjectItem(
+          label: 'runtime bridge',
+          targetPath: _resolveWorkspacePath(
+            workspaceRootPath,
+            'desktop/lib/src/app_runtime.dart',
+          ),
+        ),
+        WorkspaceProjectItem(
+          label: 'branding assets',
+          targetPath: _resolveWorkspacePath(
+            workspaceRootPath,
+            'assets/branding',
+          ),
+        ),
+      ],
+    ),
+    const WorkspaceProjectGroup(
+      name: 'yuance',
+      branch: 'feature/ui',
+      items: [
+        WorkspaceProjectItem(label: 'analyze project'),
+        WorkspaceProjectItem(label: 'analyze project'),
+        WorkspaceProjectItem(label: 'analyze project'),
+      ],
+    ),
+    const WorkspaceProjectGroup(
+      name: 'novel-1',
+      branch: 'local',
+      items: [WorkspaceProjectItem(label: 'draft scene')],
+    ),
+  ];
+}
+
+String? _resolveWorkspacePath(String? workspaceRootPath, String relativePath) {
+  if (workspaceRootPath == null || workspaceRootPath.isEmpty) {
+    return null;
+  }
+
+  return Uri.directory(
+    workspaceRootPath.endsWith(Platform.pathSeparator)
+        ? workspaceRootPath
+        : '$workspaceRootPath${Platform.pathSeparator}',
+  ).resolve(relativePath).toFilePath(windows: Platform.isWindows);
+}

@@ -124,6 +124,22 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get executionDefaultsTitle =>
       isChinese ? '当前执行预设' : 'Current execution defaults';
 
+  String openTargetTooltip(AppOpenDestination destination) {
+    final label = openDestinationLabel(destination);
+    return isChinese ? '在$label中打开' : 'Open in $label';
+  }
+
+  String get openTargetUnavailableLabel => isChinese
+      ? '当前项目还没有可打开的本地路径。'
+      : 'This project does not have a local path yet.';
+
+  String openFailedMessage(AppOpenDestination destination, String reason) {
+    final label = openDestinationLabel(destination);
+    return isChinese
+        ? '无法在$label中打开：$reason'
+        : 'Could not open in $label: $reason';
+  }
+
   String composerExecutionSummary(AppPreferences preferences) {
     return '${openDestinationLabel(preferences.openDestination)} · '
         '${accessModeLabel(preferences)} · '
