@@ -101,6 +101,13 @@
 - 验证方式：`flutter analyze`、`flutter test`
 - 完成标准：settings dropdown、搜索框、预览 code block 等 field-like shell 复用同一 primitive，预览区减少手写 `BoxDecoration`
 
+### 单元 10
+
+- 目标：收紧 selection primitive 的适用边界，并复用到可展开的项目项
+- 涉及文件 / 模块：`desktop/lib/src/ui_primitives.dart`、`desktop/lib/src/workspace_components.dart`
+- 验证方式：`flutter analyze`、`flutter test`
+- 完成标准：`_DesktopSelectionTile` 支持静态高度之外的选中容器场景，`_ProjectTile` 不再手写同类 selected background
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter run -d macos`

@@ -360,13 +360,10 @@ class _ProjectTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: selected ? palette.selection : Colors.transparent,
-        borderRadius: BorderRadius.circular(
-          _WorkspaceComponentSpec.projectTileRadius,
-        ),
-      ),
+    return _DesktopSelectionTile(
+      selected: selected,
+      radius: _WorkspaceComponentSpec.projectTileRadius,
+      animated: false,
       child: Column(
         children: [
           InkWell(

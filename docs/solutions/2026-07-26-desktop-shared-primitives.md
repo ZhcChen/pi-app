@@ -44,7 +44,7 @@
 - 通用紧凑图标操作按钮：使用 `_DesktopIconActionButton`
   - 适用于提交、下载运行时等带背景色的单图标按钮
 - 通用选中态 tile：使用 `_DesktopSelectionTile`
-  - 适用于设置导航项、工作区侧栏动作项，以及无点击行为的静态预览选中项
+  - 适用于设置导航项、工作区侧栏动作项、工作区项目项，以及无点击行为的静态预览选中项
 - 通用状态胶囊：使用 `_DesktopStatusPill`
   - 适用于权限、运行状态、偏好摘要等低层级状态展示
 
@@ -63,4 +63,5 @@
 ## 后续事项
 
 - 保持 `ui_primitives.dart` 小而稳定，避免演化成参数过多的万能组件集合
-- 剩余明显带业务语义的组合，如 `_ProjectTile`、`_SettingsSegmentedControl<T>`，仍应留在场景级组件文件而不是继续上提
+- `SegmentedButton` 风格与 settings 内的 tonal action button 目前仍只有单场景复用，继续保留在 `settings_components.dart`
+- 剩余明显带业务语义的组合，如 `_ProjectItemRow`、`_ProjectTile` 的展开内容、`_SettingsSegmentedControl<T>` 的语义包装，仍应留在场景级组件文件而不是继续上提

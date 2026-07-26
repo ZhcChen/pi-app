@@ -186,7 +186,7 @@ class _DesktopSelectionTile extends StatelessWidget {
   const _DesktopSelectionTile({
     required this.selected,
     this.onTap,
-    required this.height,
+    this.height,
     required this.radius,
     required this.child,
     this.animated = true,
@@ -194,7 +194,7 @@ class _DesktopSelectionTile extends StatelessWidget {
 
   final bool selected;
   final VoidCallback? onTap;
-  final double height;
+  final double? height;
   final double radius;
   final Widget child;
   final bool animated;
