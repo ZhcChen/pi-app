@@ -31,19 +31,13 @@ class _SettingsCategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return InkWell(
+    return _DesktopSelectionTile(
+      selected: selected,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(_SettingsComponentSpec.navTileRadius),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        height: _densityValue(interfaceDensity, compact: 28, comfortable: 32),
+      height: _densityValue(interfaceDensity, compact: 28, comfortable: 32),
+      radius: _SettingsComponentSpec.navTileRadius,
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: selected ? palette.selection : Colors.transparent,
-          borderRadius: BorderRadius.circular(
-            _SettingsComponentSpec.navTileRadius,
-          ),
-        ),
         child: Row(
           children: [
             Icon(item.icon, size: 16, color: palette.textSecondary),
@@ -93,12 +87,9 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.panelRaised,
-        borderRadius: BorderRadius.circular(_SettingsComponentSpec.cardRadius),
-        border: Border.all(color: palette.dividerLight),
-      ),
+    return _DesktopSurface(
+      color: palette.panelRaised,
+      radius: _SettingsComponentSpec.cardRadius,
       child: child,
     );
   }
@@ -395,20 +386,15 @@ class _SettingsDropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return Container(
+    return _DesktopSurface(
       key: dropdownKey,
+      color: palette.settingsField,
+      radius: _SettingsComponentSpec.controlRadius,
       constraints: const BoxConstraints(
         minWidth: _SettingsComponentSpec.controlMinWidth,
         minHeight: _SettingsComponentSpec.controlHeight,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: palette.settingsField,
-        borderRadius: BorderRadius.circular(
-          _SettingsComponentSpec.controlRadius,
-        ),
-        border: Border.all(color: palette.dividerLight),
-      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,

@@ -9,7 +9,6 @@ class _WorkspaceComponentSpec {
   static const double composerShellRadius = 24;
   static const double composerInputRadius = 20;
   static const double bottomPanelRadius = 18;
-  static const double pillRadius = 999;
   static const double projectTileRadius = 12;
 }
 
@@ -35,30 +34,19 @@ class _PromptCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(
-        _WorkspaceComponentSpec.promptCardRadius,
-      ),
-      child: Container(
-        width: _WorkspaceComponentSpec.promptCardWidth,
-        height: _WorkspaceComponentSpec.promptCardHeight,
-        padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
-        decoration: BoxDecoration(
-          color: palette.panel,
-          borderRadius: BorderRadius.circular(
-            _WorkspaceComponentSpec.promptCardRadius,
-          ),
-          border: Border.all(color: palette.dividerLight),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(card.icon, size: 17, color: card.color),
-            Text(card.title, style: _AppTypography.promptTitle(palette)),
-          ],
-        ),
+    return _DesktopSurface(
+      color: palette.panel,
+      radius: _WorkspaceComponentSpec.promptCardRadius,
+      width: _WorkspaceComponentSpec.promptCardWidth,
+      height: _WorkspaceComponentSpec.promptCardHeight,
+      padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(card.icon, size: 17, color: card.color),
+          Text(card.title, style: _AppTypography.promptTitle(palette)),
+        ],
       ),
     );
   }
@@ -83,21 +71,16 @@ class _Composer extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
-      child: Container(
-        decoration: BoxDecoration(
-          color: palette.composerShell,
-          borderRadius: BorderRadius.circular(
-            _WorkspaceComponentSpec.composerShellRadius,
+      child: _DesktopSurface(
+        color: palette.composerShell,
+        radius: _WorkspaceComponentSpec.composerShellRadius,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 24,
+            offset: Offset(0, 10),
           ),
-          border: Border.all(color: palette.dividerLight),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x22000000),
-              blurRadius: 24,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
+        ],
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -137,13 +120,10 @@ class _Composer extends StatelessWidget {
                 14,
                 0,
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: palette.composerInput,
-                  borderRadius: BorderRadius.circular(
-                    _WorkspaceComponentSpec.composerInputRadius,
-                  ),
-                ),
+              child: _DesktopSurface(
+                color: palette.composerInput,
+                radius: _WorkspaceComponentSpec.composerInputRadius,
+                borderColor: Colors.transparent,
                 padding: EdgeInsets.fromLTRB(
                   16,
                   _densityValue(density, compact: 14, comfortable: 16),
@@ -275,17 +255,12 @@ class _WorkspaceBottomPanel extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
-      child: Container(
+      child: _DesktopSurface(
         key: const Key('workspace-bottom-panel'),
+        color: palette.panel,
+        radius: _WorkspaceComponentSpec.bottomPanelRadius,
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: BoxDecoration(
-          color: palette.panel,
-          borderRadius: BorderRadius.circular(
-            _WorkspaceComponentSpec.bottomPanelRadius,
-          ),
-          border: Border.all(color: palette.dividerLight),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -339,24 +314,7 @@ class _WorkspaceStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.appPalette;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: palette.settingsField,
-        borderRadius: BorderRadius.circular(_WorkspaceComponentSpec.pillRadius),
-        border: Border.all(color: palette.dividerLight),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: palette.textSecondary),
-          const SizedBox(width: 6),
-          Text(label, style: _AppTypography.controlLabel(palette)),
-        ],
-      ),
-    );
+    return _DesktopStatusPill(icon: icon, label: label);
   }
 }
 
@@ -380,20 +338,14 @@ class _SidebarActionTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
+      child: _DesktopSelectionTile(
+        selected: selected,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(
-          _WorkspaceComponentSpec.sidebarTileRadius,
-        ),
-        child: Container(
-          height: _densityValue(interfaceDensity, compact: 34, comfortable: 38),
+        height: _densityValue(interfaceDensity, compact: 34, comfortable: 38),
+        radius: _WorkspaceComponentSpec.sidebarTileRadius,
+        animated: false,
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: selected ? palette.selection : Colors.transparent,
-            borderRadius: BorderRadius.circular(
-              _WorkspaceComponentSpec.sidebarTileRadius,
-            ),
-          ),
           child: Row(
             children: [
               Icon(action.icon, size: 17, color: palette.textSecondary),

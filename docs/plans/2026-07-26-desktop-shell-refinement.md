@@ -73,6 +73,20 @@
 - 验证方式：阅读文档与代码路径
 - 完成标准：工作区组件位置、职责与复用约定有明确记录
 
+### 单元 6
+
+- 目标：抽取跨工作区与设置页共享的 desktop primitives
+- 涉及文件 / 模块：`desktop/lib/src/ui_primitives.dart`、`desktop/lib/src/settings_components.dart`、`desktop/lib/src/workspace_components.dart`
+- 验证方式：`flutter analyze`、`flutter test`
+- 完成标准：surface、selection tile、pill 等重复模式不再在多个组件文件中分别实现
+
+### 单元 7
+
+- 目标：补充 shared primitives 开发文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 验证方式：阅读文档与代码路径
+- 完成标准：shared primitives 的位置、适用场景和边界有明确记录
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter run -d macos`
