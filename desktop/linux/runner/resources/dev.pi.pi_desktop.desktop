@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Pi Desktop
+Comment=GUI client for pi.dev agent
+Exec=pi_desktop
+Icon=dev.pi.pi_desktop
+Terminal=false
+Type=Application
+Categories=Development;
+StartupNotify=true
