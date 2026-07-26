@@ -67,53 +67,42 @@ class _SettingsView extends StatelessWidget {
             children: [
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const Key('back-to-app-button'),
+                child: _DesktopTextActionButton(
+                  buttonKey: const Key('back-to-app-button'),
                   onPressed: onBackToApp,
                   icon: const Icon(Icons.arrow_back_rounded, size: 17),
-                  label: Text(copy.backToAppLabel),
-                  style: TextButton.styleFrom(
-                    foregroundColor: palette.textSecondary,
-                    textStyle: _AppTypography.settingsBackLabel(palette),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  label: copy.backToAppLabel,
+                  alignment: Alignment.centerLeft,
+                  radius: 10,
+                  textStyle: _AppTypography.settingsBackLabel(palette),
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: searchController,
-                style: _AppTypography.settingsSearchText(palette),
-                decoration: InputDecoration(
-                  isDense: true,
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    size: 17,
-                    color: palette.textMuted,
-                  ),
-                  hintText: copy.searchSettingsHint,
-                  hintStyle: _AppTypography.settingsSearchHint(palette),
-                  filled: true,
-                  fillColor: palette.settingsField,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: palette.dividerLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: palette.dividerLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: palette.dividerStrong),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 9),
+              _DesktopFieldSurface(
+                radius: 10,
+                constraints: const BoxConstraints(minHeight: 38),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search_rounded,
+                      size: 17,
+                      color: palette.textMuted,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: searchController,
+                        style: _AppTypography.settingsSearchText(palette),
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          border: InputBorder.none,
+                          hintText: copy.searchSettingsHint,
+                          hintStyle: _AppTypography.settingsSearchHint(palette),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
@@ -597,14 +586,11 @@ class _AppearancePreview extends StatelessWidget {
             style: _AppTypography.placeholderBody(palette),
           ),
           const SizedBox(height: 18),
-          Container(
+          _DesktopSurface(
+            color: palette.canvas,
+            radius: 16,
             width: double.infinity,
             height: 276,
-            decoration: BoxDecoration(
-              color: palette.canvas,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: palette.dividerLight),
-            ),
             child: Row(
               children: [
                 Container(
@@ -693,14 +679,11 @@ class _AppearancePreview extends StatelessWidget {
                           ),
                         ),
                         Expanded(
-                          child: Container(
+                          child: _DesktopSurface(
+                            color: palette.panel,
+                            radius: 14,
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: palette.panel,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: palette.dividerLight),
-                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -712,12 +695,8 @@ class _AppearancePreview extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Expanded(
-                                  child: Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: palette.settingsField,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                  child: _DesktopFieldSurface(
+                                    radius: 12,
                                     padding: const EdgeInsets.fromLTRB(
                                       12,
                                       10,
@@ -747,7 +726,9 @@ class _AppearancePreview extends StatelessWidget {
                             comfortable: 12,
                           ),
                         ),
-                        Container(
+                        _DesktopSurface(
+                          color: palette.composerShell,
+                          radius: 16,
                           width: double.infinity,
                           padding: EdgeInsets.fromLTRB(
                             14,
@@ -762,11 +743,6 @@ class _AppearancePreview extends StatelessWidget {
                               compact: 10,
                               comfortable: 12,
                             ),
-                          ),
-                          decoration: BoxDecoration(
-                            color: palette.composerShell,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: palette.dividerLight),
                           ),
                           child: Text(
                             copy.composerHint,
@@ -801,16 +777,21 @@ class _PreviewSidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return Container(
-      height: 28,
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 9),
-      decoration: BoxDecoration(
-        color: selected ? palette.selection : Colors.transparent,
-        borderRadius: BorderRadius.circular(9),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: _DesktopSelectionTile(
+        selected: selected,
+        height: 28,
+        radius: 9,
+        animated: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(label, style: _AppTypography.sectionLabel(palette)),
+          ),
+        ),
       ),
-      alignment: Alignment.centerLeft,
-      child: Text(label, style: _AppTypography.sectionLabel(palette)),
     );
   }
 }

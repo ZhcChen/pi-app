@@ -152,21 +152,10 @@ class _Composer extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        TextButton.icon(
+                        _DesktopTextActionButton(
                           onPressed: () {},
                           icon: const Icon(Icons.add_rounded, size: 18),
-                          label: Text(copy.customLabel),
-                          style: TextButton.styleFrom(
-                            foregroundColor: palette.textSecondary,
-                            textStyle: _AppTypography.controlLabel(palette),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
+                          label: copy.customLabel,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -180,30 +169,19 @@ class _Composer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        TextButton.icon(
+                        _DesktopTextActionButton(
                           onPressed: () {},
                           iconAlignment: IconAlignment.end,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                          label: Text(copy.modelPresetLabel),
-                          style: TextButton.styleFrom(
-                            foregroundColor: palette.textSecondary,
-                            textStyle: _AppTypography.controlLabel(palette),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                          ),
+                          label: copy.modelPresetLabel,
                         ),
                         const SizedBox(width: 8),
-                        IconButton(
+                        _DesktopIconActionButton(
                           onPressed: () {},
                           tooltip: copy.submitTaskTooltip,
                           icon: const Icon(Icons.arrow_upward_rounded),
-                          color: palette.textPrimary,
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color(0xFF767676),
-                            minimumSize: const Size(40, 40),
-                          ),
+                          backgroundColor: const Color(0xFF767676),
+                          buttonSize: const Size(40, 40),
                         ),
                       ],
                     ),

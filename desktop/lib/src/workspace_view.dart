@@ -112,39 +112,28 @@ class _Sidebar extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextButton.icon(
-                  key: const Key('open-settings-button'),
+                child: _DesktopTextActionButton(
+                  buttonKey: const Key('open-settings-button'),
                   onPressed: onOpenSettings,
                   icon: const Icon(Icons.settings_outlined, size: 18),
-                  label: Text(copy.settingsLabel),
-                  style: TextButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    foregroundColor: palette.textSecondary,
-                    textStyle: _AppTypography.controlLabel(palette),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: _densityValue(
-                        density,
-                        compact: 10,
-                        comfortable: 12,
-                      ),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  label: copy.settingsLabel,
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: _densityValue(
+                      density,
+                      compact: 10,
+                      comfortable: 12,
                     ),
                   ),
                 ),
               ),
-              IconButton(
+              _DesktopIconActionButton(
                 onPressed: () {},
                 tooltip: copy.downloadRuntimeTooltip,
                 icon: const Icon(Icons.download_rounded, size: 18),
-                color: const Color(0xFF98C4FF),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF2C5E9B),
-                  minimumSize: const Size(28, 28),
-                  padding: EdgeInsets.zero,
-                ),
+                foregroundColor: const Color(0xFF98C4FF),
+                backgroundColor: const Color(0xFF2C5E9B),
               ),
             ],
           ),

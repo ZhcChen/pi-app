@@ -87,6 +87,20 @@
 - 验证方式：阅读文档与代码路径
 - 完成标准：shared primitives 的位置、适用场景和边界有明确记录
 
+### 单元 8
+
+- 目标：抽取跨设置页与工作区共享的紧凑 action button primitives
+- 涉及文件 / 模块：`desktop/lib/src/ui_primitives.dart`、`desktop/lib/src/settings_view.dart`、`desktop/lib/src/workspace_view.dart`、`desktop/lib/src/workspace_components.dart`
+- 验证方式：`flutter analyze`、`flutter test`
+- 完成标准：返回按钮、设置入口、composer 操作按钮、图标动作按钮不再分别散写 `TextButton.styleFrom` / `IconButton.styleFrom`
+
+### 单元 9
+
+- 目标：抽取共享 field shell，并把预览区 surface 继续接到 shared primitives
+- 涉及文件 / 模块：`desktop/lib/src/ui_primitives.dart`、`desktop/lib/src/settings_components.dart`、`desktop/lib/src/settings_view.dart`
+- 验证方式：`flutter analyze`、`flutter test`
+- 完成标准：settings dropdown、搜索框、预览 code block 等 field-like shell 复用同一 primitive，预览区减少手写 `BoxDecoration`
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter run -d macos`

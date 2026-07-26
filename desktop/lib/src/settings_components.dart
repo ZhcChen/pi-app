@@ -386,9 +386,8 @@ class _SettingsDropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
-    return _DesktopSurface(
-      key: dropdownKey,
-      color: palette.settingsField,
+    return _DesktopFieldSurface(
+      fieldKey: dropdownKey,
       radius: _SettingsComponentSpec.controlRadius,
       constraints: const BoxConstraints(
         minWidth: _SettingsComponentSpec.controlMinWidth,
