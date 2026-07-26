@@ -6,6 +6,7 @@ import 'app_persistence.dart';
 import 'app_preferences.dart';
 import 'app_runtime.dart';
 import 'desktop_design.dart';
+import 'pi_config_store.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
 
@@ -15,12 +16,14 @@ class PiDesktopApp extends StatefulWidget {
     this.enablePersistence = true,
     this.preferencesStore,
     this.runtimeController,
+    this.piConfigStore,
     this.workspaceRootPath,
   });
 
   final bool enablePersistence;
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
+  final PiConfigStore? piConfigStore;
   final String? workspaceRootPath;
 
   @override
@@ -32,6 +35,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.preferencesStore ?? FileDesktopPreferencesStore();
   late final DesktopRuntimeController _runtimeController =
       widget.runtimeController ?? PlatformDesktopRuntimeController();
+  late final PiConfigStore _piConfigStore =
+      widget.piConfigStore ?? FilePiConfigStore();
 
   AppPreferences _preferences = const AppPreferences();
 
@@ -103,6 +108,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         preferences: _preferences,
         runtimeCapabilities: _runtimeController.capabilities,
         runtimeController: _runtimeController,
+        piConfigStore: _piConfigStore,
         workspaceRootPath: widget.workspaceRootPath,
         onPreferencesChanged: _handlePreferencesChanged,
       ),
@@ -133,6 +139,7 @@ class _PiDesktopShell extends StatefulWidget {
     required this.preferences,
     required this.runtimeCapabilities,
     required this.runtimeController,
+    required this.piConfigStore,
     required this.workspaceRootPath,
     required this.onPreferencesChanged,
   });
@@ -140,6 +147,7 @@ class _PiDesktopShell extends StatefulWidget {
   final AppPreferences preferences;
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final DesktopRuntimeController runtimeController;
+  final PiConfigStore piConfigStore;
   final String? workspaceRootPath;
   final ValueChanged<AppPreferences> onPreferencesChanged;
 
@@ -150,6 +158,9 @@ class _PiDesktopShell extends StatefulWidget {
 class _PiDesktopShellState extends State<_PiDesktopShell> {
   final TextEditingController _settingsSearchController =
       TextEditingController();
+
+  PiConfigSnapshot? _piConfigSnapshot;
+  String? _piConfigLoadError;
 
   _DesktopRoute _route = _DesktopRoute.workspace;
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
@@ -168,6 +179,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   void initState() {
     super.initState();
     _settingsSearchController.addListener(_onSettingsSearchChanged);
+    _loadPiConfig();
   }
 
   @override
@@ -196,6 +208,76 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   void _updatePreferences(AppPreferences next) {
     widget.onPreferencesChanged(next);
+  }
+
+  Future<void> _loadPiConfig() async {
+    try {
+      final snapshot = await widget.piConfigStore.loadSnapshot();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _piConfigSnapshot = snapshot;
+        _piConfigLoadError = null;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _piConfigLoadError = error.toString();
+      });
+    }
+  }
+
+  Future<void> _savePromptFile(PiPromptFileKind kind, String content) async {
+    try {
+      final snapshot = await widget.piConfigStore.savePromptFile(kind, content);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _piConfigSnapshot = snapshot;
+        _piConfigLoadError = null;
+      });
+      _showNotice(_copy.piConfigSavedNotice);
+    } catch (error) {
+      _showNotice(_copy.piConfigSaveFailedNotice(error.toString()));
+    }
+  }
+
+  Future<void> _saveModelPreferences(PiModelPreferences preferences) async {
+    try {
+      final snapshot = await widget.piConfigStore.saveModelPreferences(
+        preferences,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _piConfigSnapshot = snapshot;
+        _piConfigLoadError = null;
+      });
+      _showNotice(_copy.piConfigSavedNotice);
+    } catch (error) {
+      _showNotice(_copy.piConfigSaveFailedNotice(error.toString()));
+    }
+  }
+
+  Future<void> _saveModelsJson(String content) async {
+    try {
+      final snapshot = await widget.piConfigStore.saveModelsJson(content);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _piConfigSnapshot = snapshot;
+        _piConfigLoadError = null;
+      });
+      _showNotice(_copy.piConfigSavedNotice);
+    } catch (error) {
+      _showNotice(_copy.piConfigSaveFailedNotice(error.toString()));
+    }
   }
 
   Future<void> _openProject(WorkspaceProjectGroup project) async {
@@ -322,6 +404,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       copy: _copy,
       preferences: widget.preferences,
       runtimeCapabilities: widget.runtimeCapabilities,
+      piConfigSnapshot: _piConfigSnapshot,
+      piConfigLoadError: _piConfigLoadError,
       searchController: _settingsSearchController,
       sections: filteredSections,
       selectedCategory: _selectedSettingsCategory,
@@ -376,6 +460,9 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
           widget.preferences.copyWith(suggestedPrompts: value),
         );
       },
+      onSavePromptFile: _savePromptFile,
+      onSaveModelPreferences: _saveModelPreferences,
+      onSaveModelsJson: _saveModelsJson,
       onShowLicenses: () {
         showLicensePage(
           context: context,

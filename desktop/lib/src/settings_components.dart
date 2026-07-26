@@ -307,16 +307,22 @@ class _SettingsDivider extends StatelessWidget {
 
 /// Small desktop action button for secondary settings actions.
 class _SettingsActionButton extends StatelessWidget {
-  const _SettingsActionButton({required this.label, required this.onPressed});
+  const _SettingsActionButton({
+    this.buttonKey,
+    required this.label,
+    required this.onPressed,
+  });
 
+  final Key? buttonKey;
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.appPalette;
 
     return FilledButton.tonal(
+      key: buttonKey,
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         foregroundColor: palette.textStrong,
@@ -364,6 +370,62 @@ class _SettingsSwitch extends StatelessWidget {
         activeTrackColor: palette.switchActive,
         inactiveThumbColor: Colors.white,
         inactiveTrackColor: palette.switchInactive,
+      ),
+    );
+  }
+}
+
+class _SettingsTextEditor extends StatelessWidget {
+  const _SettingsTextEditor({
+    this.fieldKey,
+    required this.controller,
+    this.hintText,
+    this.minLines = 1,
+    this.maxLines = 1,
+    this.codeFont,
+  });
+
+  final Key? fieldKey;
+  final TextEditingController controller;
+  final String? hintText;
+  final int minLines;
+  final int maxLines;
+  final AppCodeFont? codeFont;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+    final baseStyle = TextStyle(
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      height: 1.4,
+    );
+    final textStyle = codeFont == null
+        ? baseStyle
+        : _withCodeFont(baseStyle, codeFont!);
+    final minimumHeight = maxLines == 1 ? 38.0 : (minLines * 24.0) + 18.0;
+
+    return _DesktopFieldSurface(
+      radius: _SettingsComponentSpec.controlRadius,
+      constraints: BoxConstraints(
+        minHeight: minimumHeight,
+        minWidth: _SettingsComponentSpec.controlMinWidth,
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      child: TextField(
+        key: fieldKey,
+        controller: controller,
+        minLines: minLines,
+        maxLines: maxLines,
+        keyboardType: TextInputType.multiline,
+        style: textStyle,
+        decoration: InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+          hintText: hintText,
+          hintStyle: _AppTypography.settingsSearchHint(palette),
+        ),
       ),
     );
   }

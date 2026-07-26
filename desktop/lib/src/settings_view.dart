@@ -6,6 +6,8 @@ class SettingsView extends StatelessWidget {
     required this.copy,
     required this.preferences,
     required this.runtimeCapabilities,
+    required this.piConfigSnapshot,
+    required this.piConfigLoadError,
     required this.searchController,
     required this.sections,
     required this.selectedCategory,
@@ -24,12 +26,17 @@ class SettingsView extends StatelessWidget {
     required this.onShowBottomPanelChanged,
     required this.onPreventSleepChanged,
     required this.onSuggestedPromptsChanged,
+    required this.onSavePromptFile,
+    required this.onSaveModelPreferences,
+    required this.onSaveModelsJson,
     required this.onShowLicenses,
   });
 
   final SettingsCopy copy;
   final AppPreferences preferences;
   final DesktopRuntimeCapabilities runtimeCapabilities;
+  final PiConfigSnapshot? piConfigSnapshot;
+  final String? piConfigLoadError;
   final TextEditingController searchController;
   final List<SettingsNavSection> sections;
   final SettingsCategory selectedCategory;
@@ -48,6 +55,11 @@ class SettingsView extends StatelessWidget {
   final ValueChanged<bool> onShowBottomPanelChanged;
   final ValueChanged<bool> onPreventSleepChanged;
   final ValueChanged<bool> onSuggestedPromptsChanged;
+  final Future<void> Function(PiPromptFileKind kind, String content)
+  onSavePromptFile;
+  final Future<void> Function(PiModelPreferences preferences)
+  onSaveModelPreferences;
+  final Future<void> Function(String content) onSaveModelsJson;
   final VoidCallback onShowLicenses;
 
   @override
@@ -169,6 +181,21 @@ class SettingsView extends StatelessWidget {
                 onUiScaleChanged: onUiScaleChanged,
                 onInterfaceDensityChanged: onInterfaceDensityChanged,
                 onCodeFontChanged: onCodeFontChanged,
+              ),
+              SettingsCategory.piModels => _PiModelsSettingsContent(
+                copy: copy,
+                preferences: preferences,
+                snapshot: piConfigSnapshot,
+                loadError: piConfigLoadError,
+                onSaveModelPreferences: onSaveModelPreferences,
+                onSaveModelsJson: onSaveModelsJson,
+              ),
+              SettingsCategory.piPrompts => _PiPromptsSettingsContent(
+                copy: copy,
+                preferences: preferences,
+                snapshot: piConfigSnapshot,
+                loadError: piConfigLoadError,
+                onSavePromptFile: onSavePromptFile,
               ),
               _ => _SettingsPlaceholderContent(
                 title: copy.settingsCategoryLabel(selectedCategory),

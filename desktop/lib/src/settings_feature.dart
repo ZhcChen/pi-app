@@ -4,9 +4,11 @@ import 'app_preferences.dart';
 import 'app_runtime.dart';
 import 'desktop_design.dart';
 import 'desktop_primitives.dart';
+import 'pi_config_store.dart';
 
 part 'settings_view.dart';
 part 'settings_components.dart';
+part 'pi_config_view.dart';
 
 extension _SettingsFeatureThemeLookup on BuildContext {
   DesktopPalette get appPalette => desktopPalette;
@@ -37,6 +39,8 @@ typedef _DesktopSelectionTile = DesktopSelectionTile;
 enum SettingsCategory {
   general,
   appearance,
+  piModels,
+  piPrompts,
   voice,
   configuration,
   personalization,
@@ -142,6 +146,49 @@ abstract interface class SettingsCopy {
   String get integrationsGroupLabel;
   String get codingGroupLabel;
   String get archivedGroupLabel;
+  String get piConfigGroupLabel;
+  String get piModelsTitle;
+  String get piPromptsTitle;
+  String get piConfigLoadingLabel;
+  String piConfigLoadFailedBody(String reason);
+  String get piConfigRootSectionTitle;
+  String get piConfigRootDescription;
+  String get piConfigDirectoryTitle;
+  String piConfigDirectoryDescription(bool usesEnvironmentOverride);
+  String get piConfigSettingsFileLabel;
+  String get piConfigModelsFileLabel;
+  String get piConfigAuthFileLabel;
+  String get piConfigSystemPromptFileLabel;
+  String get piConfigAppendSystemFileLabel;
+  String get piConfigAgentsFileLabel;
+  String piConfigRootSourceLabel(PiConfigRootSource source);
+  String get piConfigSavedNotice;
+  String piConfigSaveFailedNotice(String reason);
+  String get piSaveActionLabel;
+  String get piUnsetOptionLabel;
+  String get piModelPreferencesSectionTitle;
+  String get piDefaultProviderTitle;
+  String get piDefaultProviderDescription;
+  String get piDefaultModelTitle;
+  String get piDefaultModelDescription;
+  String get piDefaultThinkingLevelTitle;
+  String get piDefaultThinkingLevelDescription;
+  String get piEnabledModelsTitle;
+  String get piEnabledModelsDescription;
+  String get piEnabledModelsHint;
+  String get piModelsJsonSectionTitle;
+  String get piModelsJsonDescription;
+  String piCustomProvidersSummary(int count);
+  String piCustomModelsSummary(int count);
+  String piAuthProvidersSummary(int count, {required bool fileExists});
+  String piJsonParseErrorLabel(String fileName, String reason);
+  String get piSystemPromptTitle;
+  String get piSystemPromptDescription;
+  String get piAppendSystemPromptTitle;
+  String get piAppendSystemPromptDescription;
+  String get piGlobalAgentsTitle;
+  String get piGlobalAgentsDescription;
+  String get piPromptEditorHint;
 
   String settingsCategoryLabel(SettingsCategory category);
   String settingsPlaceholderBody(String categoryLabel);
@@ -151,6 +198,7 @@ abstract interface class SettingsCopy {
   String uiScaleLabel(AppUiScale scale);
   String interfaceDensityLabel(AppInterfaceDensity density);
   String codeFontLabel(AppCodeFont codeFont);
+  String thinkingLevelLabel(String level);
 }
 
 List<SettingsNavSection> buildSettingsSections(SettingsCopy copy) {
@@ -198,6 +246,21 @@ List<SettingsNavSection> buildSettingsSections(SettingsCopy copy) {
           label: copy.settingsCategoryLabel(SettingsCategory.account),
           icon: Icons.account_circle_outlined,
           external: true,
+        ),
+      ],
+    ),
+    SettingsNavSection(
+      label: copy.piConfigGroupLabel,
+      items: [
+        SettingsNavItem(
+          category: SettingsCategory.piModels,
+          label: copy.settingsCategoryLabel(SettingsCategory.piModels),
+          icon: Icons.smart_toy_outlined,
+        ),
+        SettingsNavItem(
+          category: SettingsCategory.piPrompts,
+          label: copy.settingsCategoryLabel(SettingsCategory.piPrompts),
+          icon: Icons.note_alt_outlined,
         ),
       ],
     ),

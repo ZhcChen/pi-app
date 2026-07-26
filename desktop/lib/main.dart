@@ -10,6 +10,7 @@ export 'src/app_persistence.dart';
 export 'src/app_runtime.dart';
 export 'src/desktop_design.dart';
 export 'src/desktop_primitives.dart';
+export 'src/pi_config_store.dart';
 export 'src/workspace_feature.dart';
 export 'src/settings_feature.dart';
 export 'src/desktop_shell.dart';

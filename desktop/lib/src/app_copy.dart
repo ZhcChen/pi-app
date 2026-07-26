@@ -1,6 +1,7 @@
 // ignore_for_file: annotate_overrides
 
 import 'app_preferences.dart';
+import 'pi_config_store.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
 
@@ -124,6 +125,120 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get executionDefaultsTitle =>
       isChinese ? '当前执行预设' : 'Current execution defaults';
 
+  String get piConfigGroupLabel => 'Pi Config';
+  String get piModelsTitle => isChinese ? 'Pi 模型' : 'Pi Models';
+  String get piPromptsTitle => isChinese ? 'Pi 提示词' : 'Pi Prompts';
+  String get piConfigLoadingLabel =>
+      isChinese ? '正在加载 Pi 全局配置...' : 'Loading Pi global config...';
+  String piConfigLoadFailedBody(String reason) {
+    return isChinese
+        ? '无法加载 Pi 全局配置：$reason'
+        : 'Could not load Pi global config: $reason';
+  }
+
+  String get piConfigRootSectionTitle => isChinese ? '配置根' : 'Config root';
+  String get piConfigRootDescription => isChinese
+      ? '当前页面直接读取和写入 Pi 的全局配置目录。'
+      : 'This page reads and writes Pi\'s global config directory directly.';
+  String get piConfigDirectoryTitle => isChinese ? '目录' : 'Directory';
+  String piConfigDirectoryDescription(bool usesEnvironmentOverride) {
+    return usesEnvironmentOverride
+        ? (isChinese
+              ? '当前路径来自环境变量 PI_CODING_AGENT_DIR。'
+              : 'The current path comes from PI_CODING_AGENT_DIR.')
+        : (isChinese
+              ? '当前路径使用默认全局目录 ~/.pi/agent。'
+              : 'The current path uses the default global directory ~/.pi/agent.');
+  }
+
+  String get piConfigSettingsFileLabel => 'settings.json';
+  String get piConfigModelsFileLabel => 'models.json';
+  String get piConfigAuthFileLabel => 'auth.json';
+  String get piConfigSystemPromptFileLabel => 'SYSTEM.md';
+  String get piConfigAppendSystemFileLabel => 'APPEND_SYSTEM.md';
+  String get piConfigAgentsFileLabel => 'AGENTS.md';
+  String piConfigRootSourceLabel(PiConfigRootSource source) {
+    return switch (source) {
+      PiConfigRootSource.defaultHome => '~/.pi/agent',
+      PiConfigRootSource.environmentOverride => 'PI_CODING_AGENT_DIR',
+      PiConfigRootSource.injected =>
+        isChinese ? '注入配置目录' : 'Injected config root',
+    };
+  }
+
+  String get piConfigSavedNotice =>
+      isChinese ? 'Pi 配置已保存。' : 'Pi config saved.';
+  String piConfigSaveFailedNotice(String reason) {
+    return isChinese
+        ? '保存 Pi 配置失败：$reason'
+        : 'Failed to save Pi config: $reason';
+  }
+
+  String get piSaveActionLabel => isChinese ? '保存' : 'Save';
+  String get piUnsetOptionLabel => isChinese ? '未设置' : 'Not set';
+  String get piModelPreferencesSectionTitle =>
+      isChinese ? '模型偏好' : 'Model preferences';
+  String get piDefaultProviderTitle =>
+      isChinese ? '默认 provider' : 'Default provider';
+  String get piDefaultProviderDescription => isChinese
+      ? '写入 settings.json 的 defaultProvider。留空表示不设置。'
+      : 'Writes defaultProvider in settings.json. Leave blank to unset it.';
+  String get piDefaultModelTitle => isChinese ? '默认模型' : 'Default model';
+  String get piDefaultModelDescription => isChinese
+      ? '写入 settings.json 的 defaultModel。留空表示不设置。'
+      : 'Writes defaultModel in settings.json. Leave blank to unset it.';
+  String get piDefaultThinkingLevelTitle =>
+      isChinese ? '默认 thinking level' : 'Default thinking level';
+  String get piDefaultThinkingLevelDescription => isChinese
+      ? '写入 settings.json 的 defaultThinkingLevel。'
+      : 'Writes defaultThinkingLevel in settings.json.';
+  String get piEnabledModelsTitle =>
+      isChinese ? '启用的模型循环' : 'Enabled model cycling';
+  String get piEnabledModelsDescription => isChinese
+      ? '写入 settings.json 的 enabledModels。每行一个模式，也支持逗号分隔。'
+      : 'Writes enabledModels in settings.json. Use one pattern per line or commas.';
+  String get piEnabledModelsHint => 'claude-*\ngpt-4o\ngemini-2*';
+  String get piModelsJsonSectionTitle => isChinese
+      ? '自定义 provider 与 models.json'
+      : 'Custom providers and models.json';
+  String get piModelsJsonDescription => isChinese
+      ? '高级模型目录，适合自定义 provider、本地模型服务、modelOverrides 和 compat。'
+      : 'Advanced model catalog for custom providers, local model servers, modelOverrides, and compat.';
+  String piCustomProvidersSummary(int count) {
+    return isChinese ? '自定义 providers：$count' : 'Custom providers: $count';
+  }
+
+  String piCustomModelsSummary(int count) {
+    return isChinese ? '自定义 models：$count' : 'Custom models: $count';
+  }
+
+  String piAuthProvidersSummary(int count, {required bool fileExists}) {
+    if (!fileExists) {
+      return isChinese ? 'auth.json：未找到' : 'auth.json: not found';
+    }
+    return isChinese ? '认证条目：$count' : 'Auth entries: $count';
+  }
+
+  String piJsonParseErrorLabel(String fileName, String reason) {
+    return isChinese
+        ? '无法解析 $fileName：$reason'
+        : 'Could not parse $fileName: $reason';
+  }
+
+  String get piSystemPromptTitle => 'SYSTEM.md';
+  String get piSystemPromptDescription =>
+      isChinese ? '替换 Pi 默认系统提示词。' : 'Replace Pi\'s default system prompt.';
+  String get piAppendSystemPromptTitle => 'APPEND_SYSTEM.md';
+  String get piAppendSystemPromptDescription => isChinese
+      ? '在默认系统提示词后追加全局指令。'
+      : 'Append global instructions after the default system prompt.';
+  String get piGlobalAgentsTitle => 'AGENTS.md';
+  String get piGlobalAgentsDescription => isChinese
+      ? '全局普通上下文、工作规则与偏好，会在各项目间共享。'
+      : 'Global context, working rules, and preferences shared across projects.';
+  String get piPromptEditorHint =>
+      isChinese ? '留空并保存可移除该文件。' : 'Leave blank and save to remove this file.';
+
   String openTargetTooltip(AppOpenDestination destination) {
     final label = openDestinationLabel(destination);
     return isChinese ? '在$label中打开' : 'Open in $label';
@@ -199,6 +314,8 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
     return switch (category) {
       SettingsCategory.general => isChinese ? '通用' : 'General',
       SettingsCategory.appearance => isChinese ? '外观' : 'Appearance',
+      SettingsCategory.piModels => isChinese ? 'Pi 模型' : 'Pi Models',
+      SettingsCategory.piPrompts => isChinese ? 'Pi 提示词' : 'Pi Prompts',
       SettingsCategory.voice => isChinese ? '语音' : 'Voice',
       SettingsCategory.configuration => isChinese ? '配置' : 'Configuration',
       SettingsCategory.personalization => isChinese ? '个性化' : 'Personalization',
@@ -267,6 +384,19 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
     return switch (codeFont) {
       AppCodeFont.jetBrainsMono => 'JetBrains Mono',
       AppCodeFont.systemMono => isChinese ? '系统等宽' : 'System mono',
+    };
+  }
+
+  String thinkingLevelLabel(String level) {
+    return switch (level) {
+      'off' => isChinese ? '关闭' : 'Off',
+      'minimal' => isChinese ? '极低' : 'Minimal',
+      'low' => isChinese ? '低' : 'Low',
+      'medium' => isChinese ? '中' : 'Medium',
+      'high' => isChinese ? '高' : 'High',
+      'xhigh' => isChinese ? '极高' : 'Extra high',
+      'max' => isChinese ? '最大' : 'Max',
+      _ => level,
     };
   }
 }

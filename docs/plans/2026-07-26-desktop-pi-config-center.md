@@ -1,10 +1,28 @@
 # desktop Pi Config 可视化配置计划
 
 - 任务：在 `desktop` 设置页中提供 `pi` 全局配置中心，识别并可视化编辑 `~/.pi/agent`（或等效配置根）下的关键配置与提示词文件
-- 状态：草稿
+- 状态：执行中
 - 负责人：Pi
 - 日期：2026-07-26
 - 承接计划：`docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+
+## 当前进度
+
+- 已完成：阶段 1 / 配置根识别与文件访问层
+  - 新增 `desktop/lib/src/pi_config_store.dart`
+  - 支持 `PI_CODING_AGENT_DIR` 优先，其次回落 `~/.pi/agent`
+  - 建立 `settings.json`、`models.json`、`auth.json`、`SYSTEM.md`、`APPEND_SYSTEM.md`、`AGENTS.md` 的统一读取与保存入口
+- 已完成：阶段 2 / Prompts / Context 可视化编辑
+  - 设置页新增 `Pi Prompts` 分类
+  - 支持编辑全局 `SYSTEM.md`、`APPEND_SYSTEM.md`、`AGENTS.md`
+  - 空内容保存会删除对应文件，回到“无文件”状态
+- 已完成：阶段 3 / Models 可视化配置
+  - 设置页新增 `Pi Models` 分类
+  - 支持结构化编辑 `defaultProvider`、`defaultModel`、`defaultThinkingLevel`、`enabledModels`
+  - 支持 `models.json` 原始高级编辑器，并展示 custom providers / models / auth 摘要
+- 待执行：阶段 4-5
+  - `settings.json` 其余高频项
+  - resources / advanced / trust / auth 的后续入口
 
 ## 目标
 

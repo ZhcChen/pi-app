@@ -31,6 +31,7 @@
 - shared primitives 说明：`docs/solutions/2026-07-26-desktop-shared-primitives.md`
 - runtime capability 说明：`docs/solutions/2026-07-26-desktop-runtime-capabilities.md`
 - openDestination 说明：`docs/solutions/2026-07-26-desktop-open-destination.md`
+- Pi Config Center 说明：`docs/solutions/2026-07-26-desktop-pi-config-center.md`
 - pi 集成形态说明：`docs/solutions/2026-07-26-pi-integration-modes.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
@@ -42,6 +43,8 @@
 - `desktop_design.dart` 与 `desktop_primitives.dart` 提供跨 shell / settings / workspace 共享的 design helpers 与基础 UI primitives
 - `app_copy.dart` 与 `app_data.dart` 已迁为独立应用级 import 模块，分别承载双语文案与当前 seed data / demo data 注入
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
+- `pi_config_store.dart` 负责 `pi` 全局配置根识别、模型配置读写与 prompt 文件编辑
+- `pi_config_view.dart` 承接 settings 内部的 `Pi Models` / `Pi Prompts` 页面实现
 - `desktop_app.dart` 当前仅保留 `PiDesktopApp` 的兼容导出 shim，避免旧路径瞬时失效；`workspace_feature.dart` 与 `settings_feature.dart` 仍在各自 feature 内部使用 `part`
 
 设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。

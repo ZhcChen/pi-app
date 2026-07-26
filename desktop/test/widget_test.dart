@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +51,70 @@ void main() {
     expect(loaded.preventSleep, true);
     expect(loaded.suggestedPrompts, true);
   });
+
+  test(
+    'file pi config store resolves environment override and merges model settings',
+    () async {
+      final root = await Directory.systemTemp.createTemp('pi-config-store-');
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+
+      final settingsFile = File(
+        '${root.path}${Platform.pathSeparator}settings.json',
+      );
+      final authFile = File('${root.path}${Platform.pathSeparator}auth.json');
+
+      await settingsFile.writeAsString(
+        '{"theme":"dark","defaultModel":"old-model"}',
+      );
+      await authFile.writeAsString('{"anthropic":{"type":"apiKey"}}');
+
+      final store = FilePiConfigStore(
+        environment: <String, String>{
+          'PI_CODING_AGENT_DIR': root.path,
+          'HOME': '/unused-home',
+        },
+      );
+
+      final initial = await store.loadSnapshot();
+      expect(initial.rootPath, root.path);
+      expect(initial.usesEnvironmentOverride, true);
+      expect(initial.modelPreferences.defaultModel, 'old-model');
+      expect(initial.authProviderCount, 1);
+
+      final savedPreferences = await store.saveModelPreferences(
+        const PiModelPreferences(
+          defaultProvider: 'openai',
+          defaultModel: 'gpt-4o',
+          defaultThinkingLevel: 'high',
+          enabledModels: <String>['gpt-4o', 'claude-*'],
+        ),
+      );
+
+      final savedSettingsContent = await settingsFile.readAsString();
+      expect(savedSettingsContent.contains('"theme": "dark"'), true);
+      expect(savedPreferences.modelPreferences.defaultProvider, 'openai');
+      expect(savedPreferences.modelPreferences.defaultModel, 'gpt-4o');
+      expect(savedPreferences.modelPreferences.defaultThinkingLevel, 'high');
+      expect(savedPreferences.modelPreferences.enabledModels, <String>[
+        'gpt-4o',
+        'claude-*',
+      ]);
+
+      await store.savePromptFile(PiPromptFileKind.system, 'You are Pi.');
+      final systemFile = File('${root.path}${Platform.pathSeparator}SYSTEM.md');
+      expect(await systemFile.readAsString(), 'You are Pi.');
+
+      final savedModels = await store.saveModelsJson(
+        '{"providers":{"ollama":{"models":[{"id":"qwen2.5-coder:7b"}]}}}',
+      );
+      expect(savedModels.modelsSummary.providerCount, 1);
+      expect(savedModels.modelsSummary.customModelCount, 1);
+    },
+  );
 
   test('platform runtime controller syncs supported capabilities', () async {
     final menuBarCalls = <bool>[];
@@ -305,6 +371,104 @@ void main() {
       '/workspace/pi-app/desktop/lib/src/app_runtime.dart',
     );
     expect(runtimeController.openCount, 2);
+  });
+
+  testWidgets('pi config settings edit prompts and model preferences', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final piConfigStore = MemoryPiConfigStore(
+      rootPath: '/mock/.pi/agent',
+      settingsJsonContent:
+          '{"defaultProvider":"anthropic","defaultModel":"claude-sonnet-4-20250514"}',
+      modelsJsonContent:
+          '{"providers":{"ollama":{"models":[{"id":"qwen2.5-coder:7b"}]}}}',
+      authJsonContent: '{"anthropic":{"type":"apiKey"}}',
+      promptContents: const <PiPromptFileKind, String>{
+        PiPromptFileKind.system: 'Base system prompt',
+        PiPromptFileKind.agents: 'Always cite files.',
+      },
+    );
+
+    await tester.pumpWidget(
+      PiDesktopApp(enablePersistence: false, piConfigStore: piConfigStore),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pi Models').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pi-models-page-title')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('pi-default-provider-field')),
+      'openai',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pi-default-model-field')),
+      'gpt-4o',
+    );
+    await tester.tap(find.byKey(const Key('pi-thinking-level-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('High').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('pi-enabled-models-field')),
+      'gpt-4o\nclaude-*',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('save-pi-model-settings-button')),
+    );
+    await tester.tap(find.byKey(const Key('save-pi-model-settings-button')));
+    await tester.pumpAndSettle();
+
+    expect(piConfigStore.lastSavedModelPreferences?.defaultProvider, 'openai');
+    expect(piConfigStore.lastSavedModelPreferences?.defaultModel, 'gpt-4o');
+    expect(
+      piConfigStore.lastSavedModelPreferences?.defaultThinkingLevel,
+      'high',
+    );
+    expect(piConfigStore.lastSavedModelPreferences?.enabledModels, <String>[
+      'gpt-4o',
+      'claude-*',
+    ]);
+
+    await tester.enterText(
+      find.byKey(const Key('pi-models-json-editor')),
+      '{"providers":{"local":{"models":[{"id":"gpt-oss:20b"}]}}}',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('save-pi-models-json-button')),
+    );
+    await tester.tap(find.byKey(const Key('save-pi-models-json-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      piConfigStore.lastSavedModelsJsonContent,
+      '{"providers":{"local":{"models":[{"id":"gpt-oss:20b"}]}}}',
+    );
+
+    await tester.tap(find.text('Pi Prompts').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pi-prompts-page-title')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('pi-agents-prompt-editor')),
+      'Use AGENTS globally.',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('save-pi-agents-prompt-button')),
+    );
+    await tester.tap(find.byKey(const Key('save-pi-agents-prompt-button')));
+    await tester.pumpAndSettle();
+
+    expect(piConfigStore.lastSavedPromptKind, PiPromptFileKind.agents);
+    expect(piConfigStore.lastSavedPromptContent, 'Use AGENTS globally.');
   });
 
   testWidgets('workspace open action shows failure feedback', (tester) async {
