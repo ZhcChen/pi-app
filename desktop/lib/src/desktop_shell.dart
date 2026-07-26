@@ -99,6 +99,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       },
       home: _PiDesktopShell(
         preferences: _preferences,
+        runtimeCapabilities: _runtimeController.capabilities,
         onPreferencesChanged: _handlePreferencesChanged,
       ),
     );
@@ -126,10 +127,12 @@ enum _DesktopRoute { workspace, settings }
 class _PiDesktopShell extends StatefulWidget {
   const _PiDesktopShell({
     required this.preferences,
+    required this.runtimeCapabilities,
     required this.onPreferencesChanged,
   });
 
   final AppPreferences preferences;
+  final DesktopRuntimeCapabilities runtimeCapabilities;
   final ValueChanged<AppPreferences> onPreferencesChanged;
 
   @override
@@ -253,6 +256,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     return SettingsView(
       copy: _copy,
       preferences: widget.preferences,
+      runtimeCapabilities: widget.runtimeCapabilities,
       searchController: _settingsSearchController,
       sections: filteredSections,
       selectedCategory: _selectedSettingsCategory,

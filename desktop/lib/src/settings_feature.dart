@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_preferences.dart';
+import 'app_runtime.dart';
 import 'desktop_design.dart';
 import 'desktop_primitives.dart';
 
@@ -107,6 +108,7 @@ abstract interface class SettingsCopy {
   String get languageDescription;
   String get showInMenuBarTitle;
   String get showInMenuBarDescription;
+  String get showInMenuBarUnsupportedDescription;
   String get bottomPanelTitle;
   String get bottomPanelDescription;
   String get preventSleepTitle;

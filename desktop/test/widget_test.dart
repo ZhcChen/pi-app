@@ -50,6 +50,53 @@ void main() {
     expect(loaded.suggestedPrompts, true);
   });
 
+  test('platform runtime controller syncs supported capabilities', () async {
+    final menuBarCalls = <bool>[];
+    final preventSleepCalls = <bool>[];
+    final controller = PlatformDesktopRuntimeController(
+      capabilities: const DesktopRuntimeCapabilities(
+        supportsShowInMenuBar: true,
+      ),
+      setShowInMenuBar: (enabled) async {
+        menuBarCalls.add(enabled);
+      },
+      setPreventSleep: (enabled) async {
+        preventSleepCalls.add(enabled);
+      },
+    );
+
+    await controller.sync(const AppPreferences());
+    await controller.sync(
+      const AppPreferences(showInMenuBar: false, preventSleep: true),
+    );
+    await controller.sync(
+      const AppPreferences(showInMenuBar: false, preventSleep: true),
+    );
+
+    expect(menuBarCalls, <bool>[true, false]);
+    expect(preventSleepCalls, <bool>[false, true]);
+  });
+
+  test(
+    'platform runtime controller skips unsupported show-in-menu-bar sync',
+    () async {
+      final menuBarCalls = <bool>[];
+      final controller = PlatformDesktopRuntimeController(
+        capabilities: const DesktopRuntimeCapabilities(
+          supportsShowInMenuBar: false,
+        ),
+        setShowInMenuBar: (enabled) async {
+          menuBarCalls.add(enabled);
+        },
+      );
+
+      await controller.sync(const AppPreferences());
+      await controller.sync(const AppPreferences(showInMenuBar: false));
+
+      expect(menuBarCalls, isEmpty);
+    },
+  );
+
   testWidgets('renders settings views and switches language', (tester) async {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
@@ -111,6 +158,7 @@ void main() {
     );
     expect(find.byKey(const Key('workspace-bottom-panel')), findsNothing);
     expect(find.text('VS Code · Full access · Auto-review'), findsOneWidget);
+    expect(runtimeController.lastSyncedPreferences?.showInMenuBar, true);
     expect(runtimeController.lastSyncedPreferences?.preventSleep, false);
 
     await tester.tap(find.byKey(const Key('open-settings-button')));
@@ -127,6 +175,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('auto-review-switch')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('show-in-menu-bar-switch')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('show-bottom-panel-switch')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('prevent-sleep-switch')));
@@ -134,6 +184,7 @@ void main() {
     await tester.tap(find.byKey(const Key('suggested-prompts-switch')));
     await tester.pumpAndSettle();
 
+    expect(runtimeController.lastSyncedPreferences?.showInMenuBar, false);
     expect(runtimeController.lastSyncedPreferences?.preventSleep, true);
 
     await tester.tap(find.byKey(const Key('back-to-app-button')));
@@ -145,6 +196,38 @@ void main() {
     expect(find.text('Open: Terminal'), findsOneWidget);
     expect(find.text('Keep awake'), findsOneWidget);
     expect(find.text('Suggested prompts off'), findsOneWidget);
+  });
+
+  testWidgets('show in menu bar is disabled when runtime lacks support', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final runtimeController = MemoryDesktopRuntimeController(
+      capabilities: const DesktopRuntimeCapabilities(
+        supportsShowInMenuBar: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        runtimeController: runtimeController,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+
+    final menuBarSwitch = tester.widget<Switch>(
+      find.byKey(const Key('show-in-menu-bar-switch')),
+    );
+    expect(menuBarSwitch.onChanged, isNull);
+    expect(
+      find.text('This behavior is currently supported only on macOS.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('theme mode switch updates material app theme mode', (

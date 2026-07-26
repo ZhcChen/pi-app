@@ -5,6 +5,7 @@ class SettingsView extends StatelessWidget {
     super.key,
     required this.copy,
     required this.preferences,
+    required this.runtimeCapabilities,
     required this.searchController,
     required this.sections,
     required this.selectedCategory,
@@ -28,6 +29,7 @@ class SettingsView extends StatelessWidget {
 
   final SettingsCopy copy;
   final AppPreferences preferences;
+  final DesktopRuntimeCapabilities runtimeCapabilities;
   final TextEditingController searchController;
   final List<SettingsNavSection> sections;
   final SettingsCategory selectedCategory;
@@ -148,6 +150,7 @@ class SettingsView extends StatelessWidget {
               SettingsCategory.general => _GeneralSettingsContent(
                 copy: copy,
                 preferences: preferences,
+                runtimeCapabilities: runtimeCapabilities,
                 onLanguageChanged: onLanguageChanged,
                 onOpenDestinationChanged: onOpenDestinationChanged,
                 onDefaultPermissionsChanged: onDefaultPermissionsChanged,
@@ -185,6 +188,7 @@ class _GeneralSettingsContent extends StatelessWidget {
   const _GeneralSettingsContent({
     required this.copy,
     required this.preferences,
+    required this.runtimeCapabilities,
     required this.onLanguageChanged,
     required this.onOpenDestinationChanged,
     required this.onDefaultPermissionsChanged,
@@ -199,6 +203,7 @@ class _GeneralSettingsContent extends StatelessWidget {
 
   final SettingsCopy copy;
   final AppPreferences preferences;
+  final DesktopRuntimeCapabilities runtimeCapabilities;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<AppOpenDestination> onOpenDestinationChanged;
   final ValueChanged<bool> onDefaultPermissionsChanged;
@@ -214,6 +219,10 @@ class _GeneralSettingsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.appPalette;
     final density = preferences.interfaceDensity;
+    final showInMenuBarSupported = runtimeCapabilities.supportsShowInMenuBar;
+    final showInMenuBarDescription = showInMenuBarSupported
+        ? copy.showInMenuBarDescription
+        : copy.showInMenuBarUnsupportedDescription;
 
     return Scrollbar(
       child: SingleChildScrollView(
@@ -339,11 +348,13 @@ class _GeneralSettingsContent extends StatelessWidget {
                       _SettingsRow(
                         interfaceDensity: density,
                         title: copy.showInMenuBarTitle,
-                        description: copy.showInMenuBarDescription,
+                        description: showInMenuBarDescription,
                         trailing: _SettingsSwitch(
                           switchKey: const Key('show-in-menu-bar-switch'),
                           value: preferences.showInMenuBar,
-                          onChanged: onShowInMenuBarChanged,
+                          onChanged: showInMenuBarSupported
+                              ? onShowInMenuBarChanged
+                              : null,
                         ),
                       ),
                       const _SettingsDivider(),

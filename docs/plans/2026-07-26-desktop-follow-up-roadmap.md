@@ -1,7 +1,7 @@
 # desktop 后续任务收口计划
 
 - 任务：收口 `desktop` 剩余真实系统能力、真实数据接入与 feature 内部边界评估
-- 状态：规划中
+- 状态：执行中
 - 负责人：Pi
 - 日期：2026-07-26
 - 承接计划：`docs/plans/2026-07-26-desktop-persistence-and-modularization.md`
@@ -21,6 +21,15 @@
 - 工作区首页仍包含 seed data / demo data
 - feature root 内部是否继续去 `part` 尚未做最后判断
 - 少量兼容壳文件仍保留，用于避免旧路径瞬时失效
+
+## 当前进度
+
+- 已完成：阶段 1 / 单元 1-4
+  - 为 `showInMenuBar` 建立 `DesktopRuntimeCapabilities` 能力边界
+  - macOS 原生层新增 menu bar status item 与关闭主窗口后保活恢复逻辑
+  - Windows / Linux 当前明确降级为不支持，并在设置页禁用对应开关
+  - 补齐 runtime sync 与 unsupported 状态的自动化测试
+- 待执行：阶段 2-5
 
 ## 目标
 

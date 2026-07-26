@@ -29,6 +29,7 @@
 - settings 组件说明：`docs/solutions/2026-07-26-desktop-settings-components.md`
 - workspace 组件说明：`docs/solutions/2026-07-26-desktop-workspace-components.md`
 - shared primitives 说明：`docs/solutions/2026-07-26-desktop-shared-primitives.md`
+- runtime capability 说明：`docs/solutions/2026-07-26-desktop-runtime-capabilities.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：

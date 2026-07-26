@@ -346,7 +346,7 @@ class _SettingsSwitch extends StatelessWidget {
 
   final Key? switchKey;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

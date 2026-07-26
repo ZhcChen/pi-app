@@ -61,6 +61,9 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get showInMenuBarDescription => isChinese
       ? '主窗口关闭后，仍在 macOS 菜单栏中保留 Pi App'
       : 'Keep Pi App in the macOS menu bar when the main window is closed';
+  String get showInMenuBarUnsupportedDescription => isChinese
+      ? '当前只有 macOS 支持此行为。'
+      : 'This behavior is currently supported only on macOS.';
   String get bottomPanelTitle => isChinese ? '底部面板' : 'Bottom panel';
   String get bottomPanelDescription => isChinese
       ? '在 composer 下方显示执行预设和运行状态面板'
