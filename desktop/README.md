@@ -18,9 +18,13 @@
 
 - 字体与文字 token：`desktop/lib/src/app_theme.dart`
 - 设置页基础组件：`desktop/lib/src/settings_components.dart`
+- 工作区基础组件：`desktop/lib/src/workspace_components.dart`
 - 设置组件使用说明：`docs/solutions/2026-07-26-desktop-settings-components.md`
+- 工作区组件使用说明：`docs/solutions/2026-07-26-desktop-workspace-components.md`
 
 设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。
+
+工作区新增卡片、侧栏项、状态胶囊或输入区细节时，优先复用 `_PromptCardTile`、`_Composer`、`_WorkspaceBottomPanel`、`_WorkspaceStatusPill`、`_SidebarActionTile`、`_ProjectTile` 等基础组件，不要直接把实现堆回 `workspace_view.dart`。
 
 ## 常用命令
 

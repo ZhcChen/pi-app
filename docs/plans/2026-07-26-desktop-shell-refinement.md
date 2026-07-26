@@ -59,6 +59,20 @@
 - 验证方式：`flutter analyze`、`flutter test`、`flutter run -d macos`
 - 完成标准：命令通过，预览窗口可见
 
+### 单元 4
+
+- 目标：整理工作区基础组件
+- 涉及文件 / 模块：`desktop/lib/src/workspace_view.dart`、`desktop/lib/src/workspace_components.dart`
+- 验证方式：`flutter analyze`、`flutter test`
+- 完成标准：工作区页面保留壳层与组合逻辑，提示卡、composer、底部状态面板、侧栏项、项目项等基础组件从页面中拆出
+
+### 单元 5
+
+- 目标：补充工作区组件开发文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 验证方式：阅读文档与代码路径
+- 完成标准：工作区组件位置、职责与复用约定有明确记录
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter run -d macos`

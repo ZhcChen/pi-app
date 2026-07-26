@@ -1,0 +1,559 @@
+part of '../main.dart';
+
+// Workspace primitives live here so the page file can focus on shell composition.
+class _WorkspaceComponentSpec {
+  static const double sidebarTileRadius = 8;
+  static const double promptCardRadius = 8;
+  static const double promptCardWidth = 194;
+  static const double promptCardHeight = 128;
+  static const double composerShellRadius = 24;
+  static const double composerInputRadius = 20;
+  static const double bottomPanelRadius = 18;
+  static const double pillRadius = 999;
+  static const double projectTileRadius = 12;
+}
+
+class _HeroMark extends StatelessWidget {
+  const _HeroMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: 0.4,
+      child: SvgPicture.asset(_piDarkMarkAsset, width: 58, height: 58),
+    );
+  }
+}
+
+/// Prompt suggestion card used in the empty-state workspace canvas.
+class _PromptCardTile extends StatelessWidget {
+  const _PromptCardTile({required this.card});
+
+  final _PromptCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(
+        _WorkspaceComponentSpec.promptCardRadius,
+      ),
+      child: Container(
+        width: _WorkspaceComponentSpec.promptCardWidth,
+        height: _WorkspaceComponentSpec.promptCardHeight,
+        padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
+        decoration: BoxDecoration(
+          color: palette.panel,
+          borderRadius: BorderRadius.circular(
+            _WorkspaceComponentSpec.promptCardRadius,
+          ),
+          border: Border.all(color: palette.dividerLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(card.icon, size: 17, color: card.color),
+            Text(card.title, style: _AppTypography.promptTitle(palette)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary task composer shown at the bottom of the workspace.
+class _Composer extends StatelessWidget {
+  const _Composer({
+    required this.copy,
+    required this.preferences,
+    required this.project,
+  });
+
+  final _AppCopy copy;
+  final AppPreferences preferences;
+  final _ProjectGroup project;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+    final density = preferences.interfaceDensity;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 836),
+      child: Container(
+        decoration: BoxDecoration(
+          color: palette.composerShell,
+          borderRadius: BorderRadius.circular(
+            _WorkspaceComponentSpec.composerShellRadius,
+          ),
+          border: Border.all(color: palette.dividerLight),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                18,
+                _densityValue(density, compact: 10, comfortable: 12),
+                18,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: _densityValue(density, compact: 12, comfortable: 16),
+                  runSpacing: 8,
+                  children: [
+                    _ComposerTag(
+                      icon: Icons.folder_outlined,
+                      label: project.name,
+                    ),
+                    _ComposerTag(
+                      icon: Icons.computer_outlined,
+                      label: copy.localLabel,
+                    ),
+                    _ComposerTag(
+                      icon: Icons.merge_type_outlined,
+                      label: project.branch,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                14,
+                _densityValue(density, compact: 8, comfortable: 10),
+                14,
+                0,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: palette.composerInput,
+                  borderRadius: BorderRadius.circular(
+                    _WorkspaceComponentSpec.composerInputRadius,
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  _densityValue(density, compact: 14, comfortable: 16),
+                  16,
+                  _densityValue(density, compact: 10, comfortable: 12),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      minLines: 3,
+                      maxLines: 3,
+                      style: _withCodeFont(
+                        _AppTypography.composerInput(palette),
+                        preferences.codeFont,
+                      ),
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        border: InputBorder.none,
+                        hintText: copy.composerHint,
+                        hintStyle: _withCodeFont(
+                          _AppTypography.composerHint(palette),
+                          preferences.codeFont,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: Text(copy.customLabel),
+                          style: TextButton.styleFrom(
+                            foregroundColor: palette.textSecondary,
+                            textStyle: _AppTypography.controlLabel(palette),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            copy.composerExecutionSummary(preferences),
+                            key: const Key('composer-execution-summary'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: _AppTypography.sectionLabel(palette),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () {},
+                          iconAlignment: IconAlignment.end,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          label: Text(copy.modelPresetLabel),
+                          style: TextButton.styleFrom(
+                            foregroundColor: palette.textSecondary,
+                            textStyle: _AppTypography.controlLabel(palette),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {},
+                          tooltip: copy.submitTaskTooltip,
+                          icon: const Icon(Icons.arrow_upward_rounded),
+                          color: palette.textPrimary,
+                          style: IconButton.styleFrom(
+                            backgroundColor: const Color(0xFF767676),
+                            minimumSize: const Size(40, 40),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              height: _densityValue(density, compact: 12, comfortable: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComposerTag extends StatelessWidget {
+  const _ComposerTag({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: palette.textPrimary),
+        const SizedBox(width: 6),
+        Text(label, style: _AppTypography.composerTag(palette)),
+      ],
+    );
+  }
+}
+
+/// Secondary bottom panel that summarizes current execution defaults.
+class _WorkspaceBottomPanel extends StatelessWidget {
+  const _WorkspaceBottomPanel({required this.copy, required this.preferences});
+
+  final _AppCopy copy;
+  final AppPreferences preferences;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 836),
+      child: Container(
+        key: const Key('workspace-bottom-panel'),
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: palette.panel,
+          borderRadius: BorderRadius.circular(
+            _WorkspaceComponentSpec.bottomPanelRadius,
+          ),
+          border: Border.all(color: palette.dividerLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              copy.executionDefaultsTitle,
+              style: _AppTypography.settingsGroupLabel(palette),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _WorkspaceStatusPill(
+                  icon: Icons.open_in_new_rounded,
+                  label: copy.openDestinationSummaryLabel(
+                    preferences.openDestination,
+                  ),
+                ),
+                _WorkspaceStatusPill(
+                  icon: Icons.shield_outlined,
+                  label: copy.accessModeLabel(preferences),
+                ),
+                _WorkspaceStatusPill(
+                  icon: Icons.fact_check_outlined,
+                  label: copy.reviewModeLabel(preferences.autoReview),
+                ),
+                _WorkspaceStatusPill(
+                  icon: Icons.bedtime_outlined,
+                  label: copy.sleepModeLabel(preferences.preventSleep),
+                ),
+                _WorkspaceStatusPill(
+                  icon: Icons.auto_awesome_outlined,
+                  label: copy.suggestedPromptsModeLabel(
+                    preferences.suggestedPrompts,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkspaceStatusPill extends StatelessWidget {
+  const _WorkspaceStatusPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: palette.settingsField,
+        borderRadius: BorderRadius.circular(_WorkspaceComponentSpec.pillRadius),
+        border: Border.all(color: palette.dividerLight),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: palette.textSecondary),
+          const SizedBox(width: 6),
+          Text(label, style: _AppTypography.controlLabel(palette)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Primary action tile for the left workspace sidebar.
+class _SidebarActionTile extends StatelessWidget {
+  const _SidebarActionTile({
+    required this.action,
+    required this.interfaceDensity,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _SidebarAction action;
+  final AppInterfaceDensity interfaceDensity;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(
+          _WorkspaceComponentSpec.sidebarTileRadius,
+        ),
+        child: Container(
+          height: _densityValue(interfaceDensity, compact: 34, comfortable: 38),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: selected ? palette.selection : Colors.transparent,
+            borderRadius: BorderRadius.circular(
+              _WorkspaceComponentSpec.sidebarTileRadius,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(action.icon, size: 17, color: palette.textSecondary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  action.label,
+                  style: _AppTypography.sidebarItem(palette),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Expandable project tile in the workspace sidebar.
+class _ProjectTile extends StatelessWidget {
+  const _ProjectTile({
+    required this.project,
+    required this.interfaceDensity,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _ProjectGroup project;
+  final AppInterfaceDensity interfaceDensity;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: selected ? palette.selection : Colors.transparent,
+        borderRadius: BorderRadius.circular(
+          _WorkspaceComponentSpec.projectTileRadius,
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(
+              _WorkspaceComponentSpec.projectTileRadius,
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: _densityValue(
+                  interfaceDensity,
+                  compact: 5,
+                  comfortable: 7,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.folder_outlined,
+                    size: 17,
+                    color: palette.textSecondary,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      project.name,
+                      style: _AppTypography.sidebarItem(palette),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (selected)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 10, 10),
+              child: Column(
+                children: [
+                  for (final item in project.items)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: _ProjectItemRow(
+                        interfaceDensity: interfaceDensity,
+                        label: item,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectItemRow extends StatelessWidget {
+  const _ProjectItemRow({required this.interfaceDensity, required this.label});
+
+  final AppInterfaceDensity interfaceDensity;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return SizedBox(
+      height: _densityValue(interfaceDensity, compact: 30, comfortable: 34),
+      child: Row(
+        children: [
+          const SizedBox(width: 2),
+          Expanded(
+            child: Text(label, style: _AppTypography.projectItem(palette)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Text(label, style: _AppTypography.sectionLabel(palette)),
+      ),
+    );
+  }
+}
+
+class _CollapsedSectionRow extends StatelessWidget {
+  const _CollapsedSectionRow({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          Text(label, style: _AppTypography.sectionLabel(palette)),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded, size: 16, color: palette.textMuted),
+        ],
+      ),
+    );
+  }
+}

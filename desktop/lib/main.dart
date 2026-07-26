@@ -15,6 +15,7 @@ part 'src/app_persistence.dart';
 part 'src/app_runtime.dart';
 part 'src/desktop_app.dart';
 part 'src/workspace_view.dart';
+part 'src/workspace_components.dart';
 part 'src/settings_view.dart';
 part 'src/settings_components.dart';
 
