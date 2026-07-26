@@ -119,6 +119,24 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：文档明确 `desktop_shell.dart`、`settings_feature.dart`、`workspace_feature.dart` 与 shared UI foundation 的职责边界
 
+### 单元 16
+
+- 目标：将应用级 copy 模块迁为独立 import 文件
+- 涉及文件 / 模块：`desktop/lib/src/app_copy.dart`、`desktop/lib/src/desktop_shell.dart`、`desktop/lib/src/desktop_app.dart`
+- 完成标准：`AppCopy` 不再挂在 `desktop_shell.dart` 下，shell 通过普通 import 使用应用级 copy
+
+### 单元 17
+
+- 目标：将应用级 seed data 模块迁为独立 import 文件
+- 涉及文件 / 模块：`desktop/lib/src/app_data.dart`、`desktop/lib/src/desktop_shell.dart`、`desktop/lib/src/desktop_app.dart`
+- 完成标准：workspace 演示 actions / prompt cards / project groups 通过普通 import 注入，shell 不再持有这些数据构造函数和常量
+
+### 单元 18
+
+- 目标：更新 app shell 收缩后的模块边界文档
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：文档明确 `desktop_shell.dart` 仅保留编排状态与应用壳层，`app_copy.dart` 与 `app_data.dart` 已迁为独立模块
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`

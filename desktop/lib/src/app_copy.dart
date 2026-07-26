@@ -1,9 +1,11 @@
 // ignore_for_file: annotate_overrides
 
-part of 'desktop_shell.dart';
+import 'app_preferences.dart';
+import 'settings_feature.dart';
+import 'workspace_feature.dart';
 
-class _AppCopy implements WorkspaceCopy, SettingsCopy {
-  const _AppCopy(this.language);
+class AppCopy implements WorkspaceCopy, SettingsCopy {
+  const AppCopy(this.language);
 
   final AppLanguage language;
 

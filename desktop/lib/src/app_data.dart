@@ -1,6 +1,9 @@
-part of 'desktop_shell.dart';
+import 'package:flutter/material.dart';
 
-List<WorkspaceAction> _buildPrimaryActions(_AppCopy copy) {
+import 'app_copy.dart';
+import 'workspace_feature.dart';
+
+List<WorkspaceAction> buildPrimaryActions(AppCopy copy) {
   return [
     WorkspaceAction(
       label: copy.isChinese ? '新任务' : 'New task',
@@ -21,7 +24,7 @@ List<WorkspaceAction> _buildPrimaryActions(_AppCopy copy) {
   ];
 }
 
-List<WorkspacePromptCard> _buildPromptCards(_AppCopy copy) {
+List<WorkspacePromptCard> buildPromptCards(AppCopy copy) {
   return [
     WorkspacePromptCard(
       title: copy.promptExplore,
@@ -46,7 +49,7 @@ List<WorkspacePromptCard> _buildPromptCards(_AppCopy copy) {
   ];
 }
 
-const List<WorkspaceProjectGroup> _projects = [
+const List<WorkspaceProjectGroup> desktopProjects = [
   WorkspaceProjectGroup(
     name: 'pi-app',
     branch: 'main',

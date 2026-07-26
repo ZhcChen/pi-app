@@ -21,6 +21,9 @@
 - app shell library root：`desktop/lib/src/desktop_shell.dart`
 - workspace feature root：`desktop/lib/src/workspace_feature.dart`
 - settings feature root：`desktop/lib/src/settings_feature.dart`
+- 独立应用级 import 模块：
+  - `desktop/lib/src/app_copy.dart`
+  - `desktop/lib/src/app_data.dart`
 - 独立 import/export core 模块：
   - `desktop/lib/src/app_preferences.dart`
   - `desktop/lib/src/app_persistence.dart`
@@ -29,8 +32,6 @@
   - `desktop/lib/src/desktop_design.dart`
   - `desktop/lib/src/desktop_primitives.dart`
 - 当前挂在 `desktop_shell.dart` 下的 UI `part` 文件：
-  - `desktop/lib/src/app_copy.dart`
-  - `desktop/lib/src/app_data.dart`
   - `desktop/lib/src/desktop_app.dart`
   - `desktop/lib/src/app_models.dart`（当前仅保留 app shell 私有结构）
 - 当前挂在 `settings_feature.dart` 下的 feature `part` 文件：
@@ -55,7 +56,7 @@
 以下文件目前仍然共享大量私有实现细节：
 
 - `desktop_app.dart` 仍同时协调 settings / workspace 两个 UI 分支
-- `app_copy.dart` 同时实现 `WorkspaceCopy` 与 `SettingsCopy`
+- `app_copy.dart` 仍同时实现 `WorkspaceCopy` 与 `SettingsCopy`，属于应用级文案聚合点
 - `app_data.dart` 仍保留应用级数据注入职责，例如当前工作区演示数据
 
 在这些边界还没有进一步 feature 化之前，直接把它们全部改成 imports，通常会导致两种坏结果：
@@ -79,10 +80,10 @@
 ## 验证 / 证据
 
 - 命令：`cd desktop && flutter analyze`、`cd desktop && flutter test`、`cd desktop && flutter build macos --debug`
-- 代码观察：`main.dart` 已只保留入口与 `export`，共享设计层迁到 `desktop_design.dart` / `desktop_primitives.dart`，工作区与设置页分别改为 `workspace_feature.dart` / `settings_feature.dart`
+- 代码观察：`main.dart` 已只保留入口与 `export`，共享设计层迁到 `desktop_design.dart` / `desktop_primitives.dart`，工作区与设置页分别改为 `workspace_feature.dart` / `settings_feature.dart`，`app_copy.dart` 与 `app_data.dart` 也已脱离 shell `part` 链
 - 兼容性观察：`package:pi_desktop/main.dart` 仍可被测试直接引用 `PiDesktopApp`、`AppPreferences`、`MemoryDesktopPreferencesStore`、`MemoryDesktopRuntimeController`
 
 ## 后续事项
 
 - 后续如继续推进 import-based modularization，优先按 feature 边界迁移，而不是按文件名平铺拆散
-- 下一步更自然的是继续收缩 `desktop_shell.dart`，把 `app_copy.dart`、`app_data.dart` 和壳层 route state 再按应用级边界拆开，而不是再回到大 `part` 链
+- 下一步更自然的是继续收缩 `desktop_shell.dart`，把 `desktop_app.dart` 里的 route state、controller 和 feature 切换逻辑按应用级状态边界拆开，而不是再回到大 `part` 链
