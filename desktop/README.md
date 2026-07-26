@@ -33,13 +33,13 @@
 
 当前 `desktop/lib/` 采用 hybrid 结构：
 - `main.dart` 负责启动入口与对外导出公开类型
-- `desktop_shell.dart` 作为当前应用编排层，负责全局偏好、route 切换、feature 注入与最外层壳体
+- `desktop_shell.dart` 作为当前应用编排层，负责全局偏好、route 切换、feature 注入与最外层壳体，并且本身已是普通 import 模块，不再依赖 `part`
 - `workspace_feature.dart` 作为独立的 workspace feature root，挂接 `workspace_view.dart` 与 `workspace_components.dart`
 - `settings_feature.dart` 作为独立的 settings feature root，挂接 `settings_view.dart` 与 `settings_components.dart`
 - `desktop_design.dart` 与 `desktop_primitives.dart` 提供跨 shell / settings / workspace 共享的 design helpers 与基础 UI primitives
 - `app_copy.dart` 与 `app_data.dart` 已迁为独立应用级 import 模块，分别承载双语文案与当前 seed data / demo data 注入
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
-- `app_models.dart` 与 `desktop_app.dart` 仍保留在 `desktop_shell.dart` 的 `part` 层，后续再按应用级状态和 route 边界继续收缩
+- `desktop_app.dart` 当前仅保留 `PiDesktopApp` 的兼容导出 shim，避免旧路径瞬时失效；`workspace_feature.dart` 与 `settings_feature.dart` 仍在各自 feature 内部使用 `part`
 
 设置页新增控件时，优先复用 `_SettingsCard`、`_SettingsRow`、`_SettingsFieldBlock`、`_SettingsDropdown<T>`、`_SettingsSegmentedControl<T>`、`_SettingsSwitch`，不要在页面里重新散写一套样式。
 

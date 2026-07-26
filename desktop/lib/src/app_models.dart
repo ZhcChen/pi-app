@@ -1,3 +1,1 @@
-part of 'desktop_shell.dart';
-
-enum _DesktopRoute { workspace, settings }
+// Route-private shell models were folded back into desktop_shell.dart.

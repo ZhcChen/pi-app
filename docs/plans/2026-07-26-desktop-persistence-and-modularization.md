@@ -137,6 +137,24 @@
 - 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
 - 完成标准：文档明确 `desktop_shell.dart` 仅保留编排状态与应用壳层，`app_copy.dart` 与 `app_data.dart` 已迁为独立模块
 
+### 单元 19
+
+- 目标：移除 `desktop_shell.dart` 对 `part` 链的依赖
+- 涉及文件 / 模块：`desktop/lib/src/desktop_shell.dart`、`desktop/lib/src/desktop_app.dart`、`desktop/lib/src/app_models.dart`
+- 完成标准：`desktop_shell.dart` 作为普通 import 模块直接承载应用编排逻辑，`app_models.dart` 中残留的 route 私有模型回收到 shell 内部
+
+### 单元 20
+
+- 目标：保留兼容入口并缩小公开导出波及面
+- 涉及文件 / 模块：`desktop/lib/src/desktop_app.dart`、`desktop/lib/main.dart`
+- 完成标准：现有 `PiDesktopApp` 对外引用保持不变，旧路径通过兼容 shim 工作，但真实实现只保留一处
+
+### 单元 21
+
+- 目标：更新壳层模块收缩后的文档边界
+- 涉及文件 / 模块：`desktop/README.md`、`docs/solutions/**`
+- 完成标准：文档明确 shell 已不再依赖 `part`，feature root 仍内部使用 `part`，并解释兼容 shim 的用途
+
 ## 验证方式
 
 - 命令：`flutter analyze`、`flutter test`、`flutter build macos --debug`
