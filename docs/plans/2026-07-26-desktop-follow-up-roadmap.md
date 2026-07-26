@@ -22,6 +22,14 @@
 - feature root 内部是否继续去 `part` 尚未做最后判断
 - 少量兼容壳文件仍保留，用于避免旧路径瞬时失效
 
+## 并行规划
+
+与当前剩余的桌面基础能力收口并行，主功能开发另行规划到：
+
+- `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+
+该计划关注 `pi` 主能力接入、host 形态、session/tool/model/auth 主链，而不是继续收口当前 UI/设置基础设施。
+
 ## 当前进度
 
 - 已完成：阶段 1 / 单元 1-4

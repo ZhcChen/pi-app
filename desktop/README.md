@@ -31,6 +31,7 @@
 - shared primitives 说明：`docs/solutions/2026-07-26-desktop-shared-primitives.md`
 - runtime capability 说明：`docs/solutions/2026-07-26-desktop-runtime-capabilities.md`
 - openDestination 说明：`docs/solutions/2026-07-26-desktop-open-destination.md`
+- pi 集成形态说明：`docs/solutions/2026-07-26-pi-integration-modes.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
