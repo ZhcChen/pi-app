@@ -126,28 +126,34 @@ class WorkspaceSidebar extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: DesktopTextActionButton(
-                  buttonKey: const Key('open-settings-button'),
-                  onPressed: onOpenSettings,
-                  icon: const Icon(Icons.settings_outlined, size: 18),
-                  label: copy.settingsLabel,
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: desktopDensityValue(
-                      density,
-                      compact: 10,
-                      comfortable: 12,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: DesktopTextActionButton(
+                    buttonKey: const Key('open-settings-button'),
+                    onPressed: onOpenSettings,
+                    icon: const Icon(Icons.settings_outlined, size: 18),
+                    label: copy.settingsLabel,
+                    alignment: Alignment.centerLeft,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: desktopDensityValue(
+                        density,
+                        compact: 10,
+                        comfortable: 12,
+                      ),
                     ),
                   ),
                 ),
               ),
-              DesktopIconActionButton(
-                onPressed: () {},
-                tooltip: copy.downloadRuntimeTooltip,
-                icon: const Icon(Icons.download_rounded, size: 18),
-                foregroundColor: const Color(0xFF98C4FF),
-                backgroundColor: const Color(0xFF2C5E9B),
+              Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: DesktopIconActionButton(
+                  onPressed: () {},
+                  tooltip: copy.downloadRuntimeTooltip,
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  foregroundColor: const Color(0xFF98C4FF),
+                  backgroundColor: const Color(0xFF2C5E9B),
+                ),
               ),
             ],
           ),
