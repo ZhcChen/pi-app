@@ -57,6 +57,22 @@
 
 都继续复用已有 `DesktopRuntimeController.openTarget(...)`，并继续遵循当前 `openDestination` 偏好。
 
+### 4. composer 开始显式绑定 `sessionCwd`
+
+这轮继续把 workspace 主交互从“看起来像能用”推进到“状态上确实有项目上下文”：
+
+- composer 会显示当前 `sessionCwd`
+- 提交按钮不再是空壳
+- 提交后会生成一条与当前项目绑定的 prepared task 状态
+
+这还不是 `pi-host` 会话，但已经把最关键的输入链路收成：
+
+- 选中项目
+- 读取 `project.sessionCwd`
+- 由 composer submit 生成绑定该 cwd 的任务意图
+
+这样下一步接 `pi-host` 时，不需要再返工“项目选择如何影响任务上下文”这条链。
+
 ## 关键决策
 
 ### 只显示真实项目，不再保留演示项兜底
@@ -92,6 +108,7 @@
 
 - `workspace open actions follow the current open destination`
 - `workspace overview uses real project data instead of seed items`
+- `composer submit binds task to the selected project session cwd`
 
 ## 后续建议
 

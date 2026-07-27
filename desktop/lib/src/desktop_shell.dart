@@ -158,9 +158,11 @@ class _PiDesktopShell extends StatefulWidget {
 class _PiDesktopShellState extends State<_PiDesktopShell> {
   final TextEditingController _settingsSearchController =
       TextEditingController();
+  final TextEditingController _composerController = TextEditingController();
 
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
+  WorkspacePreparedTask? _preparedTask;
 
   _DesktopRoute _route = _DesktopRoute.workspace;
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
@@ -179,6 +181,17 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   AppCopy get _copy => AppCopy(widget.preferences.language);
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
+  WorkspacePreparedTask? get _visiblePreparedTask {
+    final preparedTask = _preparedTask;
+    final selectedProject = _selectedProject;
+    if (preparedTask == null || selectedProject?.sessionCwd == null) {
+      return null;
+    }
+
+    return preparedTask.sessionCwd == selectedProject!.sessionCwd
+        ? preparedTask
+        : null;
+  }
 
   @override
   void initState() {
@@ -201,6 +214,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     _settingsSearchController
       ..removeListener(_onSettingsSearchChanged)
       ..dispose();
+    _composerController.dispose();
     super.dispose();
   }
 
@@ -313,6 +327,31 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
+  void _submitComposerTask() {
+    final project = _selectedProject;
+    final sessionCwd = project?.sessionCwd;
+    if (project == null || sessionCwd == null || sessionCwd.isEmpty) {
+      _showNotice(_copy.composerNoProjectNotice);
+      return;
+    }
+
+    final prompt = _composerController.text.trim();
+    if (prompt.isEmpty) {
+      _showNotice(_copy.composerEmptyTaskNotice);
+      return;
+    }
+
+    setState(() {
+      _preparedTask = WorkspacePreparedTask(
+        projectName: project.name,
+        prompt: prompt,
+        sessionCwd: sessionCwd,
+      );
+    });
+    _composerController.clear();
+    _showNotice(_copy.composerPreparedNotice(project.name));
+  }
+
   Future<void> _openProjectItem(
     WorkspaceProjectGroup project,
     WorkspaceProjectItem item,
@@ -412,6 +451,9 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 preferences: widget.preferences,
                 project: selectedProject,
                 promptCards: promptCards,
+                composerController: _composerController,
+                preparedTask: _visiblePreparedTask,
+                onSubmitTask: _submitComposerTask,
                 onOpenProject: selectedProject == null
                     ? null
                     : () => _openProject(selectedProject),

@@ -94,6 +94,7 @@ class _ProjectOverview extends StatelessWidget {
     required this.preferences,
     required this.project,
     required this.promptCards,
+    required this.preparedTask,
     required this.onOpenProject,
     required this.onOpenProjectItem,
   });
@@ -102,6 +103,7 @@ class _ProjectOverview extends StatelessWidget {
   final AppPreferences preferences;
   final WorkspaceProjectGroup project;
   final List<WorkspacePromptCard> promptCards;
+  final WorkspacePreparedTask? preparedTask;
   final VoidCallback? onOpenProject;
   final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
 
@@ -186,6 +188,26 @@ class _ProjectOverview extends StatelessWidget {
               ],
             ),
           ),
+          if (preparedTask != null) ...[
+            const SizedBox(height: 18),
+            _ProjectOverviewCard(
+              title: copy.preparedTaskTitle,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ProjectDetailLine(
+                    label: copy.preparedTaskPromptLabel,
+                    value: preparedTask!.prompt,
+                  ),
+                  const SizedBox(height: 12),
+                  _ProjectDetailLine(
+                    label: copy.projectSessionCwdLabel,
+                    value: preparedTask!.sessionCwd,
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           _ProjectOverviewCard(
             title: copy.projectRecentTargetsTitle,
@@ -352,11 +374,15 @@ class _Composer extends StatelessWidget {
     required this.copy,
     required this.preferences,
     required this.project,
+    required this.controller,
+    required this.onSubmit,
   });
 
   final WorkspaceCopy copy;
   final AppPreferences preferences;
   final WorkspaceProjectGroup? project;
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -432,6 +458,8 @@ class _Composer extends StatelessWidget {
                 child: Column(
                   children: [
                     TextField(
+                      key: const Key('workspace-composer-input'),
+                      controller: controller,
                       minLines: 3,
                       maxLines: 3,
                       style: desktopWithCodeFont(
@@ -447,6 +475,26 @@ class _Composer extends StatelessWidget {
                           preferences.codeFont,
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.folder_open_outlined,
+                          size: 14,
+                          color: palette.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            project?.sessionCwd ?? copy.composerNoProjectNotice,
+                            key: const Key('composer-session-cwd'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: DesktopTypography.sectionLabel(palette),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -476,7 +524,8 @@ class _Composer extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         DesktopIconActionButton(
-                          onPressed: () {},
+                          key: const Key('submit-composer-task-button'),
+                          onPressed: onSubmit,
                           tooltip: copy.submitTaskTooltip,
                           icon: const Icon(Icons.arrow_upward_rounded),
                           backgroundColor: const Color(0xFF767676),

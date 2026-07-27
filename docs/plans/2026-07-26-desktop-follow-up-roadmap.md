@@ -47,6 +47,10 @@
   - 工作区右侧从空态标题升级为 `Project overview`，展示真实路径、仓库状态、branch、session cwd 预留位与 recent targets
   - recent targets 与项目根目录继续复用已有外部打开链路
   - 补齐“只显示真实项目”和 overview 的自动化测试
+- 已完成：阶段 3 / 单元 9-12 第二批
+  - composer 现在显式显示当前选中项目的 `sessionCwd`
+  - 提交任务会生成与当前项目绑定的 prepared task 状态，而不是继续停留在纯视觉壳
+  - 补齐 `composer -> project.sessionCwd` 的自动化测试
 - 待执行：阶段 4-5
   - feature 内部边界复核
   - 兼容层与过渡文件清理

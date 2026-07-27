@@ -404,6 +404,43 @@ void main() {
       expect(find.text('docs'), findsWidgets);
       expect(find.text('desktop'), findsWidgets);
       expect(find.text('assets'), findsWidgets);
+      expect(find.byKey(const Key('composer-session-cwd')), findsOneWidget);
+      expect(find.text(workspacePath), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'composer submit binds task to the selected project session cwd',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Review the current desktop workspace shell.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.text('Prepared task'), findsOneWidget);
+      expect(
+        find.text('Review the current desktop workspace shell.'),
+        findsOneWidget,
+      );
+      expect(find.text(workspacePath), findsWidgets);
+      expect(
+        find.text('Task is now bound to the session cwd for pi-app.'),
+        findsOneWidget,
+      );
     },
   );
 

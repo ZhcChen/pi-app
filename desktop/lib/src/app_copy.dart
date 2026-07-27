@@ -133,6 +133,8 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get projectRecentTargetsTitle => isChinese ? '最近目标' : 'Recent targets';
   String get projectSuggestionsTitle =>
       isChinese ? '建议提示' : 'Suggested prompts';
+  String get preparedTaskTitle => isChinese ? '已准备任务' : 'Prepared task';
+  String get preparedTaskPromptLabel => isChinese ? '任务内容' : 'Prompt';
   String get projectPathLabel => isChinese ? '项目路径' : 'Project path';
   String get projectRepositoryLabel => isChinese ? '仓库状态' : 'Repository';
   String get projectBranchLabel => isChinese ? '分支' : 'Branch';
@@ -143,6 +145,17 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get projectNoRecentTargetsLabel => isChinese
       ? '当前项目还没有可展示的真实入口。'
       : 'This project does not have any concrete targets yet.';
+  String get composerNoProjectNotice => isChinese
+      ? '当前还没有可用于执行任务的项目上下文。'
+      : 'There is no project context available for this task yet.';
+  String get composerEmptyTaskNotice =>
+      isChinese ? '先输入任务内容。' : 'Enter a task first.';
+  String composerPreparedNotice(String projectName) {
+    return isChinese
+        ? '任务已绑定到 $projectName 的 session cwd。'
+        : 'Task is now bound to the session cwd for $projectName.';
+  }
+
   String projectRecentTargetDescription(String relativePath) {
     return relativePath;
   }

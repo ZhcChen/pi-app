@@ -178,6 +178,9 @@ class WorkspaceCanvas extends StatelessWidget {
     required this.preferences,
     required this.project,
     required this.promptCards,
+    required this.composerController,
+    required this.preparedTask,
+    required this.onSubmitTask,
     required this.onOpenProject,
     required this.onOpenProjectItem,
     super.key,
@@ -187,6 +190,9 @@ class WorkspaceCanvas extends StatelessWidget {
   final AppPreferences preferences;
   final WorkspaceProjectGroup? project;
   final List<WorkspacePromptCard> promptCards;
+  final TextEditingController composerController;
+  final WorkspacePreparedTask? preparedTask;
+  final VoidCallback onSubmitTask;
   final VoidCallback? onOpenProject;
   final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
 
@@ -212,6 +218,7 @@ class WorkspaceCanvas extends StatelessWidget {
                           preferences: preferences,
                           project: project!,
                           promptCards: promptCards,
+                          preparedTask: preparedTask,
                           onOpenProject: onOpenProject,
                           onOpenProjectItem: onOpenProjectItem,
                         ),
@@ -229,6 +236,8 @@ class WorkspaceCanvas extends StatelessWidget {
                     copy: copy,
                     preferences: preferences,
                     project: project,
+                    controller: composerController,
+                    onSubmit: onSubmitTask,
                   ),
                   if (preferences.showBottomPanel) ...[
                     const SizedBox(height: 12),

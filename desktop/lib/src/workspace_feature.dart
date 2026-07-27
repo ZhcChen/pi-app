@@ -28,6 +28,8 @@ abstract interface class WorkspaceCopy {
   String get projectDetailsTitle;
   String get projectRecentTargetsTitle;
   String get projectSuggestionsTitle;
+  String get preparedTaskTitle;
+  String get preparedTaskPromptLabel;
   String get projectPathLabel;
   String get projectRepositoryLabel;
   String get projectBranchLabel;
@@ -35,6 +37,9 @@ abstract interface class WorkspaceCopy {
   String get projectLocalFolderLabel;
   String get projectOpenRootLabel;
   String get projectNoRecentTargetsLabel;
+  String get composerNoProjectNotice;
+  String get composerEmptyTaskNotice;
+  String composerPreparedNotice(String projectName);
   String projectRecentTargetDescription(String relativePath);
   String projectRepositoryStatus(bool isGitRepository);
   String openTargetTooltip(AppOpenDestination destination);
@@ -100,4 +105,16 @@ class WorkspacePromptCard {
   final String title;
   final IconData icon;
   final Color color;
+}
+
+class WorkspacePreparedTask {
+  const WorkspacePreparedTask({
+    required this.projectName,
+    required this.prompt,
+    required this.sessionCwd,
+  });
+
+  final String projectName;
+  final String prompt;
+  final String sessionCwd;
 }
