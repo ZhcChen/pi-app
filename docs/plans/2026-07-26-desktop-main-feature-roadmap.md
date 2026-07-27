@@ -1,14 +1,17 @@
 # desktop 主功能开发路线图
 
 - 任务：为 `desktop` 建立围绕 `pi` 的主功能开发任务链路，覆盖集成形态、runtime host、会话、流式输出、工具面板与打包交付
-- 状态：草稿
+- 状态：已废弃（历史基线）
 - 负责人：Pi
 - 日期：2026-07-26
 - 依赖文档：
   - `docs/plans/2026-07-26-desktop-follow-up-roadmap.md`
+  - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`（已决定的外置 Pi core 执行计划）
   - `docs/solutions/2026-07-26-pi-integration-modes.md`
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`（含能力与版本基线）
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`（外置 Pi core 架构修订）
+
+> **文档状态，2026-07-27：** 本文件记录已完成的 SDK host 主链及其历史规划，整份文档中的 bundle、`pi-host`、SDK adapter、工具审批和旧 `/goal` 描述均不可执行。唯一的活动执行计划是 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`；生产方向为已安装官方 Pi core 的 `pi --mode rpc`。
 
 ## 已完成的首条主链（历史基线）
 
@@ -41,9 +44,9 @@
 - 待执行：阶段 2 / 单元 6 及后续
   - 完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与受管理 Pi core 的安装 / 检测 / 兼容性
 
-## 下一阶段执行方案（待评审）
+## 已废弃的旧下一阶段方案（仅历史记录，不可执行）
 
-> **架构修订，2026-07-27：** Pi App 不再以 bundle 内置 Node runtime、`pi-host` 和 Pi SDK 为产品方向，而是增强用户独立安装的 Pi core。原 M1/A1/A2 的 bundle 假设已暂停，禁止按本节旧描述执行；收敛中的替代方案见 `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`。在确认 `pi --mode rpc` production transport 与安装渠道前，后续计划以该 brainstorm 为准。
+> **架构修订，2026-07-27：** Pi App 不再以 bundle 内置 Node runtime、`pi-host` 和 Pi SDK 为产品方向，而是增强用户独立安装的 Pi core。原 M1/A1/A2 的 bundle 假设及本节其他旧单元均已废弃，禁止按本节描述执行。已决定的替代执行计划见 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`；架构决策记录见 `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`。本节只保留历史上下文。
 
 ### 排序原则
 
@@ -65,7 +68,7 @@
 
 ### 阶段 A：M1 可分发运行时（旧方案，已暂停）
 
-> 此阶段假设 Pi App bundle 内置 Node、host 和 SDK，已与外置 Pi core 方向冲突。不要执行下列 A1/A2；待 brainstorm 决策确认后，用“Pi core RPC compatibility + runtime detector + 安装 contract”替代。
+> 此阶段假设 Pi App bundle 内置 Node、host 和 SDK，已与外置 Pi core 方向冲突。不要执行下列 A1/A2；它们已被 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 中的 R1/R2/I1/I2 替代。
 
 **目标**：消除开发期对系统 Node、仓库 cwd 和 `PI_HOST_ENTRYPOINT` 的依赖，先交付可在干净 macOS 用户环境启动的 bundle。
 
@@ -139,7 +142,7 @@
 
 **验收标准**：三个目标平台都能在干净环境启动 bundled host；错误日志可定位；更新后 host / Flutter 版本不匹配可恢复或明确阻止。
 
-### 推荐执行顺序与 `/goal` 边界
+### 已废弃的旧 `/goal` 建议（不可执行）
 
 1. `/goal A1`：macOS bundle layout、生产 resolver、health version / diagnostics。
 2. `/goal A2`：macOS clean-machine smoke test、日志与崩溃退避。
