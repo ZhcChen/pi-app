@@ -22,8 +22,6 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get heroPromptSuffix => isChinese ? ' 中完成什么？' : '?';
   String get localLabel => isChinese ? '本地' : 'Local';
   String get composerHint => isChinese ? '交给 Pi 处理' : 'Do anything';
-  String get customLabel => isChinese ? '自定义' : 'Custom';
-  String get modelPresetLabel => '5.4 Extra High';
   String get submitTaskTooltip => isChinese ? '提交任务' : 'Submit task';
   String get backToAppLabel => isChinese ? '返回应用' : 'Back to app';
   String get searchSettingsHint => isChinese ? '搜索设置...' : 'Search settings...';
@@ -39,19 +37,18 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get previewSectionTitle => isChinese ? '预览' : 'Preview';
   String get themeSectionTitle => isChinese ? '主题' : 'Theme';
 
-  String get defaultPermissionsTitle =>
-      isChinese ? '默认权限' : 'Default permissions';
+  String get defaultPermissionsTitle => isChinese ? '读取工具' : 'Read tools';
   String get defaultPermissionsDescription => isChinese
-      ? 'Pi 可以读取并编辑当前工作区中的文件；如有需要，它会请求额外访问权限。'
-      : 'Pi can read and edit files in its workspace. It can ask for additional access when needed.';
+      ? '为新会话启用 read、grep、find 和 ls。它们不提供目录隔离，只应在你信任会话上下文时开启。'
+      : 'Enable read, grep, find, and ls for new sessions. They do not provide directory isolation; enable them only for session context you trust.';
   String get autoReviewTitle => isChinese ? '自动审查' : 'Auto-review';
   String get autoReviewDescription => isChinese
-      ? 'Pi 可以自动审查请求并评估是否需要更高权限。自动审查可能会出错。'
-      : 'Pi can automatically review requests for additional access. Auto-review can make mistakes.';
-  String get fullAccessTitle => isChinese ? '完全访问' : 'Full access';
+      ? '该偏好会保留给后续审批流程；当前 host 尚未实现逐工具权限确认。'
+      : 'This preference is reserved for a future approval flow; the current host does not implement per-tool permission confirmation.';
+  String get fullAccessTitle => isChinese ? '编码工具' : 'Coding tools';
   String get fullAccessDescription => isChinese
-      ? 'Pi 可以编辑你电脑上的任意文件，并执行带网络访问的命令。这会显著提高风险。'
-      : 'Pi can edit any file on your computer and run commands with network access. This significantly increases risk.';
+      ? '为新会话启用 bash、edit 和 write。它不是沙箱，只应在你信任当前项目和提示词时开启。'
+      : 'Enable bash, edit, and write for new sessions. This is not a sandbox; enable it only for projects and prompts you trust.';
   String get defaultOpenDestinationTitle =>
       isChinese ? '默认打开方式' : 'Default file open destination';
   String get defaultOpenDestinationDescription =>
@@ -134,8 +131,7 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get projectRecentTargetsTitle => isChinese ? '最近目标' : 'Recent targets';
   String get projectSuggestionsTitle =>
       isChinese ? '建议提示' : 'Suggested prompts';
-  String get preparedTaskTitle => isChinese ? '已准备任务' : 'Prepared task';
-  String get preparedTaskPromptLabel => isChinese ? '任务内容' : 'Prompt';
+  String get sessionConversationTitle => isChinese ? 'Pi 会话' : 'Pi session';
   String get projectPathLabel => isChinese ? '项目路径' : 'Project path';
   String get projectRepositoryLabel => isChinese ? '仓库状态' : 'Repository';
   String get projectBranchLabel => isChinese ? '分支' : 'Branch';
@@ -151,6 +147,33 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
       : 'There is no project context available for this task yet.';
   String get composerEmptyTaskNotice =>
       isChinese ? '先输入任务内容。' : 'Enter a task first.';
+  String get abortTaskTooltip => isChinese ? '中止任务' : 'Abort task';
+
+  String composerPromptRejectedNotice(String reason) {
+    return isChinese
+        ? 'Pi 未接受任务：$reason'
+        : 'Pi did not accept the task: $reason';
+  }
+
+  String hostRunFailedNotice(String reason) {
+    return isChinese ? 'Pi 运行失败：$reason' : 'Pi run failed: $reason';
+  }
+
+  String sessionStatusLabel(WorkspaceRunStatus status) {
+    return switch (status) {
+      WorkspaceRunStatus.idle => isChinese ? '会话就绪' : 'Session ready',
+      WorkspaceRunStatus.starting => isChinese ? '正在启动 Pi' : 'Starting Pi',
+      WorkspaceRunStatus.running => isChinese ? 'Pi 正在执行' : 'Pi is running',
+      WorkspaceRunStatus.settled => isChinese ? '任务已完成' : 'Task completed',
+      WorkspaceRunStatus.aborted => isChinese ? '任务已中止' : 'Task aborted',
+      WorkspaceRunStatus.failed => isChinese ? '任务失败' : 'Task failed',
+    };
+  }
+
+  String sessionToolStatusLabel(String toolName) {
+    return isChinese ? '正在执行 $toolName' : 'Running $toolName';
+  }
+
   String projectAddedNotice(String projectName) {
     return isChinese ? '已添加项目：$projectName' : 'Added project: $projectName';
   }
@@ -198,12 +221,6 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
 
   String projectManageFailedNotice(String reason) {
     return isChinese ? '更新项目失败：$reason' : 'Failed to update project: $reason';
-  }
-
-  String composerPreparedNotice(String projectName) {
-    return isChinese
-        ? '任务已绑定到 $projectName 的 session cwd。'
-        : 'Task is now bound to the session cwd for $projectName.';
   }
 
   String projectRecentTargetDescription(String relativePath) {
@@ -360,14 +377,14 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
 
   String accessModeLabel(AppPreferences preferences) {
     if (preferences.fullAccess) {
-      return isChinese ? '完全访问' : 'Full access';
+      return isChinese ? '编码工具' : 'Coding tools';
     }
 
     if (preferences.defaultPermissions) {
-      return isChinese ? '工作区访问' : 'Workspace access';
+      return isChinese ? '只读工具' : 'Read-only tools';
     }
 
-    return isChinese ? '按需请求' : 'Ask first';
+    return isChinese ? '无内置工具' : 'No built-in tools';
   }
 
   String reviewModeLabel(bool autoReview) {

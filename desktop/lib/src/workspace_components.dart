@@ -94,7 +94,7 @@ class _ProjectOverview extends StatelessWidget {
     required this.preferences,
     required this.project,
     required this.promptCards,
-    required this.preparedTask,
+    required this.session,
     required this.onOpenProject,
     required this.onOpenProjectItem,
   });
@@ -103,7 +103,7 @@ class _ProjectOverview extends StatelessWidget {
   final AppPreferences preferences;
   final WorkspaceProjectGroup project;
   final List<WorkspacePromptCard> promptCards;
-  final WorkspacePreparedTask? preparedTask;
+  final WorkspaceSessionState? session;
   final VoidCallback? onOpenProject;
   final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
 
@@ -188,25 +188,9 @@ class _ProjectOverview extends StatelessWidget {
               ],
             ),
           ),
-          if (preparedTask != null) ...[
+          if (session?.hasActivity == true) ...[
             const SizedBox(height: 18),
-            _ProjectOverviewCard(
-              title: copy.preparedTaskTitle,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ProjectDetailLine(
-                    label: copy.preparedTaskPromptLabel,
-                    value: preparedTask!.prompt,
-                  ),
-                  const SizedBox(height: 12),
-                  _ProjectDetailLine(
-                    label: copy.projectSessionCwdLabel,
-                    value: preparedTask!.sessionCwd,
-                  ),
-                ],
-              ),
-            ),
+            _ProjectSessionTranscript(copy: copy, session: session!),
           ],
           const SizedBox(height: 18),
           _ProjectOverviewCard(
@@ -254,6 +238,119 @@ class _ProjectOverview extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ProjectSessionTranscript extends StatelessWidget {
+  const _ProjectSessionTranscript({required this.copy, required this.session});
+
+  final WorkspaceCopy copy;
+  final WorkspaceSessionState session;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return _ProjectOverviewCard(
+      title: copy.sessionConversationTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _WorkspaceStatusPill(
+                icon: _statusIcon(session.status),
+                label: copy.sessionStatusLabel(session.status),
+              ),
+              if (session.modelLabel != null)
+                _WorkspaceStatusPill(
+                  icon: Icons.memory_rounded,
+                  label: '${session.modelLabel} · ${session.thinkingLevel}',
+                ),
+              if (session.activeToolName != null)
+                _WorkspaceStatusPill(
+                  icon: Icons.construction_outlined,
+                  label: copy.sessionToolStatusLabel(session.activeToolName!),
+                ),
+            ],
+          ),
+          if (session.errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              session.errorMessage!,
+              key: const Key('workspace-session-error'),
+              style: DesktopTypography.projectItem(
+                palette,
+              ).copyWith(color: const Color(0xFFE97878)),
+            ),
+          ],
+          if (session.messages.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            for (var index = 0; index < session.messages.length; index++) ...[
+              _ConversationMessageRow(
+                message: session.messages[index],
+                palette: palette,
+              ),
+              if (index < session.messages.length - 1)
+                const Divider(height: 18, thickness: 0.6),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  IconData _statusIcon(WorkspaceRunStatus status) {
+    return switch (status) {
+      WorkspaceRunStatus.idle => Icons.pause_circle_outline_rounded,
+      WorkspaceRunStatus.starting => Icons.hourglass_top_rounded,
+      WorkspaceRunStatus.running => Icons.auto_awesome_rounded,
+      WorkspaceRunStatus.settled => Icons.check_circle_outline_rounded,
+      WorkspaceRunStatus.aborted => Icons.cancel_outlined,
+      WorkspaceRunStatus.failed => Icons.error_outline_rounded,
+    };
+  }
+}
+
+class _ConversationMessageRow extends StatelessWidget {
+  const _ConversationMessageRow({required this.message, required this.palette});
+
+  final WorkspaceConversationMessage message;
+  final DesktopPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final isUser = message.role == WorkspaceConversationRole.user;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            isUser ? Icons.person_outline_rounded : Icons.auto_awesome_rounded,
+            size: 16,
+            color: isUser ? palette.textSecondary : palette.accent,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SelectableText(
+            message.text,
+            key: isUser
+                ? const Key('workspace-user-message')
+                : const Key('workspace-assistant-message'),
+            style: DesktopTypography.sidebarItem(palette),
+          ),
+        ),
+        if (message.isStreaming) ...[
+          const SizedBox(width: 8),
+          Icon(Icons.more_horiz_rounded, size: 16, color: palette.textMuted),
+        ],
+      ],
     );
   }
 }
@@ -374,20 +471,25 @@ class _Composer extends StatelessWidget {
     required this.copy,
     required this.preferences,
     required this.project,
+    required this.session,
     required this.controller,
     required this.onSubmit,
+    required this.onAbort,
   });
 
   final WorkspaceCopy copy;
   final AppPreferences preferences;
   final WorkspaceProjectGroup? project;
+  final WorkspaceSessionState? session;
   final TextEditingController controller;
   final VoidCallback onSubmit;
+  final VoidCallback? onAbort;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
     final density = preferences.interfaceDensity;
+    final isRunning = session?.isRunning == true;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
@@ -434,6 +536,12 @@ class _Composer extends StatelessWidget {
                         icon: Icons.merge_type_outlined,
                         label: project!.branch!,
                       ),
+                    if (session?.modelLabel != null)
+                      _ComposerTag(
+                        icon: Icons.memory_rounded,
+                        label:
+                            '${session!.modelLabel} · ${session!.thinkingLevel}',
+                      ),
                   ],
                 ),
               ),
@@ -460,6 +568,7 @@ class _Composer extends StatelessWidget {
                     TextField(
                       key: const Key('workspace-composer-input'),
                       controller: controller,
+                      enabled: !isRunning,
                       minLines: 3,
                       maxLines: 3,
                       style: desktopWithCodeFont(
@@ -499,15 +608,15 @@ class _Composer extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        DesktopTextActionButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: copy.customLabel,
-                        ),
-                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            copy.composerExecutionSummary(preferences),
+                            session?.activeToolName != null
+                                ? copy.sessionToolStatusLabel(
+                                    session!.activeToolName!,
+                                  )
+                                : session == null
+                                ? copy.composerExecutionSummary(preferences)
+                                : copy.sessionStatusLabel(session!.status),
                             key: const Key('composer-execution-summary'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -516,21 +625,24 @@ class _Composer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        DesktopTextActionButton(
-                          onPressed: () {},
-                          iconAlignment: IconAlignment.end,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                          label: copy.modelPresetLabel,
-                        ),
-                        const SizedBox(width: 8),
-                        DesktopIconActionButton(
-                          key: const Key('submit-composer-task-button'),
-                          onPressed: onSubmit,
-                          tooltip: copy.submitTaskTooltip,
-                          icon: const Icon(Icons.arrow_upward_rounded),
-                          backgroundColor: const Color(0xFF767676),
-                          buttonSize: const Size(40, 40),
-                        ),
+                        if (isRunning && onAbort != null)
+                          DesktopIconActionButton(
+                            key: const Key('abort-composer-task-button'),
+                            onPressed: onAbort!,
+                            tooltip: copy.abortTaskTooltip,
+                            icon: const Icon(Icons.stop_rounded),
+                            backgroundColor: const Color(0xFF8D3B3B),
+                            buttonSize: const Size(40, 40),
+                          )
+                        else
+                          DesktopIconActionButton(
+                            key: const Key('submit-composer-task-button'),
+                            onPressed: onSubmit,
+                            tooltip: copy.submitTaskTooltip,
+                            icon: const Icon(Icons.arrow_upward_rounded),
+                            backgroundColor: const Color(0xFF767676),
+                            buttonSize: const Size(40, 40),
+                          ),
                       ],
                     ),
                   ],

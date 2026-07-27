@@ -19,8 +19,6 @@ abstract interface class WorkspaceCopy {
   String get heroPromptSuffix;
   String get localLabel;
   String get composerHint;
-  String get customLabel;
-  String get modelPresetLabel;
   String get submitTaskTooltip;
   String get executionDefaultsTitle;
   String get noProjectsTitle;
@@ -29,8 +27,7 @@ abstract interface class WorkspaceCopy {
   String get projectDetailsTitle;
   String get projectRecentTargetsTitle;
   String get projectSuggestionsTitle;
-  String get preparedTaskTitle;
-  String get preparedTaskPromptLabel;
+  String get sessionConversationTitle;
   String get projectPathLabel;
   String get projectRepositoryLabel;
   String get projectBranchLabel;
@@ -40,6 +37,11 @@ abstract interface class WorkspaceCopy {
   String get projectNoRecentTargetsLabel;
   String get composerNoProjectNotice;
   String get composerEmptyTaskNotice;
+  String get abortTaskTooltip;
+  String composerPromptRejectedNotice(String reason);
+  String hostRunFailedNotice(String reason);
+  String sessionStatusLabel(WorkspaceRunStatus status);
+  String sessionToolStatusLabel(String toolName);
   String projectAddedNotice(String projectName);
   String projectAlreadyAddedNotice(String projectName);
   String projectAddFailedNotice(String reason);
@@ -57,7 +59,6 @@ abstract interface class WorkspaceCopy {
   String projectUnpinnedNotice(String projectName);
   String projectRemovedNotice(String projectName);
   String projectManageFailedNotice(String reason);
-  String composerPreparedNotice(String projectName);
   String projectRecentTargetDescription(String relativePath);
   String projectRepositoryStatus(bool isGitRepository);
   String openTargetTooltip(AppOpenDestination destination);
@@ -129,14 +130,163 @@ class WorkspacePromptCard {
   final Color color;
 }
 
-class WorkspacePreparedTask {
-  const WorkspacePreparedTask({
-    required this.projectName,
-    required this.prompt,
-    required this.sessionCwd,
+enum WorkspaceRunStatus { idle, starting, running, settled, aborted, failed }
+
+enum WorkspaceConversationRole { user, assistant }
+
+class WorkspaceConversationMessage {
+  const WorkspaceConversationMessage({
+    required this.role,
+    required this.text,
+    this.isStreaming = false,
   });
 
-  final String projectName;
-  final String prompt;
+  final WorkspaceConversationRole role;
+  final String text;
+  final bool isStreaming;
+
+  WorkspaceConversationMessage copyWith({String? text, bool? isStreaming}) {
+    return WorkspaceConversationMessage(
+      role: role,
+      text: text ?? this.text,
+      isStreaming: isStreaming ?? this.isStreaming,
+    );
+  }
+}
+
+class WorkspaceSessionState {
+  const WorkspaceSessionState({
+    required this.sessionCwd,
+    this.sessionId,
+    this.piSessionId,
+    this.sessionFile,
+    this.modelProvider,
+    this.modelName,
+    this.thinkingLevel = 'off',
+    this.status = WorkspaceRunStatus.idle,
+    this.messages = const <WorkspaceConversationMessage>[],
+    this.activeToolName,
+    this.errorMessage,
+  });
+
+  factory WorkspaceSessionState.empty(String sessionCwd) {
+    return WorkspaceSessionState(sessionCwd: sessionCwd);
+  }
+
   final String sessionCwd;
+  final String? sessionId;
+  final String? piSessionId;
+  final String? sessionFile;
+  final String? modelProvider;
+  final String? modelName;
+  final String thinkingLevel;
+  final WorkspaceRunStatus status;
+  final List<WorkspaceConversationMessage> messages;
+  final String? activeToolName;
+  final String? errorMessage;
+
+  bool get isRunning =>
+      status == WorkspaceRunStatus.starting ||
+      status == WorkspaceRunStatus.running;
+
+  bool get hasActivity =>
+      messages.isNotEmpty ||
+      status != WorkspaceRunStatus.idle ||
+      errorMessage != null;
+
+  String? get modelLabel {
+    if (modelName == null || modelName!.isEmpty) {
+      return null;
+    }
+    if (modelProvider == null || modelProvider!.isEmpty) {
+      return modelName;
+    }
+    return '$modelProvider/$modelName';
+  }
+
+  WorkspaceSessionState copyWith({
+    String? sessionId,
+    String? piSessionId,
+    String? sessionFile,
+    String? modelProvider,
+    String? modelName,
+    String? thinkingLevel,
+    WorkspaceRunStatus? status,
+    List<WorkspaceConversationMessage>? messages,
+    String? activeToolName,
+    bool clearActiveTool = false,
+    bool clearHostSession = false,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return WorkspaceSessionState(
+      sessionCwd: sessionCwd,
+      sessionId: clearHostSession ? null : sessionId ?? this.sessionId,
+      piSessionId: clearHostSession ? null : piSessionId ?? this.piSessionId,
+      sessionFile: clearHostSession ? null : sessionFile ?? this.sessionFile,
+      modelProvider: modelProvider ?? this.modelProvider,
+      modelName: modelName ?? this.modelName,
+      thinkingLevel: thinkingLevel ?? this.thinkingLevel,
+      status: status ?? this.status,
+      messages: messages ?? this.messages,
+      activeToolName: clearActiveTool
+          ? null
+          : activeToolName ?? this.activeToolName,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
+
+  WorkspaceSessionState withUserPrompt(String prompt) {
+    final nextMessages = List<WorkspaceConversationMessage>.from(messages);
+    final message = WorkspaceConversationMessage(
+      role: WorkspaceConversationRole.user,
+      text: prompt,
+    );
+    if (nextMessages.isNotEmpty &&
+        nextMessages.last.role == WorkspaceConversationRole.assistant &&
+        nextMessages.last.isStreaming) {
+      nextMessages.insert(nextMessages.length - 1, message);
+    } else {
+      nextMessages.add(message);
+    }
+    return copyWith(messages: nextMessages);
+  }
+
+  WorkspaceSessionState withAssistantDelta(String delta) {
+    if (delta.isEmpty) {
+      return this;
+    }
+
+    final nextMessages = List<WorkspaceConversationMessage>.from(messages);
+    if (nextMessages.isNotEmpty &&
+        nextMessages.last.role == WorkspaceConversationRole.assistant &&
+        nextMessages.last.isStreaming) {
+      final previous = nextMessages.removeLast();
+      nextMessages.add(
+        previous.copyWith(text: '${previous.text}$delta', isStreaming: true),
+      );
+    } else {
+      nextMessages.add(
+        WorkspaceConversationMessage(
+          role: WorkspaceConversationRole.assistant,
+          text: delta,
+          isStreaming: true,
+        ),
+      );
+    }
+    return copyWith(messages: nextMessages);
+  }
+
+  WorkspaceSessionState finishAssistantMessage() {
+    if (messages.isEmpty ||
+        messages.last.role != WorkspaceConversationRole.assistant ||
+        !messages.last.isStreaming) {
+      return this;
+    }
+
+    final nextMessages = List<WorkspaceConversationMessage>.from(messages);
+    final previous = nextMessages.removeLast();
+    nextMessages.add(previous.copyWith(isStreaming: false));
+    return copyWith(messages: nextMessages);
+  }
 }

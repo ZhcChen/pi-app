@@ -67,6 +67,171 @@ void main() {
     expect(loaded.suggestedPrompts, true);
   });
 
+  test(
+    'file preferences disable unversioned tool permissions before migration',
+    () async {
+      final root = await Directory.systemTemp.createTemp('pi-preferences-');
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final store = FileDesktopPreferencesStore(rootDirectory: root);
+      final settingsFile = store.resolveSettingsFile();
+      await settingsFile.parent.create(recursive: true);
+      await settingsFile.writeAsString(
+        '{"defaultPermissions":true,"fullAccess":true}',
+      );
+
+      final migrated = await store.loadPreferences();
+      expect(migrated.defaultPermissions, false);
+      expect(migrated.fullAccess, false);
+
+      await store.savePreferences(
+        const AppPreferences(defaultPermissions: true, fullAccess: true),
+      );
+      final saved =
+          jsonDecode(await settingsFile.readAsString()) as Map<String, dynamic>;
+      final reloaded = await store.loadPreferences();
+
+      expect(saved['toolPolicyVersion'], 1);
+      expect(reloaded.defaultPermissions, true);
+      expect(reloaded.fullAccess, true);
+    },
+  );
+
+  test(
+    'workspace session state keeps the user prompt before early stream output',
+    () {
+      final state = WorkspaceSessionState.empty(
+        '/workspace/pi-app',
+      ).withAssistantDelta('Streaming reply').withUserPrompt('Original prompt');
+
+      expect(
+        state.messages.map((message) => message.role),
+        <WorkspaceConversationRole>[
+          WorkspaceConversationRole.user,
+          WorkspaceConversationRole.assistant,
+        ],
+      );
+      expect(state.messages.first.text, 'Original prompt');
+      expect(state.messages.last.text, 'Streaming reply');
+    },
+  );
+  test('memory Pi host client manages a session contract', () async {
+    final client = MemoryPiHostClient();
+    final events = <PiHostEvent>[];
+    final subscription = client.events.listen(events.add);
+    addTearDown(subscription.cancel);
+
+    final health = await client.ensureStarted();
+    final session = await client.createSession(cwd: '/workspace/pi-app');
+    await Future<void>.delayed(Duration.zero);
+    final accepted = await client.prompt(
+      sessionId: session.id,
+      text: 'Inspect this workspace.',
+    );
+    final updated = await client.setThinkingLevel(
+      sessionId: session.id,
+      level: 'high',
+    );
+    await client.abort(sessionId: session.id);
+
+    expect(health.protocolVersion, 1);
+    expect(session.cwd, '/workspace/pi-app');
+    expect(accepted, true);
+    expect(client.promptRequests.single.text, 'Inspect this workspace.');
+    expect(updated.thinkingLevel, 'high');
+    expect(client.abortedSessionIds, <String>[session.id]);
+    expect(events.map((event) => event.type), <PiHostEventType>[
+      PiHostEventType.sessionCreated,
+      PiHostEventType.runStarted,
+    ]);
+  });
+  test(
+    'local Pi host client ignores stale sidecar exit after a replacement starts',
+    () async {
+      String scriptFor({required bool emitInvalidRecord}) {
+        return '''
+let buffer = '';
+function write(value) {
+  process.stdout.write(JSON.stringify(value) + '\\n');
+}
+process.stdin.on('data', (chunk) => {
+  buffer += chunk;
+  while (true) {
+    const newline = buffer.indexOf('\\n');
+    if (newline < 0) break;
+    const line = buffer.slice(0, newline);
+    buffer = buffer.slice(newline + 1);
+    if (!line) continue;
+    const request = JSON.parse(line);
+    if (request.method === 'host.health') {
+      write({
+        type: 'response',
+        id: request.id,
+        ok: true,
+        result: { protocolVersion: 1, sdkVersion: 'test', agentDir: '/mock' },
+      });
+      ${emitInvalidRecord ? "setTimeout(() => process.stdout.write('not-json\\n'), 20);" : ''}
+    } else if (request.method === 'session.create') {
+      write({
+        type: 'response',
+        id: request.id,
+        ok: true,
+        result: {
+          id: 'replacement-session',
+          cwd: request.params.cwd,
+          piSessionId: 'replacement-pi-session',
+          thinkingLevel: 'off',
+          availableThinkingLevels: ['off'],
+          isStreaming: false,
+          isProjectTrusted: false,
+        },
+      });
+    }
+  }
+});
+''';
+      }
+
+      var startCount = 0;
+      final hostErrors = <PiHostEvent>[];
+      Future<PiHostHealth>? replacementStart;
+      late final LocalPiHostClient client;
+      client = LocalPiHostClient(
+        startProcess: (_) {
+          final script = scriptFor(emitInvalidRecord: startCount++ == 0);
+          return Process.start('node', <String>[
+            '--input-type=module',
+            '--eval',
+            script,
+          ]);
+        },
+      );
+      final subscription = client.events.listen((event) {
+        if (event.type == PiHostEventType.hostError) {
+          hostErrors.add(event);
+          replacementStart ??= client.ensureStarted();
+        }
+      });
+      addTearDown(subscription.cancel);
+      addTearDown(client.dispose);
+
+      await client.ensureStarted();
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await replacementStart;
+      final replacementSession = await client.createSession(
+        cwd: '/workspace/pi-app',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+
+      expect(startCount, 2);
+      expect(hostErrors, hasLength(1));
+      expect(replacementSession.id, 'replacement-session');
+    },
+  );
+
   test('memory project registry store manages project lifecycle', () async {
     final store = MemoryProjectRegistryStore();
 
@@ -370,7 +535,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('workspace-bottom-panel')), findsNothing);
-    expect(find.text('VS Code · Full access · Auto-review'), findsOneWidget);
+    expect(
+      find.text('VS Code · No built-in tools · Auto-review'),
+      findsOneWidget,
+    );
     expect(runtimeController.lastSyncedPreferences?.showInMenuBar, true);
     expect(runtimeController.lastSyncedPreferences?.preventSleep, false);
 
@@ -405,7 +573,10 @@ void main() {
 
     expect(find.byKey(const Key('workspace-suggested-prompts')), findsNothing);
     expect(find.byKey(const Key('workspace-bottom-panel')), findsOneWidget);
-    expect(find.text('Terminal · Ask first · Manual review'), findsOneWidget);
+    expect(
+      find.text('Terminal · Coding tools · Manual review'),
+      findsOneWidget,
+    );
     expect(find.text('Open: Terminal'), findsOneWidget);
     expect(find.text('Keep awake'), findsOneWidget);
     expect(find.text('Suggested prompts off'), findsOneWidget);
@@ -637,18 +808,27 @@ void main() {
   );
 
   testWidgets(
-    'composer submit binds task to the selected project session cwd',
+    'composer sends the selected project cwd to Pi host and renders stream events',
     (tester) async {
       configureWindow(tester);
       addTearDown(() => resetWindow(tester));
       final workspacePath = resolveRepoWorkspacePath();
+      final piHostClient = MemoryPiHostClient();
 
       await tester.pumpWidget(
         PiDesktopApp(
           enablePersistence: false,
           workspaceRootPath: workspacePath,
+          piHostClient: piHostClient,
         ),
       );
+      await settleUi(tester);
+
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await settleUi(tester);
+      await tester.tap(find.byKey(const Key('default-permissions-switch')));
+      await settleUi(tester);
+      await tester.tap(find.byKey(const Key('back-to-app-button')));
       await settleUi(tester);
 
       await tester.enterText(
@@ -658,16 +838,143 @@ void main() {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
 
-      expect(find.text('Prepared task'), findsOneWidget);
+      expect(piHostClient.promptRequests, hasLength(1));
+      expect(
+        piHostClient.promptRequests.single.text,
+        'Review the current desktop workspace shell.',
+      );
+      expect(piHostClient.createdSessions.single.tools, <String>[
+        'read',
+        'grep',
+        'find',
+        'ls',
+      ]);
+      final hostSession = await piHostClient.getSessionState(
+        sessionId: piHostClient.promptRequests.single.sessionId,
+      );
+      expect(hostSession.cwd, workspacePath);
+      expect(find.text('Pi session'), findsOneWidget);
       expect(
         find.text('Review the current desktop workspace shell.'),
         findsOneWidget,
       );
-      expect(find.text(workspacePath), findsWidgets);
       expect(
-        find.text('Task is now bound to the session cwd for pi-app.'),
+        find.byKey(const Key('abort-composer-task-button')),
         findsOneWidget,
       );
+
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.messageDelta,
+          sessionId: piHostClient.promptRequests.single.sessionId,
+          data: const <String, dynamic>{
+            'delta': 'The host stream is connected.',
+          },
+        ),
+      );
+      await settleUi(tester);
+
+      expect(find.text('The host stream is connected.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('abort-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.abortedSessionIds, <String>[
+        piHostClient.promptRequests.single.sessionId,
+      ]);
+      expect(find.text('Task aborted'), findsWidgets);
+      expect(
+        find.byKey(const Key('submit-composer-task-button')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'host failure clears stale sessions so the next task creates a new one',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: workspacePath,
+          piHostClient: piHostClient,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Start the first task.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+      final firstSessionId = piHostClient.promptRequests.single.sessionId;
+      expect(piHostClient.createdSessions.single.tools, isEmpty);
+
+      piHostClient.emit(
+        const PiHostEvent(
+          type: PiHostEventType.hostError,
+          data: <String, dynamic>{'message': 'Pi host exited unexpectedly.'},
+        ),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('submit-composer-task-button')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('abort-composer-task-button')), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Create a replacement session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.promptRequests, hasLength(2));
+      expect(piHostClient.promptRequests.last.sessionId, isNot(firstSessionId));
+    },
+  );
+
+  testWidgets(
+    'extension-handled prompt settles without leaving composer running',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final piHostClient = MemoryPiHostClient(
+        emitRunStartedOnPrompt: false,
+        settleWithoutRunOnPrompt: true,
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: workspacePath,
+          piHostClient: piHostClient,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        '/local-extension-command',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.text('Task completed'), findsWidgets);
+      expect(
+        find.byKey(const Key('submit-composer-task-button')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('abort-composer-task-button')), findsNothing);
     },
   );
 

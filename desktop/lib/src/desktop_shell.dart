@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -10,6 +11,7 @@ import 'app_preferences.dart';
 import 'app_runtime.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
+import 'pi_host_client.dart';
 import 'project_registry_store.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
@@ -21,6 +23,7 @@ class PiDesktopApp extends StatefulWidget {
     this.preferencesStore,
     this.runtimeController,
     this.piConfigStore,
+    this.piHostClient,
     this.projectRegistryStore,
     this.workspaceRootPath,
     this.pickProjectDirectory,
@@ -30,6 +33,7 @@ class PiDesktopApp extends StatefulWidget {
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
+  final PiHostClient? piHostClient;
   final ProjectRegistryStore? projectRegistryStore;
   final String? workspaceRootPath;
   final Future<String?> Function()? pickProjectDirectory;
@@ -45,6 +49,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.runtimeController ?? PlatformDesktopRuntimeController();
   late final PiConfigStore _piConfigStore =
       widget.piConfigStore ?? FilePiConfigStore();
+  late final PiHostClient _piHostClient =
+      widget.piHostClient ?? LocalPiHostClient();
   late final ProjectRegistryStore _projectRegistryStore =
       widget.projectRegistryStore ?? FileProjectRegistryStore();
 
@@ -119,6 +125,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeCapabilities: _runtimeController.capabilities,
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
+        piHostClient: _piHostClient,
+        ownsPiHostClient: widget.piHostClient == null,
         projectRegistryStore: _projectRegistryStore,
         enableProjectPersistence: widget.enablePersistence,
         workspaceRootPath: widget.workspaceRootPath,
@@ -158,6 +166,8 @@ class _PiDesktopShell extends StatefulWidget {
     required this.runtimeCapabilities,
     required this.runtimeController,
     required this.piConfigStore,
+    required this.piHostClient,
+    required this.ownsPiHostClient,
     required this.projectRegistryStore,
     required this.enableProjectPersistence,
     required this.workspaceRootPath,
@@ -169,6 +179,8 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
+  final PiHostClient piHostClient;
+  final bool ownsPiHostClient;
   final ProjectRegistryStore projectRegistryStore;
   final bool enableProjectPersistence;
   final String? workspaceRootPath;
@@ -186,7 +198,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
-  WorkspacePreparedTask? _preparedTask;
+  final Map<String, WorkspaceSessionState> _sessionsByCwd =
+      <String, WorkspaceSessionState>{};
+  final Map<String, String> _sessionCwdById = <String, String>{};
+  StreamSubscription<PiHostEvent>? _piHostSubscription;
   ProjectRegistrySnapshot _projectRegistry = const ProjectRegistrySnapshot();
 
   _DesktopRoute _route = _DesktopRoute.workspace;
@@ -206,16 +221,12 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   AppCopy get _copy => AppCopy(widget.preferences.language);
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
-  WorkspacePreparedTask? get _visiblePreparedTask {
-    final preparedTask = _preparedTask;
-    final selectedProject = _selectedProject;
-    if (preparedTask == null || selectedProject?.sessionCwd == null) {
+  WorkspaceSessionState? get _visibleSession {
+    final sessionCwd = _selectedProject?.sessionCwd;
+    if (sessionCwd == null || sessionCwd.isEmpty) {
       return null;
     }
-
-    return preparedTask.sessionCwd == selectedProject!.sessionCwd
-        ? preparedTask
-        : null;
+    return _sessionsByCwd[sessionCwd];
   }
 
   @override
@@ -223,6 +234,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     super.initState();
     _projects = buildDesktopProjects(widget.workspaceRootPath);
     _settingsSearchController.addListener(_onSettingsSearchChanged);
+    _piHostSubscription = widget.piHostClient.events.listen(_handlePiHostEvent);
     _loadPiConfig();
     if (widget.enableProjectPersistence) {
       _loadProjectRegistry();
@@ -243,6 +255,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       ..removeListener(_onSettingsSearchChanged)
       ..dispose();
     _composerController.dispose();
+    _piHostSubscription?.cancel();
+    if (widget.ownsPiHostClient) {
+      unawaited(widget.piHostClient.dispose());
+    }
     super.dispose();
   }
 
@@ -504,6 +520,151 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
+  List<String> _hostToolsForPreferences() {
+    if (widget.preferences.fullAccess) {
+      return const <String>[
+        'read',
+        'grep',
+        'find',
+        'ls',
+        'bash',
+        'edit',
+        'write',
+      ];
+    }
+    if (widget.preferences.defaultPermissions) {
+      return const <String>['read', 'grep', 'find', 'ls'];
+    }
+    return const <String>[];
+  }
+
+  WorkspaceSessionState _sessionStateForCwd(String sessionCwd) {
+    return _sessionsByCwd[sessionCwd] ??
+        WorkspaceSessionState.empty(sessionCwd);
+  }
+
+  void _setSessionState(String sessionCwd, WorkspaceSessionState state) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _sessionsByCwd[sessionCwd] = state;
+    });
+  }
+
+  void _applyHostSession(PiHostSession session, {String? projectSessionCwd}) {
+    final sessionCwd =
+        projectSessionCwd ?? _sessionCwdById[session.id] ?? session.cwd;
+    _sessionCwdById[session.id] = sessionCwd;
+    final current = _sessionStateForCwd(sessionCwd);
+    _setSessionState(
+      sessionCwd,
+      current.copyWith(
+        sessionId: session.id,
+        piSessionId: session.piSessionId,
+        sessionFile: session.sessionFile,
+        modelProvider: session.model?.provider,
+        modelName: session.model?.name,
+        thinkingLevel: session.thinkingLevel,
+      ),
+    );
+  }
+
+  void _resetHostSessions(String message) {
+    final affectedSessionCwds = _sessionsByCwd.entries
+        .where(
+          (entry) =>
+              entry.value.sessionId != null ||
+              entry.value.status == WorkspaceRunStatus.starting ||
+              entry.value.isRunning,
+        )
+        .map((entry) => entry.key)
+        .toList(growable: false);
+    _sessionCwdById.clear();
+    if (affectedSessionCwds.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      for (final sessionCwd in affectedSessionCwds) {
+        final current = _sessionStateForCwd(sessionCwd);
+        _sessionsByCwd[sessionCwd] = current.finishAssistantMessage().copyWith(
+          clearHostSession: true,
+          clearActiveTool: true,
+          status: WorkspaceRunStatus.failed,
+          errorMessage: message,
+        );
+      }
+    });
+    _showNotice(_copy.hostRunFailedNotice(message));
+  }
+
+  void _handlePiHostEvent(PiHostEvent event) {
+    if (!mounted) {
+      return;
+    }
+
+    if (event.type == PiHostEventType.hostError) {
+      _resetHostSessions(event.message ?? 'Pi host is unavailable.');
+      return;
+    }
+
+    final eventSession = event.session;
+    if (eventSession != null && _sessionCwdById.containsKey(eventSession.id)) {
+      _applyHostSession(eventSession);
+    }
+
+    final sessionId = event.sessionId;
+    final sessionCwd = sessionId == null ? null : _sessionCwdById[sessionId];
+    if (sessionCwd == null) {
+      return;
+    }
+
+    final current = _sessionStateForCwd(sessionCwd);
+    final next = switch (event.type) {
+      PiHostEventType.runStarted => current.copyWith(
+        status: WorkspaceRunStatus.running,
+        clearError: true,
+      ),
+      PiHostEventType.messageDelta =>
+        current
+            .withAssistantDelta(event.delta ?? '')
+            .copyWith(status: WorkspaceRunStatus.running),
+      PiHostEventType.toolStarted => current.copyWith(
+        activeToolName: event.data['toolName']?.toString(),
+        status: WorkspaceRunStatus.running,
+      ),
+      PiHostEventType.toolUpdated => current.copyWith(
+        status: WorkspaceRunStatus.running,
+      ),
+      PiHostEventType.toolCompleted => current.copyWith(
+        clearActiveTool: true,
+        status: WorkspaceRunStatus.running,
+      ),
+      PiHostEventType.runSettled =>
+        current.status == WorkspaceRunStatus.aborted
+            ? current.finishAssistantMessage().copyWith(clearActiveTool: true)
+            : current.finishAssistantMessage().copyWith(
+                status: WorkspaceRunStatus.settled,
+                clearActiveTool: true,
+              ),
+      PiHostEventType.runAborted => current.finishAssistantMessage().copyWith(
+        status: WorkspaceRunStatus.aborted,
+        clearActiveTool: true,
+      ),
+      PiHostEventType.runFailed => current.finishAssistantMessage().copyWith(
+        status: WorkspaceRunStatus.failed,
+        clearActiveTool: true,
+        errorMessage: event.message ?? 'Unknown Pi host error.',
+      ),
+      _ => current,
+    };
+
+    if (!identical(next, current)) {
+      _setSessionState(sessionCwd, next);
+    }
+  }
+
   Future<void> _addProject() async {
     try {
       final pickedPath = await widget.pickProjectDirectory();
@@ -557,7 +718,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
-  void _submitComposerTask() {
+  Future<void> _submitComposerTask() async {
     final project = _selectedProject;
     final sessionCwd = project?.sessionCwd;
     if (project == null || sessionCwd == null || sessionCwd.isEmpty) {
@@ -571,15 +732,122 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       return;
     }
 
-    setState(() {
-      _preparedTask = WorkspacePreparedTask(
-        projectName: project.name,
-        prompt: prompt,
-        sessionCwd: sessionCwd,
+    final initialState = _sessionStateForCwd(sessionCwd);
+    if (initialState.isRunning) {
+      return;
+    }
+
+    _setSessionState(
+      sessionCwd,
+      initialState.copyWith(
+        status: WorkspaceRunStatus.starting,
+        clearError: true,
+        clearActiveTool: true,
+      ),
+    );
+
+    try {
+      PiHostSession session;
+      final existingSessionId = initialState.sessionId;
+      if (existingSessionId == null || existingSessionId.isEmpty) {
+        session = await widget.piHostClient.createSession(
+          cwd: sessionCwd,
+          tools: _hostToolsForPreferences(),
+        );
+        if (!mounted) {
+          return;
+        }
+        _applyHostSession(session, projectSessionCwd: sessionCwd);
+      } else {
+        session = await widget.piHostClient.getSessionState(
+          sessionId: existingSessionId,
+        );
+        if (!mounted) {
+          return;
+        }
+        _applyHostSession(session);
+      }
+
+      final accepted = await widget.piHostClient.prompt(
+        sessionId: session.id,
+        text: prompt,
       );
-    });
-    _composerController.clear();
-    _showNotice(_copy.composerPreparedNotice(project.name));
+      if (!mounted) {
+        return;
+      }
+      if (!accepted) {
+        _setSessionState(
+          sessionCwd,
+          _sessionStateForCwd(sessionCwd).copyWith(
+            status: WorkspaceRunStatus.failed,
+            errorMessage: 'Prompt was rejected before execution.',
+          ),
+        );
+        _showNotice(_copy.composerPromptRejectedNotice('Prompt was rejected.'));
+        return;
+      }
+
+      _setSessionState(
+        sessionCwd,
+        _sessionStateForCwd(
+          sessionCwd,
+        ).withUserPrompt(prompt).copyWith(clearError: true),
+      );
+      _composerController.clear();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final message = error.toString();
+      _setSessionState(
+        sessionCwd,
+        _sessionStateForCwd(sessionCwd).copyWith(
+          status: WorkspaceRunStatus.failed,
+          clearActiveTool: true,
+          errorMessage: message,
+        ),
+      );
+      _showNotice(_copy.hostRunFailedNotice(message));
+    }
+  }
+
+  Future<void> _abortComposerTask() async {
+    final project = _selectedProject;
+    final sessionCwd = project?.sessionCwd;
+    final session = sessionCwd == null ? null : _sessionsByCwd[sessionCwd];
+    final sessionId = session?.sessionId;
+    if (sessionCwd == null || sessionId == null || !session!.isRunning) {
+      return;
+    }
+
+    try {
+      final updated = await widget.piHostClient.abort(sessionId: sessionId);
+      if (!mounted) {
+        return;
+      }
+      _applyHostSession(updated);
+      _setSessionState(
+        sessionCwd,
+        _sessionStateForCwd(sessionCwd).finishAssistantMessage().copyWith(
+          status: WorkspaceRunStatus.aborted,
+          clearActiveTool: true,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final message = error.toString();
+      _setSessionState(
+        sessionCwd,
+        _sessionStateForCwd(sessionCwd).copyWith(
+          status: WorkspaceRunStatus.failed,
+          errorMessage: message,
+          clearActiveTool: true,
+        ),
+      );
+      _showNotice(_copy.hostRunFailedNotice(message));
+    }
   }
 
   Future<void> _openProjectItem(
@@ -690,8 +958,13 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 project: selectedProject,
                 promptCards: promptCards,
                 composerController: _composerController,
-                preparedTask: _visiblePreparedTask,
-                onSubmitTask: _submitComposerTask,
+                session: _visibleSession,
+                onSubmitTask: () {
+                  unawaited(_submitComposerTask());
+                },
+                onAbortTask: () {
+                  unawaited(_abortComposerTask());
+                },
                 onOpenProject: selectedProject == null
                     ? null
                     : () => _openProject(selectedProject),

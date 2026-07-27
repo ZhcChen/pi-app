@@ -10,11 +10,32 @@
 
 ## 当前优先切片
 
-在主功能链路正式进入 `pi-host` 之前，先处理一条更靠前的设置侧任务：
+用户已明确要求先把 `pi agent` 的核心 CLI 能力接入桌面端，因此当前优先级调整为：先完成 `pi-host` SDK 最小闭环，再回到 Pi Config Center 的阶段 4-5。
 
-- `docs/plans/2026-07-26-desktop-pi-config-center.md`
+本轮执行范围固定为“可用的第一条主链”，而不是一次性实现完整 CLI：
 
-这条任务的优先级高于 host spike 的直接 UI 接线，因为它先把 `pi` 的全局配置面收进 GUI：模型偏好、全局系统提示词、追加系统提示词，以及全局 `AGENTS.md`。
+- `Flutter -> 本地 pi-host -> Pi SDK`
+- 以 stdio JSONL 作为 Flutter 与 host 的本地传输层
+- 复用 `~/.pi/agent`（或 `PI_CODING_AGENT_DIR`）中的 auth、models、settings 和 Pi 标准 JSONL session
+- 每个项目按其 `sessionCwd` 创建独立持久化 session
+- 支持创建 session、发送 prompt、流式文本、tool lifecycle、abort、读取当前 model/thinking
+- host 内部使用 `AgentSessionRuntime` / `createAgentSessionServices()`，不在 Node host 内再次启动 `pi --mode rpc`
+
+第一轮不实现 OAuth 登录 UI、project trust 确认 UI、session 列表/恢复界面、fork/clone、extension UI 对话、完整 tool timeline 或 sidecar 打包。对于没有明确已保存信任的项目，host 以未信任状态加载项目资源，避免静默执行项目级 extension；全局 Pi 资源和 `AGENTS.md` 仍按 SDK 默认规则生效。
+
+## 当前进度
+
+- 已完成：阶段 0 / 单元 1
+  - `host/`、严格 LF JSONL request/event contract 和 SDK/runtime 边界已经落地
+- 已完成：阶段 1 / 单元 2-4
+  - host 已接入 `ModelRuntime`、`AgentSessionRuntime`、持久化 session、prompt stream、abort、model 和 thinking API
+- 已完成：阶段 2 / 单元 5 第一批
+  - Flutter composer 已接入真实 host session、prompt、文本流、tool 状态摘要和 abort
+  - sidecar stdout 使用 Pi `output-guard` 隔离普通日志；host 重启会使旧 GUI session 失效并在下一次提交时重建
+  - 新安装的默认 session 不获内置工具；用户显式开启“读取工具”后添加 `read`、`grep`、`find`、`ls`，开启“编码工具”后再添加 `bash`、`edit`、`write`
+  - extension command/input handler 的本地完成路径会发出终态，不会让 composer 卡在运行中
+- 待执行：阶段 2 / 单元 6 及后续
+  - 完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与跨平台 sidecar 打包
 
 ## 目标
 
@@ -113,6 +134,17 @@
 - 验证方式：设计评审与 demo contract 文档
 - 完成标准：明确 Flutter <-> host 的 request/event 协议，说明哪些接口映射 SDK、哪些保留产品适配层
 
+#### 当前执行细则（2026-07-27）
+
+- host 目录固定为 `host/`，使用 ESM Node，并将 `@earendil-works/pi-coding-agent` 精确锁定为 `0.82.0`
+- 输入输出均为严格 JSONL：只以 LF 分帧；启动时通过 Pi `output-guard` 将普通 stdout 转到 stderr，raw stdout 只输出协议对象；单条记录上限为 1 MiB
+- request 采用 `id`、`method`、`params`；首批 method 为 `host.health`、`session.create`、`session.prompt`、`session.abort`、`session.getState`、`session.listModels`、`session.setModel`、`session.setThinkingLevel`
+- host event 必须包含 host session id；首批 event 为 `session.created`、`run.started`、`message.delta`、`thinking.delta`、`tool.started`、`tool.updated`、`tool.completed`、`run.settled`、`run.aborted`、`run.failed`、`session.state`
+- SDK 的 `agent_settled` 是一次 agent 任务真正完成的唯一事件，不以 `agent_end` 作为完成信号；extension command/input handler 本地完成时，host 合成带 `handledWithoutRun` 的 `run.settled`
+- `session.create` 以受限 `tools` 白名单建立新 session：Flutter 新安装默认不传内置工具；“读取工具”会添加 `read`、`grep`、`find`、`ls`，“编码工具”再添加 `bash`、`edit`、`write`。host 省略参数时仍回退到只读集合，便于直接协议调用。该策略不是路径 sandbox 或逐工具 approval
+- sidecar 退出或协议失败时，Flutter 清除所有 host session id 并标记活跃任务失败；不会向重启前仅存在于内存的 session 继续发请求
+- 不把 SDK 原始 event 结构直接作为 Flutter public contract；host 负责规约为稳定的产品事件
+
 ### 单元 2
 
 - 所属阶段：阶段 1
@@ -148,6 +180,14 @@
 - 前置依赖：单元 3
 - 验证方式：手工发送 prompt，GUI 收到真实回复流
 - 完成标准：当前空态工作区可变成真实对话入口
+
+#### 当前执行细则（2026-07-27）
+
+- 新增独立 `PiHostClient` abstraction，不扩展已有 `DesktopRuntimeController`
+- production client 负责本地 Node sidecar 生命周期与 stdio JSONL；测试使用 `MemoryPiHostClient`
+- shell 按 host session id 和 `sessionCwd` 隔离流事件，项目切换不能让旧项目的 event 污染当前视图
+- composer 仅在 host 已接受 prompt 后清空输入；启动、失败、运行中和 abort 都必须是可见状态
+- 当前模型与 thinking 由 host 状态展示；现有 Pi Config 保存仍以新 session 生效为默认，不伪造运行中热更新
 
 ### 单元 6
 

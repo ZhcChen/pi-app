@@ -73,6 +73,10 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         return defaults;
       }
 
+      final hasExplicitToolPolicy =
+          decoded['toolPolicyVersion'] is int &&
+          (decoded['toolPolicyVersion'] as int) >= 1;
+
       return AppPreferences(
         language:
             _deserializeLanguage(decoded['language']?.toString()) ??
@@ -96,11 +100,14 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
               decoded['openDestination']?.toString(),
             ) ??
             defaults.openDestination,
-        defaultPermissions:
-            _decodeBool(decoded['defaultPermissions']) ??
-            defaults.defaultPermissions,
+        defaultPermissions: hasExplicitToolPolicy
+            ? _decodeBool(decoded['defaultPermissions']) ??
+                  defaults.defaultPermissions
+            : false,
         autoReview: _decodeBool(decoded['autoReview']) ?? defaults.autoReview,
-        fullAccess: _decodeBool(decoded['fullAccess']) ?? defaults.fullAccess,
+        fullAccess: hasExplicitToolPolicy
+            ? _decodeBool(decoded['fullAccess']) ?? defaults.fullAccess
+            : false,
         showInMenuBar:
             _decodeBool(decoded['showInMenuBar']) ?? defaults.showInMenuBar,
         showBottomPanel:
@@ -132,6 +139,7 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         'openDestination': _serializeOpenDestination(
           preferences.openDestination,
         ),
+        'toolPolicyVersion': 1,
         'defaultPermissions': preferences.defaultPermissions,
         'autoReview': preferences.autoReview,
         'fullAccess': preferences.fullAccess,

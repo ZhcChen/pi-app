@@ -5,8 +5,8 @@
 ## 当前定位
 
 - 目标平台：`windows`、`macos`、`linux`
-- 当前范围：初始化桌面端应用骨架与基础界面壳
-- 后续接入：`pi agent` 进程托管、会话列表、日志流、工具调用面板
+- 当前范围：可按项目 cwd 创建 Pi session、发送 prompt、接收文本流并 abort 的桌面工作台
+- 后续接入：session 列表/恢复、完整工具 timeline、trust/approval UI 与 sidecar 打包
 
 ## 目录说明
 
@@ -34,6 +34,7 @@
 - Pi Config Center 说明：`docs/solutions/2026-07-26-desktop-pi-config-center.md`
 - workspace project overview 说明：`docs/solutions/2026-07-26-desktop-project-overview.md`
 - pi 集成形态说明：`docs/solutions/2026-07-26-pi-integration-modes.md`
+- pi-host SDK contract：`docs/solutions/2026-07-27-pi-host-sdk-contract.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
@@ -45,6 +46,7 @@
 - `app_copy.dart` 与 `app_data.dart` 已迁为独立应用级 import 模块，分别承载双语文案与当前 workspace/project 数据注入
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
 - `pi_config_store.dart` 负责 `pi` 全局配置根识别、模型配置读写与 prompt 文件编辑
+- `pi_host_client.dart` 负责 Flutter 与本地 `pi-host` sidecar 的 JSONL 通信、进程生命周期和可注入测试实现
 - `project_registry_store.dart` 负责 `~/.pi-app/projects/index.json` 项目注册表、`projects/<project-id>/project.json` 项目元数据、旧项目路径迁移与项目别名/固定/最近访问/移除操作
 - `pi_config_view.dart` 承接 settings 内部的 `Pi Models` / `Pi Prompts` 页面实现
 - `desktop_app.dart` 当前仅保留 `PiDesktopApp` 的兼容导出 shim，避免旧路径瞬时失效；`workspace_feature.dart` 与 `settings_feature.dart` 仍在各自 feature 内部使用 `part`
@@ -58,7 +60,10 @@
 ## 常用命令
 
 ```bash
-cd desktop
+cd ../host
+npm install
+npm run build
+cd ../desktop
 flutter pub get
 flutter analyze
 flutter test
@@ -69,4 +74,6 @@ flutter run -d macos
 
 ## 备注
 
-当前模块还没有接入真实的 `pi agent` 运行时；现有界面主要用于承载后续桌面端交互和状态面板。
+当前模块已接入真实的本地 `pi-host` SDK runtime：composer 会按选中项目的 `sessionCwd` 创建 Pi session、发送 prompt、展示文本流并支持 abort。新安装的默认 session 不提供内置工具；在设置中显式开启“读取工具”后，新 session 才能使用 `read`、`grep`、`find`、`ls`，开启“编码工具”后还会使用 `bash`、`edit`、`write`。旧版偏好文件会安全迁移为无工具，避免把历史默认值当成能力授权。这不是 sandbox，也尚未实现逐工具 approval。
+
+sidecar 的普通 stdout 会被隔离到 stderr，JSONL 协议保持独占 stdout；sidecar 退出后，旧 host session 会被标记失败，下一次提交会自动创建新 session。开发期需要先构建 `host/`，并使用 Node `>=22.19.0`；最终 app bundle 尚未包含 Node runtime 和 sidecar，这部分属于打包阶段。
