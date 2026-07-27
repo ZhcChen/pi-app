@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Pi Desktop
+Name=Pi App
 Comment=GUI client for pi.dev agent
 Exec=pi_desktop
 Icon=dev.pi.pi_desktop

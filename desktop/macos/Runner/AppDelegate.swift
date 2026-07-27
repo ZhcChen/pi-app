@@ -111,7 +111,7 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
       }
       button.target = self
       button.action = #selector(handleStatusItemPressed)
-      button.toolTip = "Pi Desktop"
+      button.toolTip = "Pi App"
     }
 
     statusItem = item

@@ -84,7 +84,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pi Desktop',
+      title: 'Pi App',
       debugShowCheckedModeBanner: false,
       theme: buildDesktopTheme(Brightness.light, _preferences),
       darkTheme: buildDesktopTheme(Brightness.dark, _preferences),
@@ -541,7 +541,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       onShowLicenses: () {
         showLicensePage(
           context: context,
-          applicationName: 'Pi Desktop',
+          applicationName: 'Pi App',
           applicationVersion: '1.0.0',
         );
       },

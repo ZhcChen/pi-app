@@ -42,7 +42,7 @@ Future<void> _prepareDesktopWindow() async {
   await windowManager.ensureInitialized();
 
   const options = WindowOptions(
-    title: 'Pi Desktop',
+    title: 'Pi App',
     minimumSize: Size(1280, 820),
     backgroundColor: Colors.transparent,
   );
