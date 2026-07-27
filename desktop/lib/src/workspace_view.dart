@@ -94,27 +94,36 @@ class WorkspaceSidebar extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                for (var i = 0; i < projects.length; i++)
+                if (projects.isEmpty)
                   Padding(
-                    padding: EdgeInsets.only(
-                      bottom: desktopDensityValue(
-                        density,
-                        compact: 6,
-                        comfortable: 8,
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+                    child: Text(
+                      copy.noProjectsDescription,
+                      style: DesktopTypography.projectItem(palette),
+                    ),
+                  )
+                else
+                  for (var i = 0; i < projects.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: desktopDensityValue(
+                          density,
+                          compact: 6,
+                          comfortable: 8,
+                        ),
+                      ),
+                      child: _ProjectTile(
+                        copy: copy,
+                        project: projects[i],
+                        interfaceDensity: density,
+                        openDestination: preferences.openDestination,
+                        selected: i == selectedProjectIndex,
+                        onTap: () => onProjectSelected(i),
+                        onOpenProject: () => onOpenProject(projects[i]),
+                        onOpenProjectItem: (item) =>
+                            onOpenProjectItem(projects[i], item),
                       ),
                     ),
-                    child: _ProjectTile(
-                      copy: copy,
-                      project: projects[i],
-                      interfaceDensity: density,
-                      openDestination: preferences.openDestination,
-                      selected: i == selectedProjectIndex,
-                      onTap: () => onProjectSelected(i),
-                      onOpenProject: () => onOpenProject(projects[i]),
-                      onOpenProjectItem: (item) =>
-                          onOpenProjectItem(projects[i], item),
-                    ),
-                  ),
                 const SizedBox(height: 12),
                 _CollapsedSectionRow(label: copy.tasksLabel),
               ],
@@ -169,13 +178,17 @@ class WorkspaceCanvas extends StatelessWidget {
     required this.preferences,
     required this.project,
     required this.promptCards,
+    required this.onOpenProject,
+    required this.onOpenProjectItem,
     super.key,
   });
 
   final WorkspaceCopy copy;
   final AppPreferences preferences;
-  final WorkspaceProjectGroup project;
+  final WorkspaceProjectGroup? project;
   final List<WorkspacePromptCard> promptCards;
+  final VoidCallback? onOpenProject;
+  final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
 
   @override
   Widget build(BuildContext context) {
@@ -186,95 +199,43 @@ class WorkspaceCanvas extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 10),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final contentWidth = constraints.maxWidth > 848
-                            ? 848.0
-                            : constraints.maxWidth;
-
-                        return Center(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.center,
-                            child: SizedBox(
-                              width: contentWidth,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const _HeroMark(),
-                                  const SizedBox(height: 28),
-                                  Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(text: copy.heroPromptPrefix),
-                                        TextSpan(
-                                          text: project.name,
-                                          style: TextStyle(
-                                            decoration:
-                                                TextDecoration.underline,
-                                            decorationColor: palette.textMuted,
-                                          ),
-                                        ),
-                                        TextSpan(text: copy.heroPromptSuffix),
-                                      ],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    style: DesktopTypography.heroTitle(palette),
-                                  ),
-                                  if (promptCards.isNotEmpty) ...[
-                                    const SizedBox(height: 34),
-                                    Wrap(
-                                      key: const Key(
-                                        'workspace-suggested-prompts',
-                                      ),
-                                      alignment: WrapAlignment.center,
-                                      spacing: 14,
-                                      runSpacing: 14,
-                                      children: promptCards
-                                          .map(
-                                            (card) =>
-                                                _PromptCardTile(card: card),
-                                          )
-                                          .toList(),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _Composer(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 10),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 920),
+                  child: project == null
+                      ? _WorkspaceEmptyState(copy: copy)
+                      : _ProjectOverview(
                           copy: copy,
                           preferences: preferences,
-                          project: project,
+                          project: project!,
+                          promptCards: promptCards,
+                          onOpenProject: onOpenProject,
+                          onOpenProjectItem: onOpenProjectItem,
                         ),
-                        if (preferences.showBottomPanel) ...[
-                          const SizedBox(height: 12),
-                          _WorkspaceBottomPanel(
-                            copy: copy,
-                            preferences: preferences,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
                 ),
-              ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _Composer(
+                    copy: copy,
+                    preferences: preferences,
+                    project: project,
+                  ),
+                  if (preferences.showBottomPanel) ...[
+                    const SizedBox(height: 12),
+                    _WorkspaceBottomPanel(copy: copy, preferences: preferences),
+                  ],
+                ],
+              ),
             ),
           ),
         ],

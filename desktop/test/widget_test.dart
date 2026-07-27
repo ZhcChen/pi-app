@@ -16,6 +16,19 @@ void main() {
     tester.view.resetDevicePixelRatio();
   }
 
+  Future<void> settleUi(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 220));
+  }
+
+  String resolveRepoWorkspacePath() {
+    final currentDirectory = Directory.current;
+    if (currentDirectory.path.endsWith('${Platform.pathSeparator}desktop')) {
+      return currentDirectory.parent.path;
+    }
+    return currentDirectory.path;
+  }
+
   test('memory preferences store saves and loads full preferences', () async {
     final store = MemoryDesktopPreferencesStore();
     const expected = AppPreferences(
@@ -325,42 +338,38 @@ void main() {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
     final runtimeController = MemoryDesktopRuntimeController();
+    final workspacePath = resolveRepoWorkspacePath();
 
     await tester.pumpWidget(
       PiDesktopApp(
         enablePersistence: false,
         runtimeController: runtimeController,
-        workspaceRootPath: '/workspace/pi-app',
+        workspaceRootPath: workspacePath,
       ),
     );
-    await tester.pumpAndSettle();
+    await settleUi(tester);
 
     await tester.tap(find.byKey(const Key('open-project-button-pi-app')));
-    await tester.pumpAndSettle();
+    await settleUi(tester);
 
     expect(
       runtimeController.lastOpenRequest?.destination,
       AppOpenDestination.vscode,
     );
-    expect(runtimeController.lastOpenRequest?.targetPath, '/workspace/pi-app');
-    expect(
-      runtimeController.lastOpenRequest?.workspacePath,
-      '/workspace/pi-app',
-    );
+    expect(runtimeController.lastOpenRequest?.targetPath, workspacePath);
+    expect(runtimeController.lastOpenRequest?.workspacePath, workspacePath);
 
     await tester.tap(find.byKey(const Key('open-settings-button')));
-    await tester.pumpAndSettle();
+    await settleUi(tester);
     await tester.tap(find.byKey(const Key('open-destination-dropdown')));
-    await tester.pumpAndSettle();
+    await settleUi(tester);
     await tester.tap(find.text('Terminal').last);
-    await tester.pumpAndSettle();
+    await settleUi(tester);
     await tester.tap(find.byKey(const Key('back-to-app-button')));
-    await tester.pumpAndSettle();
+    await settleUi(tester);
 
-    await tester.tap(
-      find.byKey(const Key('open-project-item-button-runtime bridge')),
-    );
-    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-project-item-button-desktop')));
+    await settleUi(tester);
 
     expect(
       runtimeController.lastOpenRequest?.destination,
@@ -368,10 +377,35 @@ void main() {
     );
     expect(
       runtimeController.lastOpenRequest?.targetPath,
-      '/workspace/pi-app/desktop/lib/src/app_runtime.dart',
+      '$workspacePath${Platform.pathSeparator}desktop',
     );
     expect(runtimeController.openCount, 2);
   });
+
+  testWidgets(
+    'workspace overview uses real project data instead of seed items',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('project-overview-title')), findsOneWidget);
+      expect(find.text('yuance'), findsNothing);
+      expect(find.text('novel-1'), findsNothing);
+      expect(find.text('Project overview'), findsOneWidget);
+      expect(find.text('docs'), findsWidgets);
+      expect(find.text('desktop'), findsWidgets);
+      expect(find.text('assets'), findsWidgets);
+    },
+  );
 
   testWidgets('pi config settings edit prompts and model preferences', (
     tester,
@@ -477,18 +511,19 @@ void main() {
     final runtimeController = MemoryDesktopRuntimeController(
       openResult: const DesktopOpenResult.failure('boom'),
     );
+    final workspacePath = resolveRepoWorkspacePath();
 
     await tester.pumpWidget(
       PiDesktopApp(
         enablePersistence: false,
         runtimeController: runtimeController,
-        workspaceRootPath: '/workspace/pi-app',
+        workspaceRootPath: workspacePath,
       ),
     );
-    await tester.pumpAndSettle();
+    await settleUi(tester);
 
     await tester.tap(find.byKey(const Key('open-project-button-pi-app')));
-    await tester.pumpAndSettle();
+    await settleUi(tester);
 
     expect(find.text('Could not open in VS Code: boom'), findsOneWidget);
   });

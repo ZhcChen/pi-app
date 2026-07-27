@@ -124,6 +124,34 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
 
   String get executionDefaultsTitle =>
       isChinese ? '当前执行预设' : 'Current execution defaults';
+  String get noProjectsTitle => isChinese ? '没有可用项目' : 'No projects available';
+  String get noProjectsDescription => isChinese
+      ? '当前工作区还没有可识别的本地项目路径。'
+      : 'No local project path could be resolved for the current workspace.';
+  String get projectOverviewTitle => isChinese ? '项目概览' : 'Project overview';
+  String get projectDetailsTitle => isChinese ? '项目详情' : 'Project details';
+  String get projectRecentTargetsTitle => isChinese ? '最近目标' : 'Recent targets';
+  String get projectSuggestionsTitle =>
+      isChinese ? '建议提示' : 'Suggested prompts';
+  String get projectPathLabel => isChinese ? '项目路径' : 'Project path';
+  String get projectRepositoryLabel => isChinese ? '仓库状态' : 'Repository';
+  String get projectBranchLabel => isChinese ? '分支' : 'Branch';
+  String get projectSessionCwdLabel => isChinese ? '会话 cwd' : 'Session cwd';
+  String get projectLocalFolderLabel => isChinese ? '本地文件夹' : 'Local folder';
+  String get projectOpenRootLabel =>
+      isChinese ? '打开项目根目录' : 'Open project root';
+  String get projectNoRecentTargetsLabel => isChinese
+      ? '当前项目还没有可展示的真实入口。'
+      : 'This project does not have any concrete targets yet.';
+  String projectRecentTargetDescription(String relativePath) {
+    return relativePath;
+  }
+
+  String projectRepositoryStatus(bool isGitRepository) {
+    return isGitRepository
+        ? (isChinese ? 'Git 仓库' : 'Git repository')
+        : projectLocalFolderLabel;
+  }
 
   String get piConfigGroupLabel => 'Pi Config';
   String get piModelsTitle => isChinese ? 'Pi 模型' : 'Pi Models';

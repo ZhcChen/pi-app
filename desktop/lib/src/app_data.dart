@@ -52,54 +52,180 @@ List<WorkspacePromptCard> buildPromptCards(AppCopy copy) {
 }
 
 List<WorkspaceProjectGroup> buildDesktopProjects(String? workspaceRootPath) {
+  final resolvedRoot = _resolveWorkspaceRoot(workspaceRootPath);
+  if (resolvedRoot == null) {
+    return const <WorkspaceProjectGroup>[];
+  }
+
+  final rootDirectory = Directory(resolvedRoot);
+  if (!rootDirectory.existsSync()) {
+    return const <WorkspaceProjectGroup>[];
+  }
+
+  final gitInfo = _resolveGitInfo(rootDirectory);
+  final recentTargets = _buildRecentTargets(rootDirectory);
+
   return [
     WorkspaceProjectGroup(
-      name: 'pi-app',
-      branch: 'main',
-      workspacePath: workspaceRootPath,
-      items: [
-        WorkspaceProjectItem(
-          label: 'desktop shell redesign',
-          targetPath: _resolveWorkspacePath(
-            workspaceRootPath,
-            'docs/plans/2026-07-26-desktop-shell-redesign.md',
-          ),
-        ),
-        WorkspaceProjectItem(
-          label: 'runtime bridge',
-          targetPath: _resolveWorkspacePath(
-            workspaceRootPath,
-            'desktop/lib/src/app_runtime.dart',
-          ),
-        ),
-        WorkspaceProjectItem(
-          label: 'branding assets',
-          targetPath: _resolveWorkspacePath(
-            workspaceRootPath,
-            'assets/branding',
-          ),
-        ),
-      ],
-    ),
-    const WorkspaceProjectGroup(
-      name: 'yuance',
-      branch: 'feature/ui',
-      items: [
-        WorkspaceProjectItem(label: 'analyze project'),
-        WorkspaceProjectItem(label: 'analyze project'),
-        WorkspaceProjectItem(label: 'analyze project'),
-      ],
-    ),
-    const WorkspaceProjectGroup(
-      name: 'novel-1',
-      branch: 'local',
-      items: [WorkspaceProjectItem(label: 'draft scene')],
+      name: _basename(rootDirectory.path),
+      branch: gitInfo.branch,
+      items: recentTargets,
+      workspacePath: rootDirectory.path,
+      sessionCwd: rootDirectory.path,
+      isGitRepository: gitInfo.isGitRepository,
     ),
   ];
 }
 
-String? _resolveWorkspacePath(String? workspaceRootPath, String relativePath) {
-  if (workspaceRootPath == null || workspaceRootPath.isEmpty) {
+String? _resolveWorkspaceRoot(String? workspaceRootPath) {
+  final configured = workspaceRootPath?.trim();
+  if (configured != null && configured.isNotEmpty) {
+    return configured;
+  }
+
+  try {
+    final currentDirectory = Directory.current;
+    if (currentDirectory.path.endsWith('${Platform.pathSeparator}desktop')) {
+      return currentDirectory.parent.path;
+    }
+    return currentDirectory.path;
+  } catch (_) {
+    return null;
+  }
+}
+
+List<WorkspaceProjectItem> _buildRecentTargets(Directory rootDirectory) {
+  final items = <WorkspaceProjectItem>[];
+  final candidatePaths = <String>['README.md', 'docs', 'desktop', 'assets'];
+
+  for (final relativePath in candidatePaths) {
+    final targetPath = _resolveWorkspacePath(rootDirectory.path, relativePath);
+    if (targetPath == null) {
+      continue;
+    }
+
+    final file = File(targetPath);
+    final directory = Directory(targetPath);
+    final exists = file.existsSync() || directory.existsSync();
+    if (!exists) {
+      continue;
+    }
+
+    items.add(
+      WorkspaceProjectItem(
+        label: _basename(relativePath),
+        targetPath: targetPath,
+        relativePath: relativePath,
+        kind: directory.existsSync()
+            ? WorkspaceProjectItemKind.directory
+            : WorkspaceProjectItemKind.file,
+      ),
+    );
+  }
+
+  if (items.isNotEmpty) {
+    return items;
+  }
+
+  final fallbackEntries =
+      rootDirectory
+          .listSync(followLinks: false)
+          .where((entry) => !_basename(entry.path).startsWith('.'))
+          .toList()
+        ..sort((a, b) => _basename(a.path).compareTo(_basename(b.path)));
+
+  for (final entry in fallbackEntries.take(4)) {
+    items.add(
+      WorkspaceProjectItem(
+        label: _basename(entry.path),
+        targetPath: entry.path,
+        relativePath: _basename(entry.path),
+        kind: entry is Directory
+            ? WorkspaceProjectItemKind.directory
+            : WorkspaceProjectItemKind.file,
+      ),
+    );
+  }
+
+  return items;
+}
+
+({String? branch, bool isGitRepository}) _resolveGitInfo(
+  Directory rootDirectory,
+) {
+  final gitMetadataDirectory = _resolveGitMetadataDirectory(rootDirectory);
+  if (gitMetadataDirectory == null) {
+    return (branch: null, isGitRepository: false);
+  }
+
+  final headFile = File(
+    '${gitMetadataDirectory.path}${Platform.pathSeparator}HEAD',
+  );
+  if (!headFile.existsSync()) {
+    return (branch: null, isGitRepository: true);
+  }
+
+  try {
+    final rawHead = headFile.readAsStringSync().trim();
+    if (rawHead.startsWith('ref: ')) {
+      final reference = rawHead.substring(5).trim();
+      return (branch: reference.split('/').last, isGitRepository: true);
+    }
+
+    final detachedHead = rawHead.length > 7 ? rawHead.substring(0, 7) : rawHead;
+    return (branch: detachedHead, isGitRepository: true);
+  } catch (_) {
+    return (branch: null, isGitRepository: true);
+  }
+}
+
+Directory? _resolveGitMetadataDirectory(Directory rootDirectory) {
+  final gitDirectory = Directory(
+    '${rootDirectory.path}${Platform.pathSeparator}.git',
+  );
+  if (gitDirectory.existsSync()) {
+    return gitDirectory;
+  }
+
+  final gitFile = File('${rootDirectory.path}${Platform.pathSeparator}.git');
+  if (!gitFile.existsSync()) {
+    return null;
+  }
+
+  try {
+    final rawContent = gitFile.readAsStringSync().trim();
+    if (!rawContent.startsWith('gitdir:')) {
+      return null;
+    }
+
+    final relativeGitPath = rawContent.substring('gitdir:'.length).trim();
+    final resolvedPath = Uri.directory(
+      rootDirectory.path.endsWith(Platform.pathSeparator)
+          ? rootDirectory.path
+          : '${rootDirectory.path}${Platform.pathSeparator}',
+    ).resolve(relativeGitPath).toFilePath(windows: Platform.isWindows);
+
+    final metadataDirectory = Directory(resolvedPath);
+    if (!metadataDirectory.existsSync()) {
+      return null;
+    }
+    return metadataDirectory;
+  } catch (_) {
+    return null;
+  }
+}
+
+String _basename(String path) {
+  final normalized = path.replaceAll('\\', '/');
+  final trimmed = normalized.endsWith('/') && normalized.length > 1
+      ? normalized.substring(0, normalized.length - 1)
+      : normalized;
+  final segments = trimmed.split('/');
+  return segments.isEmpty ? trimmed : segments.last;
+}
+
+String? _resolveWorkspacePath(String workspaceRootPath, String relativePath) {
+  if (workspaceRootPath.isEmpty) {
     return null;
   }
 

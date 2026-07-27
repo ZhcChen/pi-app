@@ -166,20 +166,34 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
   int _selectedActionIndex = 0;
   int _selectedProjectIndex = 0;
+  late List<WorkspaceProjectGroup> _projects;
 
-  List<WorkspaceProjectGroup> get _projects =>
-      buildDesktopProjects(widget.workspaceRootPath);
+  WorkspaceProjectGroup? get _selectedProject {
+    if (_projects.isEmpty) {
+      return null;
+    }
 
-  WorkspaceProjectGroup get _selectedProject =>
-      _projects[_selectedProjectIndex];
+    final index = _selectedProjectIndex.clamp(0, _projects.length - 1);
+    return _projects[index];
+  }
+
   AppCopy get _copy => AppCopy(widget.preferences.language);
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
 
   @override
   void initState() {
     super.initState();
+    _projects = buildDesktopProjects(widget.workspaceRootPath);
     _settingsSearchController.addListener(_onSettingsSearchChanged);
     _loadPiConfig();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PiDesktopShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+      _refreshProjects();
+    }
   }
 
   @override
@@ -208,6 +222,18 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   void _updatePreferences(AppPreferences next) {
     widget.onPreferencesChanged(next);
+  }
+
+  void _refreshProjects() {
+    final projects = buildDesktopProjects(widget.workspaceRootPath);
+    setState(() {
+      _projects = projects;
+      if (_projects.isEmpty) {
+        _selectedProjectIndex = 0;
+      } else if (_selectedProjectIndex >= _projects.length) {
+        _selectedProjectIndex = _projects.length - 1;
+      }
+    });
   }
 
   Future<void> _loadPiConfig() async {
@@ -351,6 +377,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         final promptCards = widget.preferences.suggestedPrompts
             ? buildPromptCards(_copy)
             : const <WorkspacePromptCard>[];
+        final selectedProject = _selectedProject;
 
         return Row(
           children: [
@@ -383,8 +410,14 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
               child: WorkspaceCanvas(
                 copy: _copy,
                 preferences: widget.preferences,
-                project: _selectedProject,
+                project: selectedProject,
                 promptCards: promptCards,
+                onOpenProject: selectedProject == null
+                    ? null
+                    : () => _openProject(selectedProject),
+                onOpenProjectItem: selectedProject == null
+                    ? null
+                    : (item) => _openProjectItem(selectedProject, item),
               ),
             ),
           ],

@@ -42,7 +42,14 @@
   - `PlatformDesktopRuntimeController` 新增 `openTarget(...)`，打通 VS Code / Cursor / Terminal 的跨平台启动策略
   - 工作区项目与项目项新增真实打开入口，并默认遵循当前 `openDestination`
   - 补齐打开请求、路径透传与失败反馈的自动化测试
-- 待执行：阶段 3-5
+- 已完成：阶段 3 / 单元 9-12 第一批
+  - `app_data.dart` 不再保留 `yuance` / `novel-1` 之类 seed projects，只基于真实 workspace root 产出项目
+  - 工作区右侧从空态标题升级为 `Project overview`，展示真实路径、仓库状态、branch、session cwd 预留位与 recent targets
+  - recent targets 与项目根目录继续复用已有外部打开链路
+  - 补齐“只显示真实项目”和 overview 的自动化测试
+- 待执行：阶段 4-5
+  - feature 内部边界复核
+  - 兼容层与过渡文件清理
 
 ## 目标
 

@@ -22,6 +22,21 @@ abstract interface class WorkspaceCopy {
   String get modelPresetLabel;
   String get submitTaskTooltip;
   String get executionDefaultsTitle;
+  String get noProjectsTitle;
+  String get noProjectsDescription;
+  String get projectOverviewTitle;
+  String get projectDetailsTitle;
+  String get projectRecentTargetsTitle;
+  String get projectSuggestionsTitle;
+  String get projectPathLabel;
+  String get projectRepositoryLabel;
+  String get projectBranchLabel;
+  String get projectSessionCwdLabel;
+  String get projectLocalFolderLabel;
+  String get projectOpenRootLabel;
+  String get projectNoRecentTargetsLabel;
+  String projectRecentTargetDescription(String relativePath);
+  String projectRepositoryStatus(bool isGitRepository);
   String openTargetTooltip(AppOpenDestination destination);
   String get openTargetUnavailableLabel;
   String openFailedMessage(AppOpenDestination destination, String reason);
@@ -41,25 +56,38 @@ class WorkspaceAction {
   final IconData icon;
 }
 
+enum WorkspaceProjectItemKind { file, directory }
+
 class WorkspaceProjectItem {
-  const WorkspaceProjectItem({required this.label, this.targetPath});
+  const WorkspaceProjectItem({
+    required this.label,
+    this.targetPath,
+    this.relativePath,
+    this.kind = WorkspaceProjectItemKind.file,
+  });
 
   final String label;
   final String? targetPath;
+  final String? relativePath;
+  final WorkspaceProjectItemKind kind;
 }
 
 class WorkspaceProjectGroup {
   const WorkspaceProjectGroup({
     required this.name,
-    required this.branch,
+    this.branch,
     required this.items,
     this.workspacePath,
+    this.sessionCwd,
+    this.isGitRepository = false,
   });
 
   final String name;
-  final String branch;
+  final String? branch;
   final List<WorkspaceProjectItem> items;
   final String? workspacePath;
+  final String? sessionCwd;
+  final bool isGitRepository;
 }
 
 class WorkspacePromptCard {
