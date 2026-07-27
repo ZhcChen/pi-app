@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_copy.dart';
@@ -11,6 +10,7 @@ import 'app_preferences.dart';
 import 'app_runtime.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
+import 'project_registry_store.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
 
@@ -21,6 +21,7 @@ class PiDesktopApp extends StatefulWidget {
     this.preferencesStore,
     this.runtimeController,
     this.piConfigStore,
+    this.projectRegistryStore,
     this.workspaceRootPath,
     this.pickProjectDirectory,
   });
@@ -29,6 +30,7 @@ class PiDesktopApp extends StatefulWidget {
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
+  final ProjectRegistryStore? projectRegistryStore;
   final String? workspaceRootPath;
   final Future<String?> Function()? pickProjectDirectory;
 
@@ -43,6 +45,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.runtimeController ?? PlatformDesktopRuntimeController();
   late final PiConfigStore _piConfigStore =
       widget.piConfigStore ?? FilePiConfigStore();
+  late final ProjectRegistryStore _projectRegistryStore =
+      widget.projectRegistryStore ?? FileProjectRegistryStore();
 
   AppPreferences _preferences = const AppPreferences();
 
@@ -115,6 +119,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeCapabilities: _runtimeController.capabilities,
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
+        projectRegistryStore: _projectRegistryStore,
+        enableProjectPersistence: widget.enablePersistence,
         workspaceRootPath: widget.workspaceRootPath,
         pickProjectDirectory:
             widget.pickProjectDirectory ?? _pickProjectDirectory,
@@ -137,8 +143,7 @@ bool _samePreferences(AppPreferences a, AppPreferences b) {
       a.showInMenuBar == b.showInMenuBar &&
       a.showBottomPanel == b.showBottomPanel &&
       a.preventSleep == b.preventSleep &&
-      a.suggestedPrompts == b.suggestedPrompts &&
-      listEquals(a.projectPaths, b.projectPaths);
+      a.suggestedPrompts == b.suggestedPrompts;
 }
 
 Future<String?> _pickProjectDirectory() async {
@@ -153,6 +158,8 @@ class _PiDesktopShell extends StatefulWidget {
     required this.runtimeCapabilities,
     required this.runtimeController,
     required this.piConfigStore,
+    required this.projectRegistryStore,
+    required this.enableProjectPersistence,
     required this.workspaceRootPath,
     required this.pickProjectDirectory,
     required this.onPreferencesChanged,
@@ -162,6 +169,8 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
+  final ProjectRegistryStore projectRegistryStore;
+  final bool enableProjectPersistence;
   final String? workspaceRootPath;
   final Future<String?> Function() pickProjectDirectory;
   final ValueChanged<AppPreferences> onPreferencesChanged;
@@ -178,7 +187,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
   WorkspacePreparedTask? _preparedTask;
-  String? _preferredSelectedProjectPath;
+  ProjectRegistrySnapshot _projectRegistry = const ProjectRegistrySnapshot();
 
   _DesktopRoute _route = _DesktopRoute.workspace;
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
@@ -212,23 +221,19 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   @override
   void initState() {
     super.initState();
-    _projects = buildDesktopProjects(
-      widget.workspaceRootPath,
-      additionalProjectPaths: widget.preferences.projectPaths,
-    );
+    _projects = buildDesktopProjects(widget.workspaceRootPath);
     _settingsSearchController.addListener(_onSettingsSearchChanged);
     _loadPiConfig();
+    if (widget.enableProjectPersistence) {
+      _loadProjectRegistry();
+    }
   }
 
   @override
   void didUpdateWidget(covariant _PiDesktopShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
-        !listEquals(
-          oldWidget.preferences.projectPaths,
-          widget.preferences.projectPaths,
-        )) {
-      _refreshProjects(preferredSelectedPath: _preferredSelectedProjectPath);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+      _refreshProjects();
     }
   }
 
@@ -263,23 +268,32 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   void _refreshProjects({String? preferredSelectedPath}) {
     final currentSelectedPath = _selectedProject?.workspacePath;
+    _applyProjectSnapshot(
+      _projectRegistry,
+      preferredSelectedPath: preferredSelectedPath ?? currentSelectedPath,
+    );
+  }
+
+  void _applyProjectSnapshot(
+    ProjectRegistrySnapshot snapshot, {
+    String? preferredSelectedPath,
+  }) {
     final projects = buildDesktopProjects(
       widget.workspaceRootPath,
-      additionalProjectPaths: widget.preferences.projectPaths,
+      additionalProjectPaths: snapshot.projectPaths,
     );
-    final desiredPath = preferredSelectedPath ?? currentSelectedPath;
 
     setState(() {
+      _projectRegistry = snapshot;
       _projects = projects;
-      _preferredSelectedProjectPath = null;
       if (_projects.isEmpty) {
         _selectedProjectIndex = 0;
         return;
       }
 
-      if (desiredPath != null) {
+      if (preferredSelectedPath != null) {
         final matchedIndex = _projects.indexWhere(
-          (project) => project.workspacePath == desiredPath,
+          (project) => project.workspacePath == preferredSelectedPath,
         );
         if (matchedIndex >= 0) {
           _selectedProjectIndex = matchedIndex;
@@ -291,6 +305,16 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         _selectedProjectIndex = _projects.length - 1;
       }
     });
+  }
+
+  Future<void> _loadProjectRegistry() async {
+    try {
+      final snapshot = await widget.projectRegistryStore.loadSnapshot();
+      if (!mounted) {
+        return;
+      }
+      _applyProjectSnapshot(snapshot);
+    } catch (_) {}
   }
 
   Future<void> _loadPiConfig() async {
@@ -388,15 +412,20 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         return;
       }
 
-      _preferredSelectedProjectPath = normalizedPath;
-      _updatePreferences(
-        widget.preferences.copyWith(
-          projectPaths: <String>[
-            ...widget.preferences.projectPaths,
-            normalizedPath,
-          ],
-        ),
-      );
+      final snapshot = widget.enableProjectPersistence
+          ? await widget.projectRegistryStore.addProject(normalizedPath)
+          : ProjectRegistrySnapshot(
+              entries: <ProjectRegistryEntry>[
+                ..._projectRegistry.entries,
+                ProjectRegistryEntry.create(normalizedPath),
+              ],
+            );
+
+      if (!mounted) {
+        return;
+      }
+
+      _applyProjectSnapshot(snapshot, preferredSelectedPath: normalizedPath);
       _showNotice(
         _copy.projectAddedNotice(_projectNameForPath(normalizedPath)),
       );

@@ -3,6 +3,28 @@ import 'dart:io';
 
 import 'app_preferences.dart';
 
+Directory resolvePiAppRootDirectory({
+  Directory? rootDirectory,
+  Map<String, String>? environment,
+}) {
+  if (rootDirectory != null) {
+    return rootDirectory;
+  }
+
+  final resolvedEnvironment = environment ?? Platform.environment;
+  final home = resolvedEnvironment['HOME']?.trim();
+  final userProfile = resolvedEnvironment['USERPROFILE']?.trim();
+  final basePath = (home != null && home.isNotEmpty)
+      ? home
+      : (userProfile != null && userProfile.isNotEmpty ? userProfile : null);
+
+  if (basePath == null) {
+    throw StateError('Unable to resolve home directory for ~/.pi-app');
+  }
+
+  return Directory('$basePath${Platform.pathSeparator}.pi-app');
+}
+
 abstract class DesktopPreferencesStore {
   Future<AppPreferences> loadPreferences();
 
@@ -10,27 +32,20 @@ abstract class DesktopPreferencesStore {
 }
 
 class FileDesktopPreferencesStore implements DesktopPreferencesStore {
-  FileDesktopPreferencesStore({Directory? rootDirectory})
-    : _rootDirectory = rootDirectory;
+  FileDesktopPreferencesStore({
+    Directory? rootDirectory,
+    Map<String, String>? environment,
+  }) : _rootDirectory = rootDirectory,
+       _environment = environment;
 
   final Directory? _rootDirectory;
+  final Map<String, String>? _environment;
 
   Directory resolveRootDirectory() {
-    if (_rootDirectory != null) {
-      return _rootDirectory;
-    }
-
-    final home = Platform.environment['HOME']?.trim();
-    final userProfile = Platform.environment['USERPROFILE']?.trim();
-    final basePath = (home != null && home.isNotEmpty)
-        ? home
-        : (userProfile != null && userProfile.isNotEmpty ? userProfile : null);
-
-    if (basePath == null) {
-      throw StateError('Unable to resolve home directory for ~/.pi-app');
-    }
-
-    return Directory('$basePath${Platform.pathSeparator}.pi-app');
+    return resolvePiAppRootDirectory(
+      rootDirectory: _rootDirectory,
+      environment: _environment,
+    );
   }
 
   File resolveSettingsFile() {
@@ -95,8 +110,6 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         suggestedPrompts:
             _decodeBool(decoded['suggestedPrompts']) ??
             defaults.suggestedPrompts,
-        projectPaths:
-            _decodeStringList(decoded['projectPaths']) ?? defaults.projectPaths,
       );
     } catch (_) {
       return defaults;
@@ -126,7 +139,6 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         'showBottomPanel': preferences.showBottomPanel,
         'preventSleep': preferences.preventSleep,
         'suggestedPrompts': preferences.suggestedPrompts,
-        'projectPaths': preferences.projectPaths,
       }),
       flush: true,
     );
@@ -149,15 +161,6 @@ class MemoryDesktopPreferencesStore implements DesktopPreferencesStore {
 }
 
 bool? _decodeBool(Object? value) => value is bool ? value : null;
-
-List<String>? _decodeStringList(Object? value) {
-  if (value is! List) {
-    return null;
-  }
-
-  final items = value.whereType<String>().map((item) => item.trim()).toList();
-  return items;
-}
 
 String _serializeLanguage(AppLanguage language) {
   return switch (language) {

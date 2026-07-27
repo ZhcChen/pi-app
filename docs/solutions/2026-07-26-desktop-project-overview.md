@@ -81,7 +81,8 @@
 - 项目列表改成单行扁平结构
 - `Projects` header 悬浮时才显示 `+`
 - `+` 会调用本地目录选择器，并把选中的目录加入项目列表
-- 手动添加的项目路径进入 `AppPreferences.projectPaths`，随 `~/.pi-app/settings.json` 持久化
+- 手动添加的项目不再挂在 `AppPreferences` 上，而是写入 `~/.pi-app/projects/index.json` 项目注册表
+- `FileProjectRegistryStore` 会把旧的 `settings.json.projectPaths` 自动迁移到项目注册表
 - 正式 app 启动时不再把自身运行目录或容器 `Data` 目录误识别成项目；只有显式注入的 workspace root 或手动添加的项目才进入列表
 
 这样右侧 overview 继续负责“项目细节和 recent targets”，左侧只承担“项目选择与切换”，信息密度和职责都更清楚。

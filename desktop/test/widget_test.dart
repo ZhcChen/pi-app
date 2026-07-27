@@ -46,7 +46,6 @@ void main() {
       showBottomPanel: true,
       preventSleep: true,
       suggestedPrompts: true,
-      projectPaths: <String>['/workspace/pi-app', '/workspace/notes'],
     );
 
     await store.savePreferences(expected);
@@ -65,10 +64,48 @@ void main() {
     expect(loaded.showBottomPanel, true);
     expect(loaded.preventSleep, true);
     expect(loaded.suggestedPrompts, true);
-    expect(loaded.projectPaths, <String>[
-      '/workspace/pi-app',
-      '/workspace/notes',
-    ]);
+  });
+
+  test('memory project registry store adds and loads projects', () async {
+    final store = MemoryProjectRegistryStore();
+
+    final saved = await store.addProject('/workspace/pi-app');
+    final loaded = await store.loadSnapshot();
+
+    expect(saved.projectPaths, <String>['/workspace/pi-app']);
+    expect(loaded.entries.single.name, 'pi-app');
+    expect(loaded.entries.single.path, '/workspace/pi-app');
+  });
+
+  test('file project registry store migrates legacy project paths', () async {
+    final root = await Directory.systemTemp.createTemp('pi-project-store-');
+    addTearDown(() async {
+      if (await root.exists()) {
+        await root.delete(recursive: true);
+      }
+    });
+
+    final projectA = Directory(
+      '${root.path}${Platform.pathSeparator}workspace-a',
+    )..createSync(recursive: true);
+    final projectB = Directory(
+      '${root.path}${Platform.pathSeparator}workspace-b',
+    )..createSync(recursive: true);
+    final settingsFile = File(
+      '${root.path}${Platform.pathSeparator}settings.json',
+    );
+    await settingsFile.writeAsString(
+      '{"language":"english","projectPaths":["${projectA.path}","${projectB.path}"]}',
+    );
+
+    final store = FileProjectRegistryStore(rootDirectory: root);
+    final snapshot = await store.loadSnapshot();
+    final indexFile = store.resolveIndexFile();
+    final savedSettingsContent = await settingsFile.readAsString();
+
+    expect(snapshot.projectPaths, <String>[projectA.path, projectB.path]);
+    expect(await indexFile.exists(), true);
+    expect(savedSettingsContent.contains('projectPaths'), false);
   });
 
   test(
@@ -415,7 +452,8 @@ void main() {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
     final workspacePath = resolveRepoWorkspacePath();
-    final store = MemoryDesktopPreferencesStore();
+    final preferencesStore = MemoryDesktopPreferencesStore();
+    final projectRegistryStore = MemoryProjectRegistryStore();
     final runtimeController = MemoryDesktopRuntimeController();
     final addedProject = Directory(
       '${Directory.systemTemp.path}${Platform.pathSeparator}pi-desktop-added-project-test',
@@ -429,7 +467,8 @@ void main() {
     await tester.pumpWidget(
       PiDesktopApp(
         enablePersistence: true,
-        preferencesStore: store,
+        preferencesStore: preferencesStore,
+        projectRegistryStore: projectRegistryStore,
         runtimeController: runtimeController,
         workspaceRootPath: workspacePath,
         pickProjectDirectory: () async => addedProject.path,
@@ -476,8 +515,8 @@ void main() {
       findsOneWidget,
     );
 
-    final savedPreferences = await store.loadPreferences();
-    expect(savedPreferences.projectPaths, <String>[addedProject.path]);
+    final savedRegistry = await projectRegistryStore.loadSnapshot();
+    expect(savedRegistry.projectPaths, <String>[addedProject.path]);
   });
 
   testWidgets(
@@ -708,7 +747,11 @@ void main() {
     );
 
     await tester.pumpWidget(
-      PiDesktopApp(enablePersistence: true, preferencesStore: store),
+      PiDesktopApp(
+        enablePersistence: true,
+        preferencesStore: store,
+        projectRegistryStore: MemoryProjectRegistryStore(),
+      ),
     );
     await tester.pumpAndSettle();
 
