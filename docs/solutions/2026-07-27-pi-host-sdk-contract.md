@@ -53,7 +53,7 @@ SDK 的 `agent_end` 之后仍可能发生自动重试、自动压缩或排队消
 
 Pi SDK 对 extension command/input handler 可在 `preflightResult(true)` 后直接返回，不发 `agent_start`/`agent_settled`。host 因此等待 `agent_start` 或 prompt 本地完成：前者照常开始流式任务，后者合成 `run.settled` 并附带 `handledWithoutRun: true`。Flutter 不再在 prompt response 后无条件把状态覆写为 running。
 
-### 6. Flutter 通过可注入 client 隔离进程细节
+### 8. Flutter 通过可注入 client 隔离进程细节
 
 `desktop/lib/src/pi_host_client.dart` 定义 `PiHostClient`、生产 `LocalPiHostClient` 与测试 `MemoryPiHostClient`。`desktop_shell.dart` 负责 session 映射、流状态和用户可见错误；`workspace_feature.dart` 与 workspace components 只持有纯 view model，不依赖 Node 或协议编码。
 
