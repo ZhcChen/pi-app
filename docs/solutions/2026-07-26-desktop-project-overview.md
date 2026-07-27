@@ -83,6 +83,8 @@
 - `+` 会调用本地目录选择器，并把选中的目录加入项目列表
 - 手动添加的项目不再挂在 `AppPreferences` 上，而是写入 `~/.pi-app/projects/index.json` 项目注册表
 - `FileProjectRegistryStore` 会把旧的 `settings.json.projectPaths` 自动迁移到项目注册表
+- 项目行在 hover 或选中时提供 `…` 菜单，可固定 / 取消固定或从 Pi App 的项目列表中移除；移除不会删除源目录
+- 项目选择会更新注册表的 `lastOpenedAt`，注册表排序会优先展示固定项目，再展示最近打开项目
 - 正式 app 启动时不再把自身运行目录或容器 `Data` 目录误识别成项目；只有显式注入的 workspace root 或手动添加的项目才进入列表
 
 这样右侧 overview 继续负责“项目细节和 recent targets”，左侧只承担“项目选择与切换”，信息密度和职责都更清楚。
@@ -120,8 +122,10 @@
 
 新增验证覆盖：
 
+- `memory project registry store manages project lifecycle`
+- `file project registry store migrates legacy project paths`
 - `workspace open actions follow the current open destination`
-- `projects header reveals add action and adds a project`
+- `projects header adds and manages a registry project`
 - `workspace overview uses real project data instead of seed items`
 - `composer submit binds task to the selected project session cwd`
 

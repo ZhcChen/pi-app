@@ -43,6 +43,14 @@ abstract interface class WorkspaceCopy {
   String projectAddedNotice(String projectName);
   String projectAlreadyAddedNotice(String projectName);
   String projectAddFailedNotice(String reason);
+  String get manageProjectTooltip;
+  String get pinProjectLabel;
+  String get unpinProjectLabel;
+  String get removeProjectLabel;
+  String projectPinnedNotice(String projectName);
+  String projectUnpinnedNotice(String projectName);
+  String projectRemovedNotice(String projectName);
+  String projectManageFailedNotice(String reason);
   String composerPreparedNotice(String projectName);
   String projectRecentTargetDescription(String relativePath);
   String projectRepositoryStatus(bool isGitRepository);

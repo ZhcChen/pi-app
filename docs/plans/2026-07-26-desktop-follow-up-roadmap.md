@@ -56,6 +56,7 @@
   - `Projects` header 悬浮时显示 `+`，并支持选择本地目录加入项目列表
   - 手动添加的项目路径已迁出 `AppPreferences`，改为写入 `~/.pi-app/projects/index.json` 项目注册表
   - 项目注册表已支持从旧的 `settings.json.projectPaths` 自动迁移
+  - 已支持固定 / 取消固定、从项目列表移除，以及项目选择时更新 `lastOpenedAt`
   - 应用默认启动不再把自身运行目录或容器 `Data` 目录误识别成项目
 - 待执行：阶段 4-5
   - feature 内部边界复核

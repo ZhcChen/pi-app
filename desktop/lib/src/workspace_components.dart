@@ -699,6 +699,8 @@ class _SidebarActionTile extends StatelessWidget {
 }
 
 /// Expandable project tile in the workspace sidebar.
+enum _ProjectMenuAction { togglePin, remove }
+
 class _ProjectTile extends StatefulWidget {
   const _ProjectTile({
     required this.copy,
@@ -706,8 +708,12 @@ class _ProjectTile extends StatefulWidget {
     required this.interfaceDensity,
     required this.openDestination,
     required this.selected,
+    required this.isManaged,
+    required this.isPinned,
     required this.onTap,
     required this.onOpenProject,
+    required this.onTogglePinned,
+    required this.onRemove,
   });
 
   final WorkspaceCopy copy;
@@ -715,8 +721,12 @@ class _ProjectTile extends StatefulWidget {
   final AppInterfaceDensity interfaceDensity;
   final AppOpenDestination openDestination;
   final bool selected;
+  final bool isManaged;
+  final bool isPinned;
   final VoidCallback onTap;
   final VoidCallback onOpenProject;
+  final Future<void> Function() onTogglePinned;
+  final Future<void> Function() onRemove;
 
   @override
   State<_ProjectTile> createState() => _ProjectTileState();
@@ -760,6 +770,10 @@ class _ProjectTileState extends State<_ProjectTile> {
                   style: DesktopTypography.sidebarItem(palette),
                 ),
               ),
+              if (widget.isPinned) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.push_pin_outlined, size: 13, color: palette.accent),
+              ],
               if ((_isHovered || widget.selected) &&
                   widget.project.workspacePath != null) ...[
                 const SizedBox(width: 8),
@@ -773,6 +787,85 @@ class _ProjectTileState extends State<_ProjectTile> {
                   backgroundColor: palette.settingsField,
                   foregroundColor: palette.textSecondary,
                   buttonSize: const Size(24, 24),
+                ),
+              ],
+              if (widget.isManaged && (_isHovered || widget.selected)) ...[
+                const SizedBox(width: 6),
+                PopupMenuButton<_ProjectMenuAction>(
+                  key: Key('manage-project-button-${widget.project.name}'),
+                  tooltip: widget.copy.manageProjectTooltip,
+                  icon: const Icon(Icons.more_horiz_rounded, size: 16),
+                  iconSize: 16,
+                  padding: EdgeInsets.zero,
+                  color: palette.panelRaised,
+                  position: PopupMenuPosition.under,
+                  style: IconButton.styleFrom(
+                    backgroundColor: palette.settingsField,
+                    foregroundColor: palette.textSecondary,
+                    minimumSize: const Size(24, 24),
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onSelected: (action) async {
+                    switch (action) {
+                      case _ProjectMenuAction.togglePin:
+                        await widget.onTogglePinned();
+                        break;
+                      case _ProjectMenuAction.remove:
+                        await widget.onRemove();
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem<_ProjectMenuAction>(
+                      value: _ProjectMenuAction.togglePin,
+                      child: Row(
+                        children: [
+                          Icon(
+                            widget.isPinned
+                                ? Icons.push_pin_outlined
+                                : Icons.push_pin_rounded,
+                            size: 16,
+                            color: palette.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.isPinned
+                                  ? widget.copy.unpinProjectLabel
+                                  : widget.copy.pinProjectLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DesktopTypography.sidebarItem(palette),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<_ProjectMenuAction>(
+                      value: _ProjectMenuAction.remove,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.remove_circle_outline_rounded,
+                            size: 16,
+                            color: Color(0xFFE97878),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.copy.removeProjectLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DesktopTypography.sidebarItem(
+                                palette,
+                              ).copyWith(color: const Color(0xFFE97878)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],

@@ -10,6 +10,7 @@ class ProjectRegistryEntry {
     required this.name,
     required this.addedAt,
     this.lastOpenedAt,
+    this.isPinned = false,
   });
 
   factory ProjectRegistryEntry.create(String path, {DateTime? timestamp}) {
@@ -27,6 +28,7 @@ class ProjectRegistryEntry {
       name: _projectNameForPath(normalizedPath),
       addedAt: isoTimestamp,
       lastOpenedAt: isoTimestamp,
+      isPinned: false,
     );
   }
 
@@ -41,6 +43,7 @@ class ProjectRegistryEntry {
     final name = json['name']?.toString().trim();
     final addedAt = json['addedAt']?.toString().trim();
     final lastOpenedAt = json['lastOpenedAt']?.toString().trim();
+    final isPinned = json['pinned'] is bool ? json['pinned'] as bool : false;
 
     return ProjectRegistryEntry(
       id: (id != null && id.isNotEmpty)
@@ -56,6 +59,7 @@ class ProjectRegistryEntry {
       lastOpenedAt: (lastOpenedAt != null && lastOpenedAt.isNotEmpty)
           ? lastOpenedAt
           : null,
+      isPinned: isPinned,
     );
   }
 
@@ -64,6 +68,18 @@ class ProjectRegistryEntry {
   final String name;
   final String addedAt;
   final String? lastOpenedAt;
+  final bool isPinned;
+
+  ProjectRegistryEntry copyWith({String? lastOpenedAt, bool? isPinned}) {
+    return ProjectRegistryEntry(
+      id: id,
+      path: path,
+      name: name,
+      addedAt: addedAt,
+      lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+      isPinned: isPinned ?? this.isPinned,
+    );
+  }
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -72,6 +88,7 @@ class ProjectRegistryEntry {
       'name': name,
       'addedAt': addedAt,
       'lastOpenedAt': lastOpenedAt,
+      'pinned': isPinned,
     };
   }
 }
@@ -83,8 +100,29 @@ class ProjectRegistrySnapshot {
 
   final List<ProjectRegistryEntry> entries;
 
+  List<ProjectRegistryEntry> get orderedEntries {
+    final ordered = List<ProjectRegistryEntry>.of(entries)
+      ..sort(_compareProjectEntries);
+    return ordered;
+  }
+
   List<String> get projectPaths {
-    return entries.map((entry) => entry.path).toList(growable: false);
+    return orderedEntries.map((entry) => entry.path).toList(growable: false);
+  }
+
+  ProjectRegistryEntry? entryForPath(String? path) {
+    final normalizedPath = _normalizeProjectPath(path);
+    if (normalizedPath == null) {
+      return null;
+    }
+
+    final pathKey = _projectPathKey(normalizedPath);
+    for (final entry in entries) {
+      if (_projectPathKey(entry.path) == pathKey) {
+        return entry;
+      }
+    }
+    return null;
   }
 }
 
@@ -92,6 +130,15 @@ abstract class ProjectRegistryStore {
   Future<ProjectRegistrySnapshot> loadSnapshot();
 
   Future<ProjectRegistrySnapshot> addProject(String path);
+
+  Future<ProjectRegistrySnapshot> setProjectPinned(
+    String projectId,
+    bool pinned,
+  );
+
+  Future<ProjectRegistrySnapshot> markProjectOpened(String projectId);
+
+  Future<ProjectRegistrySnapshot> removeProject(String projectId);
 }
 
 class FileProjectRegistryStore implements ProjectRegistryStore {
@@ -162,6 +209,57 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
         ProjectRegistryEntry.create(normalizedPath),
       ],
     );
+    await _saveSnapshot(nextSnapshot);
+    return nextSnapshot;
+  }
+
+  @override
+  Future<ProjectRegistrySnapshot> setProjectPinned(
+    String projectId,
+    bool pinned,
+  ) {
+    return _updateProject(projectId, (entry) {
+      return entry.copyWith(isPinned: pinned);
+    });
+  }
+
+  @override
+  Future<ProjectRegistrySnapshot> markProjectOpened(String projectId) {
+    return _updateProject(projectId, (entry) {
+      return entry.copyWith(
+        lastOpenedAt: DateTime.now().toUtc().toIso8601String(),
+      );
+    });
+  }
+
+  @override
+  Future<ProjectRegistrySnapshot> removeProject(String projectId) async {
+    final snapshot = await loadSnapshot();
+    final entries = snapshot.entries
+        .where((entry) => entry.id != projectId)
+        .toList(growable: false);
+    if (entries.length == snapshot.entries.length) {
+      return snapshot;
+    }
+
+    final nextSnapshot = ProjectRegistrySnapshot(entries: entries);
+    await _saveSnapshot(nextSnapshot);
+    return nextSnapshot;
+  }
+
+  Future<ProjectRegistrySnapshot> _updateProject(
+    String projectId,
+    ProjectRegistryEntry Function(ProjectRegistryEntry entry) update,
+  ) async {
+    final snapshot = await loadSnapshot();
+    final index = snapshot.entries.indexWhere((entry) => entry.id == projectId);
+    if (index < 0) {
+      return snapshot;
+    }
+
+    final entries = List<ProjectRegistryEntry>.of(snapshot.entries);
+    entries[index] = update(entries[index]);
+    final nextSnapshot = ProjectRegistrySnapshot(entries: entries);
     await _saveSnapshot(nextSnapshot);
     return nextSnapshot;
   }
@@ -330,6 +428,85 @@ class MemoryProjectRegistryStore implements ProjectRegistryStore {
     );
     return _snapshot;
   }
+
+  @override
+  Future<ProjectRegistrySnapshot> setProjectPinned(
+    String projectId,
+    bool pinned,
+  ) {
+    return _updateProject(projectId, (entry) {
+      return entry.copyWith(isPinned: pinned);
+    });
+  }
+
+  @override
+  Future<ProjectRegistrySnapshot> markProjectOpened(String projectId) {
+    return _updateProject(projectId, (entry) {
+      return entry.copyWith(
+        lastOpenedAt: DateTime.now().toUtc().toIso8601String(),
+      );
+    });
+  }
+
+  @override
+  Future<ProjectRegistrySnapshot> removeProject(String projectId) async {
+    final entries = _snapshot.entries
+        .where((entry) => entry.id != projectId)
+        .toList(growable: false);
+    if (entries.length == _snapshot.entries.length) {
+      return _snapshot;
+    }
+
+    _snapshot = ProjectRegistrySnapshot(entries: entries);
+    return _snapshot;
+  }
+
+  Future<ProjectRegistrySnapshot> _updateProject(
+    String projectId,
+    ProjectRegistryEntry Function(ProjectRegistryEntry entry) update,
+  ) async {
+    final index = _snapshot.entries.indexWhere(
+      (entry) => entry.id == projectId,
+    );
+    if (index < 0) {
+      return _snapshot;
+    }
+
+    final entries = List<ProjectRegistryEntry>.of(_snapshot.entries);
+    entries[index] = update(entries[index]);
+    _snapshot = ProjectRegistrySnapshot(entries: entries);
+    return _snapshot;
+  }
+}
+
+int _compareProjectEntries(
+  ProjectRegistryEntry left,
+  ProjectRegistryEntry right,
+) {
+  if (left.isPinned != right.isPinned) {
+    return left.isPinned ? -1 : 1;
+  }
+
+  final lastOpenedComparison = _projectTimestamp(
+    right.lastOpenedAt,
+  ).compareTo(_projectTimestamp(left.lastOpenedAt));
+  if (lastOpenedComparison != 0) {
+    return lastOpenedComparison;
+  }
+
+  final addedComparison = _projectTimestamp(
+    right.addedAt,
+  ).compareTo(_projectTimestamp(left.addedAt));
+  if (addedComparison != 0) {
+    return addedComparison;
+  }
+
+  return left.name.toLowerCase().compareTo(right.name.toLowerCase());
+}
+
+DateTime _projectTimestamp(String? rawTimestamp) {
+  return DateTime.tryParse(rawTimestamp ?? '') ??
+      DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 }
 
 String? _normalizeProjectPath(String? rawPath) {

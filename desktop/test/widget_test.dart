@@ -66,15 +66,20 @@ void main() {
     expect(loaded.suggestedPrompts, true);
   });
 
-  test('memory project registry store adds and loads projects', () async {
+  test('memory project registry store manages project lifecycle', () async {
     final store = MemoryProjectRegistryStore();
 
-    final saved = await store.addProject('/workspace/pi-app');
-    final loaded = await store.loadSnapshot();
+    final added = await store.addProject('/workspace/pi-app');
+    final addedEntry = added.entries.single;
+    final pinned = await store.setProjectPinned(addedEntry.id, true);
+    final opened = await store.markProjectOpened(addedEntry.id);
+    final removed = await store.removeProject(addedEntry.id);
 
-    expect(saved.projectPaths, <String>['/workspace/pi-app']);
-    expect(loaded.entries.single.name, 'pi-app');
-    expect(loaded.entries.single.path, '/workspace/pi-app');
+    expect(added.projectPaths, <String>['/workspace/pi-app']);
+    expect(addedEntry.name, 'pi-app');
+    expect(pinned.entries.single.isPinned, true);
+    expect(opened.entries.single.lastOpenedAt, isNotNull);
+    expect(removed.entries, isEmpty);
   });
 
   test('file project registry store migrates legacy project paths', () async {
@@ -103,7 +108,10 @@ void main() {
     final indexFile = store.resolveIndexFile();
     final savedSettingsContent = await settingsFile.readAsString();
 
-    expect(snapshot.projectPaths, <String>[projectA.path, projectB.path]);
+    expect(
+      snapshot.projectPaths,
+      unorderedEquals(<String>[projectA.path, projectB.path]),
+    );
     expect(await indexFile.exists(), true);
     expect(savedSettingsContent.contains('projectPaths'), false);
   });
@@ -446,7 +454,7 @@ void main() {
     expect(runtimeController.openCount, 2);
   });
 
-  testWidgets('projects header reveals add action and adds a project', (
+  testWidgets('projects header adds and manages a registry project', (
     tester,
   ) async {
     configureWindow(tester);
@@ -517,6 +525,29 @@ void main() {
 
     final savedRegistry = await projectRegistryStore.loadSnapshot();
     expect(savedRegistry.projectPaths, <String>[addedProject.path]);
+
+    final projectName = addedProject.uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .last;
+    final manageButton = Key('manage-project-button-$projectName');
+
+    await tester.tap(find.byKey(manageButton));
+    await settleUi(tester);
+    await tester.tap(find.text('Pin project').last);
+    await settleUi(tester);
+
+    var updatedRegistry = await projectRegistryStore.loadSnapshot();
+    expect(updatedRegistry.entries.single.isPinned, true);
+    expect(find.byIcon(Icons.push_pin_outlined), findsWidgets);
+
+    await tester.tap(find.byKey(manageButton));
+    await settleUi(tester);
+    await tester.tap(find.text('Remove from projects').last);
+    await settleUi(tester);
+
+    updatedRegistry = await projectRegistryStore.loadSnapshot();
+    expect(updatedRegistry.entries, isEmpty);
+    expect(find.text(addedProject.path), findsNothing);
   });
 
   testWidgets(

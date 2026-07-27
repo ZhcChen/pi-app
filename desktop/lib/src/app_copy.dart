@@ -165,6 +165,32 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
     return isChinese ? '添加项目失败：$reason' : 'Failed to add project: $reason';
   }
 
+  String get manageProjectTooltip => isChinese ? '管理项目' : 'Manage project';
+  String get pinProjectLabel => isChinese ? '固定项目' : 'Pin project';
+  String get unpinProjectLabel => isChinese ? '取消固定' : 'Unpin project';
+  String get removeProjectLabel =>
+      isChinese ? '从项目列表移除' : 'Remove from projects';
+
+  String projectPinnedNotice(String projectName) {
+    return isChinese ? '已固定项目：$projectName' : 'Pinned project: $projectName';
+  }
+
+  String projectUnpinnedNotice(String projectName) {
+    return isChinese
+        ? '已取消固定项目：$projectName'
+        : 'Unpinned project: $projectName';
+  }
+
+  String projectRemovedNotice(String projectName) {
+    return isChinese
+        ? '已从项目列表移除：$projectName'
+        : 'Removed from projects: $projectName';
+  }
+
+  String projectManageFailedNotice(String reason) {
+    return isChinese ? '更新项目失败：$reason' : 'Failed to update project: $reason';
+  }
+
   String composerPreparedNotice(String projectName) {
     return isChinese
         ? '任务已绑定到 $projectName 的 session cwd。'

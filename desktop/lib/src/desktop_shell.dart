@@ -262,6 +262,92 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     });
   }
 
+  Future<void> _selectProject(int index) async {
+    if (index < 0 || index >= _projects.length) {
+      return;
+    }
+
+    final project = _projects[index];
+    setState(() {
+      _selectedProjectIndex = index;
+    });
+    await _markProjectOpened(project);
+  }
+
+  Future<void> _markProjectOpened(WorkspaceProjectGroup project) async {
+    if (!widget.enableProjectPersistence) {
+      return;
+    }
+
+    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    if (entry == null) {
+      return;
+    }
+
+    try {
+      final snapshot = await widget.projectRegistryStore.markProjectOpened(
+        entry.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      _applyProjectSnapshot(
+        snapshot,
+        preferredSelectedPath: project.workspacePath,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _toggleProjectPinned(WorkspaceProjectGroup project) async {
+    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    if (entry == null || !widget.enableProjectPersistence) {
+      return;
+    }
+
+    try {
+      final snapshot = await widget.projectRegistryStore.setProjectPinned(
+        entry.id,
+        !entry.isPinned,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      _applyProjectSnapshot(
+        snapshot,
+        preferredSelectedPath: project.workspacePath,
+      );
+      _showNotice(
+        entry.isPinned
+            ? _copy.projectUnpinnedNotice(project.name)
+            : _copy.projectPinnedNotice(project.name),
+      );
+    } catch (error) {
+      _showNotice(_copy.projectManageFailedNotice(error.toString()));
+    }
+  }
+
+  Future<void> _removeProject(WorkspaceProjectGroup project) async {
+    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    if (entry == null || !widget.enableProjectPersistence) {
+      return;
+    }
+
+    try {
+      final snapshot = await widget.projectRegistryStore.removeProject(
+        entry.id,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      _applyProjectSnapshot(snapshot);
+      _showNotice(_copy.projectRemovedNotice(project.name));
+    } catch (error) {
+      _showNotice(_copy.projectManageFailedNotice(error.toString()));
+    }
+  }
+
   void _updatePreferences(AppPreferences next) {
     widget.onPreferencesChanged(next);
   }
@@ -399,16 +485,15 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         return;
       }
 
-      final existingIndex = _projects.indexWhere(
-        (project) => project.workspacePath == normalizedPath,
-      );
-      if (existingIndex >= 0) {
-        setState(() {
-          _selectedProjectIndex = existingIndex;
-        });
-        _showNotice(
-          _copy.projectAlreadyAddedNotice(_projects[existingIndex].name),
+      final existingEntry = _projectRegistry.entryForPath(normalizedPath);
+      if (existingEntry != null) {
+        final existingIndex = _projects.indexWhere(
+          (project) => project.workspacePath == normalizedPath,
         );
+        if (existingIndex >= 0) {
+          await _selectProject(existingIndex);
+        }
+        _showNotice(_copy.projectAlreadyAddedNotice(existingEntry.name));
         return;
       }
 
@@ -552,16 +637,21 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
+                managedProjectPaths: _projectRegistry.entries
+                    .map((entry) => entry.path)
+                    .toSet(),
+                pinnedProjectPaths: _projectRegistry.entries
+                    .where((entry) => entry.isPinned)
+                    .map((entry) => entry.path)
+                    .toSet(),
                 onActionSelected: (index) {
                   setState(() {
                     _selectedActionIndex = index;
                   });
                 },
-                onProjectSelected: (index) {
-                  setState(() {
-                    _selectedProjectIndex = index;
-                  });
-                },
+                onProjectSelected: _selectProject,
+                onToggleProjectPinned: _toggleProjectPinned,
+                onRemoveProject: _removeProject,
                 onAddProject: _addProject,
                 onOpenProject: _openProject,
                 onOpenSettings: _openSettings,

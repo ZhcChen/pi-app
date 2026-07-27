@@ -8,8 +8,12 @@ class WorkspaceSidebar extends StatelessWidget {
     required this.preferences,
     required this.selectedActionIndex,
     required this.selectedProjectIndex,
+    required this.managedProjectPaths,
+    required this.pinnedProjectPaths,
     required this.onActionSelected,
     required this.onProjectSelected,
+    required this.onToggleProjectPinned,
+    required this.onRemoveProject,
     required this.onAddProject,
     required this.onOpenProject,
     required this.onOpenSettings,
@@ -22,8 +26,12 @@ class WorkspaceSidebar extends StatelessWidget {
   final AppPreferences preferences;
   final int selectedActionIndex;
   final int selectedProjectIndex;
+  final Set<String> managedProjectPaths;
+  final Set<String> pinnedProjectPaths;
   final ValueChanged<int> onActionSelected;
-  final ValueChanged<int> onProjectSelected;
+  final Future<void> Function(int) onProjectSelected;
+  final Future<void> Function(WorkspaceProjectGroup) onToggleProjectPinned;
+  final Future<void> Function(WorkspaceProjectGroup) onRemoveProject;
   final Future<void> Function() onAddProject;
   final ValueChanged<WorkspaceProjectGroup> onOpenProject;
   final VoidCallback onOpenSettings;
@@ -113,8 +121,23 @@ class WorkspaceSidebar extends StatelessWidget {
                         interfaceDensity: density,
                         openDestination: preferences.openDestination,
                         selected: i == selectedProjectIndex,
-                        onTap: () => onProjectSelected(i),
+                        isManaged:
+                            projects[i].workspacePath != null &&
+                            managedProjectPaths.contains(
+                              projects[i].workspacePath,
+                            ),
+                        isPinned:
+                            projects[i].workspacePath != null &&
+                            pinnedProjectPaths.contains(
+                              projects[i].workspacePath,
+                            ),
+                        onTap: () {
+                          onProjectSelected(i);
+                        },
                         onOpenProject: () => onOpenProject(projects[i]),
+                        onTogglePinned: () =>
+                            onToggleProjectPinned(projects[i]),
+                        onRemove: () => onRemoveProject(projects[i]),
                       ),
                     ),
                 const SizedBox(height: 12),
