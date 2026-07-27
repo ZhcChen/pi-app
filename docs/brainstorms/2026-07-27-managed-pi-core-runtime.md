@@ -4,7 +4,9 @@
 - 状态：已决定
 - 负责人：Pi
 - 日期：2026-07-27
-- 关联计划：`docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+- 关联计划：
+  - `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
+  - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
 - 关联契约：`docs/solutions/2026-07-27-pi-host-sdk-contract.md`
 
 ## 背景

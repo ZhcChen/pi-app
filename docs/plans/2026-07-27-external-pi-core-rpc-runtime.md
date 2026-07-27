@@ -7,6 +7,7 @@
 - 依赖文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+  - `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`（完整产品上层路线图）
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
 
 ## 目标
