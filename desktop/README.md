@@ -90,6 +90,17 @@ release/macos-universal/Pi-App-<version>-macos-universal.dmg
 
 该目录已被 Git 忽略。ad-hoc 签名不具备 Developer ID 信任链，首次打开下载版本时用户可能需要在 Gatekeeper 中显式允许。
 
+## GitHub Release
+
+推送与 `desktop/pubspec.yaml` build name 相同的 semver tag 会触发 `.github/workflows/release-desktop.yml`：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+workflow 先校验 tag，再在 macOS 构建 universal ad-hoc DMG，最后创建或更新 GitHub Release。发布资产固定为 `Pi-App-<version>-macos-universal.dmg`，供应用内更新检查使用。不要为同一版本重复推送不同内容的 tag。
+
 ## 备注
 
 当前模块已接入真实的本地 `pi-host` SDK runtime：composer 会按选中项目的 `sessionCwd` 创建 Pi session、发送 prompt、展示文本流并支持 abort。新安装的默认 session 不提供内置工具；在设置中显式开启“读取工具”后，新 session 才能使用 `read`、`grep`、`find`、`ls`，开启“编码工具”后还会使用 `bash`、`edit`、`write`。旧版偏好文件会安全迁移为无工具，避免把历史默认值当成能力授权。这不是 sandbox，也尚未实现逐工具 approval。

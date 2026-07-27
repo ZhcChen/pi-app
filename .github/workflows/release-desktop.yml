@@ -1,0 +1,107 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-tag:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify tag matches desktop build name
+        run: ./desktop/scripts/verify-release-tag.sh "${GITHUB_REF_NAME}"
+
+  build-macos:
+    name: Build macOS universal DMG
+    needs: validate-tag
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.5"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: flutter pub get
+
+      - name: Analyze desktop module
+        working-directory: desktop
+        run: flutter analyze
+
+      - name: Run desktop tests
+        working-directory: desktop
+        run: flutter test
+
+      - name: Build signed DMG
+        run: ./desktop/scripts/build-macos-release.sh --arch universal
+
+      - name: Upload macOS release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-universal
+          path: release/macos-universal/Pi-App-*-macos-universal.dmg
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS release asset
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-macos-universal
+          path: .artifacts/release-assets
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t ASSETS < <(find .artifacts/release-assets -type f -name 'Pi-App-*-macos-universal.dmg' -print | sort)
+          if [[ "${#ASSETS[@]}" -ne 1 ]]; then
+            echo "Expected exactly one universal macOS DMG, found ${#ASSETS[@]}." >&2
+            exit 1
+          fi
+
+          if [[ "${RELEASE_TAG}" == *-* ]]; then
+            PRERELEASE_ARGS=(--prerelease)
+          else
+            PRERELEASE_ARGS=()
+          fi
+
+          if gh release view "${RELEASE_TAG}" > /dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "${ASSETS[0]}" --clobber
+            gh release edit "${RELEASE_TAG}" \
+              --title "Pi App ${RELEASE_TAG}" \
+              "${PRERELEASE_ARGS[@]}"
+          else
+            gh release create "${RELEASE_TAG}" "${ASSETS[0]}" \
+              --title "Pi App ${RELEASE_TAG}" \
+              --generate-notes \
+              "${PRERELEASE_ARGS[@]}"
+          fi
