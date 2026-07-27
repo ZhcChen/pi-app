@@ -418,7 +418,15 @@ void main() {
     );
     await settleUi(tester);
 
-    expect(find.byKey(const Key('add-project-button')), findsNothing);
+    expect(find.byKey(const Key('add-project-button')), findsOneWidget);
+    expect(
+      tester
+          .widget<AnimatedOpacity>(
+            find.byKey(const Key('add-project-button-visibility')),
+          )
+          .opacity,
+      0,
+    );
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
@@ -429,6 +437,14 @@ void main() {
     await settleUi(tester);
 
     expect(find.byKey(const Key('add-project-button')), findsOneWidget);
+    expect(
+      tester
+          .widget<AnimatedOpacity>(
+            find.byKey(const Key('add-project-button-visibility')),
+          )
+          .opacity,
+      1,
+    );
 
     await tester.tap(find.byKey(const Key('add-project-button')));
     await settleUi(tester);

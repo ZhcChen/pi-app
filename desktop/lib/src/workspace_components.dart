@@ -807,37 +807,71 @@ class _ProjectSectionHeaderState extends State<_ProjectSectionHeader> {
 
     return MouseRegion(
       key: const Key('projects-section-header'),
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter: (_) {
+        if (!_isHovered) {
+          setState(() {
+            _isHovered = true;
+          });
+        }
+      },
+      onExit: (_) {
+        if (_isHovered) {
+          setState(() {
+            _isHovered = false;
+          });
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          children: [
-            Text(widget.label, style: DesktopTypography.sectionLabel(palette)),
-            const SizedBox(width: 2),
-            Icon(Icons.expand_more_rounded, size: 16, color: palette.textMuted),
-            const Spacer(),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 120),
-              child: _isHovered
-                  ? DesktopIconActionButton(
-                      key: const Key('add-project-button'),
-                      onPressed: () {
-                        widget.onAddProject();
-                      },
-                      tooltip: widget.addTooltip,
-                      icon: const Icon(Icons.add_rounded, size: 16),
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: palette.textMuted,
-                      buttonSize: const Size(24, 24),
-                    )
-                  : const SizedBox(
-                      key: ValueKey('project-header-spacer'),
-                      width: 24,
-                      height: 24,
+        child: SizedBox(
+          height: 24,
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.label,
+                      style: DesktopTypography.sectionLabel(palette),
                     ),
-            ),
-          ],
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.expand_more_rounded,
+                      size: 16,
+                      color: palette.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: IgnorePointer(
+                    ignoring: !_isHovered,
+                    child: AnimatedOpacity(
+                      key: const Key('add-project-button-visibility'),
+                      duration: const Duration(milliseconds: 120),
+                      opacity: _isHovered ? 1 : 0,
+                      child: DesktopIconActionButton(
+                        key: const Key('add-project-button'),
+                        onPressed: () {
+                          widget.onAddProject();
+                        },
+                        tooltip: widget.addTooltip,
+                        icon: const Icon(Icons.add_rounded, size: 14),
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: palette.textMuted,
+                        buttonSize: const Size(20, 20),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
