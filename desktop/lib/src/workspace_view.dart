@@ -97,15 +97,7 @@ class WorkspaceSidebar extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                if (projects.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
-                    child: Text(
-                      copy.noProjectsDescription,
-                      style: DesktopTypography.projectItem(palette),
-                    ),
-                  )
-                else
+                if (projects.isNotEmpty)
                   for (var i = 0; i < projects.length; i++)
                     Padding(
                       padding: EdgeInsets.only(

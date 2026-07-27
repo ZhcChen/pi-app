@@ -213,6 +213,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No projects available'), findsWidgets);
+    expect(
+      find.text(
+        'No local project path could be resolved for the current workspace.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('project-overview-title')), findsNothing);
   });
 
