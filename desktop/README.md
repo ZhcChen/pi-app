@@ -95,8 +95,8 @@ release/macos-universal/Pi-App-<version>-macos-universal.dmg
 推送与 `desktop/pubspec.yaml` build name 相同的 semver tag 会触发 `.github/workflows/release-desktop.yml`：
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 workflow 先校验 tag，再在 macOS 构建 universal ad-hoc DMG，最后创建或更新 GitHub Release。发布资产固定为 `Pi-App-<version>-macos-universal.dmg`，供应用内更新检查使用。不要为同一版本重复推送不同内容的 tag。

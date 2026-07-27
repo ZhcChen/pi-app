@@ -52,7 +52,7 @@ macOS 版本可以在 GitHub Actions 中构建 universal Flutter release app，�
 
 | 项目 | 契约 |
 | --- | --- |
-| Git tag | `v<build-name>`，例如 `v1.0.0` |
+| Git tag | `v<build-name>`，例如 `v0.1.0` |
 | Flutter 版本来源 | `desktop/pubspec.yaml` 的 `version: <build-name>+<build-number>` |
 | macOS assets | `Pi-App-<build-name>-macos-universal.dmg` |
 | 签名 | `codesign --force --deep --sign -`，随后 `codesign --verify --deep --strict` |

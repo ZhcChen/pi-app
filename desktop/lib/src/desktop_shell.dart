@@ -1189,6 +1189,23 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     return '${(value / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  Future<void> _showLicenses() async {
+    var version = _appUpdateCurrentVersion;
+    if (version == null) {
+      try {
+        version = await widget.appUpdateClient.getCurrentVersion();
+      } catch (_) {}
+    }
+    if (!mounted) {
+      return;
+    }
+    showLicensePage(
+      context: context,
+      applicationName: 'Pi App',
+      applicationVersion: version,
+    );
+  }
+
   Widget _buildSettingsShell() {
     final sections = buildSettingsSections(_copy);
     final filteredSections = filterSettingsSections(
@@ -1277,11 +1294,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         unawaited(_quitAndInstallAppUpdate());
       },
       onShowLicenses: () {
-        showLicensePage(
-          context: context,
-          applicationName: 'Pi App',
-          applicationVersion: '1.0.0',
-        );
+        unawaited(_showLicenses());
       },
     );
   }

@@ -16,7 +16,7 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | --- | --- |
-| Pi App build manifest | `1.0.0+1` | `desktop/pubspec.yaml` 的桌面应用构建版本；不是独立 SDK 兼容版本。 |
+| Pi App build manifest | `0.1.0+1` | `desktop/pubspec.yaml` 的桌面应用构建版本；不是独立 SDK 兼容版本。 |
 | `pi-host` package | `0.1.0` | 本地 private sidecar 的 package 版本。 |
 | Flutter <-> host protocol | `1` | `host/src/protocol.ts` 的 `protocolVersion`；当前只在 protocol 发生破坏性变化时递增。 |
 | Pi SDK | `@earendil-works/pi-coding-agent@0.82.0` | 精确锁定并完成实际 prompt 验证的版本。 |
