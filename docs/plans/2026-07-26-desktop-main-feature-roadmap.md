@@ -8,12 +8,15 @@
   - `docs/plans/2026-07-26-desktop-follow-up-roadmap.md`
   - `docs/solutions/2026-07-26-pi-integration-modes.md`
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`（含能力与版本基线）
+  - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`（外置 Pi core 架构修订）
 
-## 当前优先切片
+## 已完成的首条主链（历史基线）
 
-用户已明确要求先把 `pi agent` 的核心 CLI 能力接入桌面端，因此当前优先级调整为：先完成 `pi-host` SDK 最小闭环，再回到 Pi Config Center 的阶段 4-5。
+以下内容记录已经完成的 SDK host 闭环及其验证边界，不再代表后续生产运行时方向。新的生产方向是外置 Pi core 与 `pi --mode rpc`，详见 `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`。
 
-本轮执行范围固定为“可用的第一条主链”，而不是一次性实现完整 CLI：
+此前优先级是先完成 `pi-host` SDK 最小闭环，再回到 Pi Config Center 的阶段 4-5；该闭环现作为 RPC 迁移的回归基线保留。
+
+当时执行范围固定为“可用的第一条主链”，而不是一次性实现完整 CLI：
 
 - `Flutter -> 本地 pi-host -> Pi SDK`
 - 以 stdio JSONL 作为 Flutter 与 host 的本地传输层
@@ -36,9 +39,11 @@
   - 新安装的默认 session 不获内置工具；用户显式开启“读取工具”后添加 `read`、`grep`、`find`、`ls`，开启“编码工具”后再添加 `bash`、`edit`、`write`
   - extension command/input handler 的本地完成路径会发出终态，不会让 composer 卡在运行中
 - 待执行：阶段 2 / 单元 6 及后续
-  - 完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与跨平台 sidecar 打包
+  - 完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与受管理 Pi core 的安装 / 检测 / 兼容性
 
 ## 下一阶段执行方案（待评审）
+
+> **架构修订，2026-07-27：** Pi App 不再以 bundle 内置 Node runtime、`pi-host` 和 Pi SDK 为产品方向，而是增强用户独立安装的 Pi core。原 M1/A1/A2 的 bundle 假设已暂停，禁止按本节旧描述执行；收敛中的替代方案见 `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`。在确认 `pi --mode rpc` production transport 与安装渠道前，后续计划以该 brainstorm 为准。
 
 ### 排序原则
 
@@ -51,14 +56,16 @@
 
 | 里程碑 | 交付结果 | 前置条件 | 建议优先级 |
 | --- | --- | --- | --- |
-| M1：可分发运行时 | macOS bundle 自带可启动的 Node + host，具备诊断与兼容检查 | 当前 host 主链 | P0 |
+| M1：可分发运行时（旧方案，已暂停） | macOS bundle 自带可启动的 Node + host，具备诊断与兼容检查 | 当前 host 主链 | P0 |
 | M2：受控编码 | 项目 trust 和逐工具 approval 生效，用户能安全地授权读写 / shell | M1 的 host 发现与日志能力 | P0 |
 | M3：日常会话工作流 | new / resume / fork、steer / follow-up、model / thinking 选择可用 | M2 | P1 |
 | M4：可观测执行 | 可展开的工具 timeline、失败和受限输出可追踪 | M2、M3 | P1 |
 | M5：配置与资源生态 | Config Center 后续项、auth 状态、commands / prompts / skills、extension UI bridge | M3、M4 | P2 |
 | M6：跨平台交付 | Windows、Linux sidecar bundle 与平台回归 | M1 的 macOS 方案稳定 | P2 |
 
-### 阶段 A：M1 可分发运行时
+### 阶段 A：M1 可分发运行时（旧方案，已暂停）
+
+> 此阶段假设 Pi App bundle 内置 Node、host 和 SDK，已与外置 Pi core 方向冲突。不要执行下列 A1/A2；待 brainstorm 决策确认后，用“Pi core RPC compatibility + runtime detector + 安装 contract”替代。
 
 **目标**：消除开发期对系统 Node、仓库 cwd 和 `PI_HOST_ENTRYPOINT` 的依赖，先交付可在干净 macOS 用户环境启动的 bundle。
 
