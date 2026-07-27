@@ -136,12 +136,16 @@ typedef AppUpdateProgressListener =
 typedef AppUpdateDownloadsDirectoryProvider = Future<Directory> Function();
 
 abstract interface class AppUpdateClient {
+  Future<String> getCurrentVersion();
+
   Future<AppUpdateCheck> checkForUpdate();
 
   Future<File> downloadUpdate({
     required AppUpdateRelease release,
     AppUpdateProgressListener? onProgress,
   });
+
+  Future<void> discardUpdate(File installer);
 }
 
 class GitHubAppUpdateClient implements AppUpdateClient {
@@ -165,6 +169,11 @@ class GitHubAppUpdateClient implements AppUpdateClient {
   final http.Client _httpClient;
   final AppUpdateRuntimeProvider _runtimeProvider;
   final AppUpdateDownloadsDirectoryProvider _downloadsDirectoryProvider;
+
+  @override
+  Future<String> getCurrentVersion() async {
+    return (await _runtimeProvider.loadRuntime()).currentVersion;
+  }
 
   @override
   Future<AppUpdateCheck> checkForUpdate() async {
@@ -239,6 +248,17 @@ class GitHubAppUpdateClient implements AppUpdateClient {
         publishedAt: publishedAt,
       ),
     );
+  }
+
+  @override
+  Future<void> discardUpdate(File installer) async {
+    final directory = await _downloadsDirectoryProvider();
+    if (installer.absolute.parent.path != directory.absolute.path) {
+      throw const AppUpdateException(
+        'The update installer is outside the managed downloads directory.',
+      );
+    }
+    await _deleteIfExists(installer);
   }
 
   @override

@@ -7,6 +7,42 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:pi_desktop/main.dart';
 
+class _MemoryAppUpdateClient implements AppUpdateClient {
+  _MemoryAppUpdateClient({required this.check, required this.installer});
+
+  final AppUpdateCheck check;
+  final File installer;
+  int checkCount = 0;
+  int downloadCount = 0;
+  int discardCount = 0;
+
+  @override
+  Future<String> getCurrentVersion() async => check.currentVersion;
+
+  @override
+  Future<void> discardUpdate(File installer) async {
+    discardCount += 1;
+  }
+
+  @override
+  Future<AppUpdateCheck> checkForUpdate() async {
+    checkCount += 1;
+    return check;
+  }
+
+  @override
+  Future<File> downloadUpdate({
+    required AppUpdateRelease release,
+    AppUpdateProgressListener? onProgress,
+  }) async {
+    downloadCount += 1;
+    onProgress?.call(
+      const AppUpdateDownloadProgress(transferredBytes: 4, totalBytes: 4),
+    );
+    return installer;
+  }
+}
+
 void main() {
   void configureWindow(WidgetTester tester) {
     tester.view.physicalSize = const Size(1440, 960);
@@ -454,6 +490,145 @@ process.stdin.on('data', (chunk) => {
     expect(capturedRequest?.destination, AppOpenDestination.cursor);
     expect(capturedRequest?.targetPath, '/workspace/pi-app');
     expect(capturedRequest?.workspacePath, '/workspace/pi-app');
+  });
+
+  test(
+    'platform runtime controller delegates system file and quit actions',
+    () async {
+      String? openedPath;
+      var quitCount = 0;
+      final controller = PlatformDesktopRuntimeController(
+        openSystemFile: (targetPath) async {
+          openedPath = targetPath;
+          return const DesktopOpenResult.success();
+        },
+        quitApplication: () async {
+          quitCount += 1;
+        },
+      );
+
+      final result = await controller.openSystemFile('/tmp/Pi App.dmg');
+      await controller.quitApplication();
+
+      expect(result.launched, true);
+      expect(openedPath, '/tmp/Pi App.dmg');
+      expect(quitCount, 1);
+    },
+  );
+
+  testWidgets('settings downloads and prepares a manual app update', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final release = AppUpdateRelease(
+      tag: 'v1.0.1',
+      version: '1.0.1',
+      releaseUri: Uri.parse(
+        'https://github.com/ZhcChen/pi-app/releases/tag/v1.0.1',
+      ),
+      downloadUri: Uri.parse(
+        'https://github.com/ZhcChen/pi-app/releases/download/v1.0.1/Pi-App-1.0.1-macos-universal.dmg',
+      ),
+      assetName: 'Pi-App-1.0.1-macos-universal.dmg',
+      releaseNotes: '',
+    );
+    final updateClient = _MemoryAppUpdateClient(
+      check: AppUpdateCheck(
+        availability: AppUpdateAvailability.available,
+        currentVersion: '1.0.0',
+        release: release,
+      ),
+      installer: File('/tmp/Pi-App-1.0.1-macos-universal.dmg'),
+    );
+    final runtimeController = MemoryDesktopRuntimeController();
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        runtimeController: runtimeController,
+        appUpdateClient: updateClient,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+    expect(updateClient.checkCount, 0);
+    expect(find.text('Installed version: 1.0.0.'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('app-update-action-button')),
+    );
+
+    await tester.tap(find.byKey(const Key('app-update-action-button')));
+    await tester.pumpAndSettle();
+
+    expect(updateClient.checkCount, 1);
+    expect(find.text('Download update'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('app-update-action-button')));
+    await tester.pumpAndSettle();
+
+    expect(updateClient.downloadCount, 1);
+    expect(runtimeController.lastSystemFilePath, updateClient.installer.path);
+    expect(find.text('Quit and install'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('app-update-action-button')));
+    await tester.pumpAndSettle();
+
+    expect(runtimeController.quitCount, 1);
+  });
+
+  testWidgets('settings keeps the app running when the DMG cannot open', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final installer = File('/tmp/Pi-App-1.0.1-macos-universal.dmg');
+    final release = AppUpdateRelease(
+      tag: 'v1.0.1',
+      version: '1.0.1',
+      releaseUri: Uri.parse(
+        'https://github.com/ZhcChen/pi-app/releases/tag/v1.0.1',
+      ),
+      downloadUri: Uri.parse(
+        'https://github.com/ZhcChen/pi-app/releases/download/v1.0.1/Pi-App-1.0.1-macos-universal.dmg',
+      ),
+      assetName: 'Pi-App-1.0.1-macos-universal.dmg',
+      releaseNotes: '',
+    );
+    final updateClient = _MemoryAppUpdateClient(
+      check: AppUpdateCheck(
+        availability: AppUpdateAvailability.available,
+        currentVersion: '1.0.0',
+        release: release,
+      ),
+      installer: installer,
+    );
+    final runtimeController = MemoryDesktopRuntimeController(
+      systemFileOpenResult: const DesktopOpenResult.failure('DMG open failed.'),
+    );
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        runtimeController: runtimeController,
+        appUpdateClient: updateClient,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('app-update-action-button')),
+    );
+    await tester.tap(find.byKey(const Key('app-update-action-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('app-update-action-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update failed: DMG open failed.'), findsOneWidget);
+    expect(runtimeController.quitCount, 0);
+    expect(updateClient.discardCount, 1);
   });
 
   testWidgets('app starts without an implicit project root', (tester) async {

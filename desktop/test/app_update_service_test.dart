@@ -91,6 +91,22 @@ void main() {
     expect(requested, isFalse);
   });
 
+  test('reads the installed version without checking GitHub', () async {
+    var requested = false;
+    final client = GitHubAppUpdateClient(
+      runtimeProvider: const _StaticRuntimeProvider(
+        AppUpdateRuntime(currentVersion: '1.2.3', isSupported: true),
+      ),
+      httpClient: MockClient((_) async {
+        requested = true;
+        return http.Response('unexpected', 500);
+      }),
+    );
+
+    expect(await client.getCurrentVersion(), '1.2.3');
+    expect(requested, isFalse);
+  });
+
   test('returns a newer universal macOS release from GitHub', () async {
     final client = GitHubAppUpdateClient(
       runtimeProvider: _StaticRuntimeProvider(supportedRuntime()),
@@ -219,6 +235,46 @@ void main() {
       throwsA(isA<AppUpdateException>()),
     );
     expect(await downloadsDirectory.list().isEmpty, isTrue);
+  });
+
+  test('only discards installers in the managed downloads directory', () async {
+    final downloadsDirectory = await Directory.systemTemp.createTemp(
+      'pi-app-update-discard-',
+    );
+    final externalDirectory = await Directory.systemTemp.createTemp(
+      'pi-app-update-external-',
+    );
+    addTearDown(() async {
+      for (final directory in <Directory>[
+        downloadsDirectory,
+        externalDirectory,
+      ]) {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      }
+    });
+    final client = GitHubAppUpdateClient(
+      runtimeProvider: _StaticRuntimeProvider(supportedRuntime()),
+      downloadsDirectoryProvider: () async => downloadsDirectory,
+    );
+    final managedInstaller = File(
+      '${downloadsDirectory.path}${Platform.pathSeparator}Pi-App-1.0.1-macos-universal.dmg',
+    );
+    final externalInstaller = File(
+      '${externalDirectory.path}${Platform.pathSeparator}external.dmg',
+    );
+    await managedInstaller.writeAsString('managed');
+    await externalInstaller.writeAsString('external');
+
+    await client.discardUpdate(managedInstaller);
+    await expectLater(
+      client.discardUpdate(externalInstaller),
+      throwsA(isA<AppUpdateException>()),
+    );
+
+    expect(await managedInstaller.exists(), isFalse);
+    expect(await externalInstaller.exists(), isTrue);
   });
 
   test('removes partial downloads when the stream fails', () async {

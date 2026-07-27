@@ -29,6 +29,15 @@ class SettingsView extends StatelessWidget {
     required this.onSavePromptFile,
     required this.onSaveModelPreferences,
     required this.onSaveModelsJson,
+    required this.appUpdateStatus,
+    required this.appUpdateChecking,
+    required this.appUpdateDownloading,
+    required this.appUpdateAvailable,
+    required this.appUpdateReadyToInstall,
+    required this.appUpdateProgressPercent,
+    required this.onCheckForUpdate,
+    required this.onDownloadUpdate,
+    required this.onQuitAndInstall,
     required this.onShowLicenses,
   });
 
@@ -60,6 +69,15 @@ class SettingsView extends StatelessWidget {
   final Future<void> Function(PiModelPreferences preferences)
   onSaveModelPreferences;
   final Future<void> Function(String content) onSaveModelsJson;
+  final String appUpdateStatus;
+  final bool appUpdateChecking;
+  final bool appUpdateDownloading;
+  final bool appUpdateAvailable;
+  final bool appUpdateReadyToInstall;
+  final int? appUpdateProgressPercent;
+  final VoidCallback onCheckForUpdate;
+  final VoidCallback onDownloadUpdate;
+  final VoidCallback onQuitAndInstall;
   final VoidCallback onShowLicenses;
 
   @override
@@ -172,6 +190,15 @@ class SettingsView extends StatelessWidget {
                 onShowBottomPanelChanged: onShowBottomPanelChanged,
                 onPreventSleepChanged: onPreventSleepChanged,
                 onSuggestedPromptsChanged: onSuggestedPromptsChanged,
+                appUpdateStatus: appUpdateStatus,
+                appUpdateChecking: appUpdateChecking,
+                appUpdateDownloading: appUpdateDownloading,
+                appUpdateAvailable: appUpdateAvailable,
+                appUpdateReadyToInstall: appUpdateReadyToInstall,
+                appUpdateProgressPercent: appUpdateProgressPercent,
+                onCheckForUpdate: onCheckForUpdate,
+                onDownloadUpdate: onDownloadUpdate,
+                onQuitAndInstall: onQuitAndInstall,
                 onShowLicenses: onShowLicenses,
               ),
               SettingsCategory.appearance => _AppearanceSettingsContent(
@@ -225,6 +252,15 @@ class _GeneralSettingsContent extends StatelessWidget {
     required this.onShowBottomPanelChanged,
     required this.onPreventSleepChanged,
     required this.onSuggestedPromptsChanged,
+    required this.appUpdateStatus,
+    required this.appUpdateChecking,
+    required this.appUpdateDownloading,
+    required this.appUpdateAvailable,
+    required this.appUpdateReadyToInstall,
+    required this.appUpdateProgressPercent,
+    required this.onCheckForUpdate,
+    required this.onDownloadUpdate,
+    required this.onQuitAndInstall,
     required this.onShowLicenses,
   });
 
@@ -240,6 +276,15 @@ class _GeneralSettingsContent extends StatelessWidget {
   final ValueChanged<bool> onShowBottomPanelChanged;
   final ValueChanged<bool> onPreventSleepChanged;
   final ValueChanged<bool> onSuggestedPromptsChanged;
+  final String appUpdateStatus;
+  final bool appUpdateChecking;
+  final bool appUpdateDownloading;
+  final bool appUpdateAvailable;
+  final bool appUpdateReadyToInstall;
+  final int? appUpdateProgressPercent;
+  final VoidCallback onCheckForUpdate;
+  final VoidCallback onDownloadUpdate;
+  final VoidCallback onQuitAndInstall;
   final VoidCallback onShowLicenses;
 
   @override
@@ -250,6 +295,17 @@ class _GeneralSettingsContent extends StatelessWidget {
     final showInMenuBarDescription = showInMenuBarSupported
         ? copy.showInMenuBarDescription
         : copy.showInMenuBarUnsupportedDescription;
+    final isUpdateBusy = appUpdateChecking || appUpdateDownloading;
+    final updateActionLabel = appUpdateReadyToInstall
+        ? copy.quitAndInstallActionLabel
+        : appUpdateAvailable
+        ? copy.downloadUpdateActionLabel
+        : copy.checkForUpdatesActionLabel;
+    final updateAction = appUpdateReadyToInstall
+        ? onQuitAndInstall
+        : appUpdateAvailable
+        ? onDownloadUpdate
+        : onCheckForUpdate;
 
     return Scrollbar(
       child: SingleChildScrollView(
@@ -438,6 +494,35 @@ class _GeneralSettingsContent extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 42),
+                Text(
+                  copy.appUpdatesSectionTitle,
+                  style: _AppTypography.settingsSectionTitle(palette),
+                ),
+                const SizedBox(height: 14),
+                _SettingsCard(
+                  child: _SettingsRow(
+                    interfaceDensity: density,
+                    title: copy.appUpdateTitle,
+                    description: appUpdateStatus,
+                    trailing: isUpdateBusy
+                        ? SizedBox(
+                            width: 164,
+                            child: LinearProgressIndicator(
+                              value:
+                                  appUpdateDownloading &&
+                                      appUpdateProgressPercent != null
+                                  ? appUpdateProgressPercent! / 100
+                                  : null,
+                            ),
+                          )
+                        : _SettingsActionButton(
+                            buttonKey: const Key('app-update-action-button'),
+                            label: updateActionLabel,
+                            onPressed: updateAction,
+                          ),
                   ),
                 ),
               ],

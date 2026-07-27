@@ -80,6 +80,9 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
 
         self.setShowInMenuBarEnabled(enabled)
         result(nil)
+      case "quitApplication":
+        result(nil)
+        NSApplication.shared.terminate(nil)
       default:
         result(FlutterMethodNotImplemented)
       }

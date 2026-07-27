@@ -123,6 +123,24 @@ abstract interface class SettingsCopy {
   String get importWorkDescription;
   String get openSourceLicensesTitle;
   String get openSourceLicensesDescription;
+  String get appUpdatesSectionTitle;
+  String get appUpdateTitle;
+  String get appUpdateIdleDescription;
+  String get appUpdateCheckingDescription;
+  String appUpdateInstalledVersionDescription(String version);
+  String appUpdateCurrentVersionDescription(String version);
+  String appUpdateAvailableDescription(
+    String currentVersion,
+    String latestVersion,
+  );
+  String appUpdateDownloadingDescription(String progress);
+  String appUpdateReadyDescription(String version);
+  String appUpdateUnavailableDescription(String reason);
+  String appUpdateFailedDescription(String reason);
+  String get appUpdateUnsupportedDescription;
+  String get checkForUpdatesActionLabel;
+  String get downloadUpdateActionLabel;
+  String get quitAndInstallActionLabel;
   String get importActionLabel;
   String get viewActionLabel;
   String get themeModeTitle;

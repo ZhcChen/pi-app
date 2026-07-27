@@ -38,6 +38,9 @@ class DesktopOpenResult {
 typedef DesktopRuntimeToggle = Future<void> Function(bool enabled);
 typedef DesktopRuntimeLauncher =
     Future<DesktopOpenResult> Function(DesktopOpenRequest request);
+typedef DesktopSystemFileLauncher =
+    Future<DesktopOpenResult> Function(String targetPath);
+typedef DesktopRuntimeQuitter = Future<void> Function();
 
 abstract class DesktopRuntimeController {
   DesktopRuntimeCapabilities get capabilities;
@@ -45,6 +48,10 @@ abstract class DesktopRuntimeController {
   Future<void> sync(AppPreferences preferences);
 
   Future<DesktopOpenResult> openTarget(DesktopOpenRequest request);
+
+  Future<DesktopOpenResult> openSystemFile(String targetPath);
+
+  Future<void> quitApplication();
 }
 
 class PlatformDesktopRuntimeController implements DesktopRuntimeController {
@@ -53,12 +60,16 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
     DesktopRuntimeToggle? setPreventSleep,
     DesktopRuntimeToggle? setShowInMenuBar,
     DesktopRuntimeLauncher? openTarget,
+    DesktopSystemFileLauncher? openSystemFile,
+    DesktopRuntimeQuitter? quitApplication,
   }) : capabilities =
            capabilities ??
            DesktopRuntimeCapabilities(supportsShowInMenuBar: Platform.isMacOS),
        _setPreventSleep = setPreventSleep ?? _togglePreventSleep,
        _setShowInMenuBar = setShowInMenuBar ?? _toggleShowInMenuBar,
-       _openTarget = openTarget ?? _launchOpenTarget;
+       _openTarget = openTarget ?? _launchOpenTarget,
+       _openSystemFile = openSystemFile ?? _launchSystemFile,
+       _quitApplication = quitApplication ?? _quitPlatformApplication;
 
   static const MethodChannel _runtimeChannel = MethodChannel(
     'pi.dev/desktop_runtime',
@@ -70,6 +81,8 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
   final DesktopRuntimeToggle _setPreventSleep;
   final DesktopRuntimeToggle _setShowInMenuBar;
   final DesktopRuntimeLauncher _openTarget;
+  final DesktopSystemFileLauncher _openSystemFile;
+  final DesktopRuntimeQuitter _quitApplication;
 
   bool? _lastPreventSleep;
   bool? _lastShowInMenuBar;
@@ -83,6 +96,16 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
   @override
   Future<DesktopOpenResult> openTarget(DesktopOpenRequest request) {
     return _openTarget(request);
+  }
+
+  @override
+  Future<DesktopOpenResult> openSystemFile(String targetPath) {
+    return _openSystemFile(targetPath);
+  }
+
+  @override
+  Future<void> quitApplication() {
+    return _quitApplication();
   }
 
   Future<void> _syncShowInMenuBar(bool enabled) async {
@@ -121,6 +144,38 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
     await _runtimeChannel.invokeMethod('setShowInMenuBarEnabled', {
       'enabled': enabled,
     });
+  }
+
+  static Future<DesktopOpenResult> _launchSystemFile(String targetPath) async {
+    if (FileSystemEntity.typeSync(targetPath) ==
+        FileSystemEntityType.notFound) {
+      return DesktopOpenResult.failure('Path not found: $targetPath');
+    }
+
+    if (Platform.isMacOS) {
+      return _launchCandidates([
+        _LaunchCommand('open', [targetPath]),
+      ], failureMessage: 'Could not open $targetPath.');
+    }
+
+    if (Platform.isWindows) {
+      return _launchCandidates([
+        _LaunchCommand('cmd.exe', ['/c', 'start', '', targetPath]),
+      ], failureMessage: 'Could not open $targetPath.');
+    }
+
+    return _launchCandidates([
+      _LaunchCommand('xdg-open', [targetPath]),
+    ], failureMessage: 'Could not open $targetPath.');
+  }
+
+  static Future<void> _quitPlatformApplication() async {
+    if (!Platform.isMacOS) {
+      throw UnsupportedError(
+        'Application quit is currently supported only on macOS.',
+      );
+    }
+    await _runtimeChannel.invokeMethod<void>('quitApplication');
   }
 
   static Future<DesktopOpenResult> _launchOpenTarget(
@@ -266,6 +321,7 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
   MemoryDesktopRuntimeController({
     DesktopRuntimeCapabilities? capabilities,
     this.openResult = const DesktopOpenResult.success(),
+    this.systemFileOpenResult = const DesktopOpenResult.success(),
   }) : capabilities =
            capabilities ??
            const DesktopRuntimeCapabilities(supportsShowInMenuBar: true);
@@ -274,11 +330,15 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
   final DesktopRuntimeCapabilities capabilities;
 
   final DesktopOpenResult openResult;
+  final DesktopOpenResult systemFileOpenResult;
 
   AppPreferences? lastSyncedPreferences;
   DesktopOpenRequest? lastOpenRequest;
+  String? lastSystemFilePath;
   int syncCount = 0;
   int openCount = 0;
+  int systemFileOpenCount = 0;
+  int quitCount = 0;
 
   @override
   Future<void> sync(AppPreferences preferences) async {
@@ -291,6 +351,18 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
     lastOpenRequest = request;
     openCount += 1;
     return openResult;
+  }
+
+  @override
+  Future<DesktopOpenResult> openSystemFile(String targetPath) async {
+    lastSystemFilePath = targetPath;
+    systemFileOpenCount += 1;
+    return systemFileOpenResult;
+  }
+
+  @override
+  Future<void> quitApplication() async {
+    quitCount += 1;
   }
 }
 

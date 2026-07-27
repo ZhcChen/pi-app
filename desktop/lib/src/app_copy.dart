@@ -86,6 +86,42 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get openSourceLicensesDescription => isChinese
       ? '查看应用内第三方依赖的许可信息'
       : 'Third-party notices for bundled dependencies';
+  String get appUpdatesSectionTitle => isChinese ? '应用更新' : 'App updates';
+  String get appUpdateTitle => isChinese ? 'Pi App 更新' : 'Pi App update';
+  String get appUpdateIdleDescription => isChinese
+      ? '检查 GitHub Release 中可用的 Pi App 版本。'
+      : 'Check GitHub Releases for an available Pi App version.';
+  String get appUpdateCheckingDescription =>
+      isChinese ? '正在检查可用更新...' : 'Checking for updates...';
+  String appUpdateInstalledVersionDescription(String version) =>
+      isChinese ? '已安装版本：$version。' : 'Installed version: $version.';
+  String appUpdateCurrentVersionDescription(String version) => isChinese
+      ? '当前版本 $version 已是最新版本。'
+      : 'Current version $version is up to date.';
+  String appUpdateAvailableDescription(
+    String currentVersion,
+    String latestVersion,
+  ) => isChinese
+      ? '可从 $currentVersion 更新到 $latestVersion。'
+      : 'Update available: $currentVersion to $latestVersion.';
+  String appUpdateDownloadingDescription(String progress) =>
+      isChinese ? '正在下载更新包：$progress' : 'Downloading update: $progress';
+  String appUpdateReadyDescription(String version) => isChinese
+      ? '$version 的安装器已打开。退出应用后完成覆盖安装。'
+      : 'The $version installer is open. Quit the app to complete replacement.';
+  String appUpdateUnavailableDescription(String reason) =>
+      isChinese ? '暂时无法使用更新：$reason' : 'Update unavailable: $reason';
+  String appUpdateFailedDescription(String reason) =>
+      isChinese ? '更新失败：$reason' : 'Update failed: $reason';
+  String get appUpdateUnsupportedDescription => isChinese
+      ? '仅打包后的 macOS release 支持应用内更新。'
+      : 'In-app updates are available only in packaged macOS releases.';
+  String get checkForUpdatesActionLabel =>
+      isChinese ? '检查更新' : 'Check for updates';
+  String get downloadUpdateActionLabel =>
+      isChinese ? '下载更新' : 'Download update';
+  String get quitAndInstallActionLabel =>
+      isChinese ? '退出并安装' : 'Quit and install';
   String get importActionLabel => isChinese ? '导入' : 'Import';
   String get viewActionLabel => isChinese ? '查看' : 'View';
 

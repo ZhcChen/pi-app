@@ -8,6 +8,7 @@ import 'src/desktop_shell.dart';
 export 'src/app_preferences.dart';
 export 'src/app_persistence.dart';
 export 'src/app_runtime.dart';
+export 'src/app_update_service.dart';
 export 'src/desktop_design.dart';
 export 'src/desktop_primitives.dart';
 export 'src/pi_config_store.dart';

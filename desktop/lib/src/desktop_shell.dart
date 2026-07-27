@@ -9,6 +9,7 @@ import 'app_data.dart';
 import 'app_persistence.dart';
 import 'app_preferences.dart';
 import 'app_runtime.dart';
+import 'app_update_service.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
 import 'pi_host_client.dart';
@@ -24,6 +25,7 @@ class PiDesktopApp extends StatefulWidget {
     this.runtimeController,
     this.piConfigStore,
     this.piHostClient,
+    this.appUpdateClient,
     this.projectRegistryStore,
     this.workspaceRootPath,
     this.pickProjectDirectory,
@@ -34,6 +36,7 @@ class PiDesktopApp extends StatefulWidget {
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
   final PiHostClient? piHostClient;
+  final AppUpdateClient? appUpdateClient;
   final ProjectRegistryStore? projectRegistryStore;
   final String? workspaceRootPath;
   final Future<String?> Function()? pickProjectDirectory;
@@ -51,6 +54,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.piConfigStore ?? FilePiConfigStore();
   late final PiHostClient _piHostClient =
       widget.piHostClient ?? LocalPiHostClient();
+  late final AppUpdateClient _appUpdateClient =
+      widget.appUpdateClient ?? GitHubAppUpdateClient();
   late final ProjectRegistryStore _projectRegistryStore =
       widget.projectRegistryStore ?? FileProjectRegistryStore();
 
@@ -126,6 +131,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
         piHostClient: _piHostClient,
+        appUpdateClient: _appUpdateClient,
         ownsPiHostClient: widget.piHostClient == null,
         projectRegistryStore: _projectRegistryStore,
         enableProjectPersistence: widget.enablePersistence,
@@ -167,6 +173,7 @@ class _PiDesktopShell extends StatefulWidget {
     required this.runtimeController,
     required this.piConfigStore,
     required this.piHostClient,
+    required this.appUpdateClient,
     required this.ownsPiHostClient,
     required this.projectRegistryStore,
     required this.enableProjectPersistence,
@@ -180,6 +187,7 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
   final PiHostClient piHostClient;
+  final AppUpdateClient appUpdateClient;
   final bool ownsPiHostClient;
   final ProjectRegistryStore projectRegistryStore;
   final bool enableProjectPersistence;
@@ -198,6 +206,13 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
+  AppUpdateCheck? _appUpdateCheck;
+  AppUpdateDownloadProgress? _appUpdateDownloadProgress;
+  File? _downloadedUpdateInstaller;
+  String? _appUpdateCurrentVersion;
+  String? _appUpdateError;
+  bool _isCheckingAppUpdate = false;
+  bool _isDownloadingAppUpdate = false;
   final Map<String, WorkspaceSessionState> _sessionsByCwd =
       <String, WorkspaceSessionState>{};
   final Map<String, String> _sessionCwdById = <String, String>{};
@@ -236,6 +251,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     _settingsSearchController.addListener(_onSettingsSearchChanged);
     _piHostSubscription = widget.piHostClient.events.listen(_handlePiHostEvent);
     _loadPiConfig();
+    unawaited(_loadAppUpdateCurrentVersion());
     if (widget.enableProjectPersistence) {
       _loadProjectRegistry();
     }
@@ -979,6 +995,200 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
+  Future<void> _loadAppUpdateCurrentVersion() async {
+    try {
+      final version = await widget.appUpdateClient.getCurrentVersion();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _appUpdateCurrentVersion = version;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    if (_isCheckingAppUpdate || _isDownloadingAppUpdate) {
+      return;
+    }
+
+    setState(() {
+      _isCheckingAppUpdate = true;
+      _appUpdateError = null;
+      _downloadedUpdateInstaller = null;
+      _appUpdateDownloadProgress = null;
+    });
+
+    try {
+      final check = await widget.appUpdateClient.checkForUpdate();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _appUpdateCheck = check;
+        _appUpdateCurrentVersion = check.currentVersion;
+        _isCheckingAppUpdate = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isCheckingAppUpdate = false;
+        _appUpdateError = _messageForAppUpdateError(error);
+      });
+    }
+  }
+
+  Future<void> _downloadAppUpdate() async {
+    final release = _appUpdateCheck?.release;
+    if (release == null || _isCheckingAppUpdate || _isDownloadingAppUpdate) {
+      return;
+    }
+
+    setState(() {
+      _isDownloadingAppUpdate = true;
+      _appUpdateError = null;
+      _downloadedUpdateInstaller = null;
+      _appUpdateDownloadProgress = null;
+    });
+
+    File? installer;
+    try {
+      installer = await widget.appUpdateClient.downloadUpdate(
+        release: release,
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _appUpdateDownloadProgress = progress;
+          });
+        },
+      );
+      final openResult = await widget.runtimeController.openSystemFile(
+        installer.path,
+      );
+      if (!openResult.launched) {
+        throw AppUpdateException(
+          openResult.errorMessage ?? 'Could not open the downloaded installer.',
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isDownloadingAppUpdate = false;
+        _downloadedUpdateInstaller = installer;
+      });
+    } catch (error) {
+      final failedInstaller = installer;
+      if (failedInstaller != null) {
+        unawaited(_deleteAppUpdateInstaller(failedInstaller));
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isDownloadingAppUpdate = false;
+        _appUpdateError = _messageForAppUpdateError(error);
+      });
+    }
+  }
+
+  Future<void> _deleteAppUpdateInstaller(File installer) async {
+    try {
+      await widget.appUpdateClient.discardUpdate(installer);
+    } catch (_) {}
+  }
+
+  Future<void> _quitAndInstallAppUpdate() async {
+    if (_downloadedUpdateInstaller == null) {
+      return;
+    }
+
+    try {
+      await widget.runtimeController.quitApplication();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _appUpdateError = _messageForAppUpdateError(error);
+      });
+    }
+  }
+
+  String get _appUpdateStatus {
+    final error = _appUpdateError;
+    if (error != null) {
+      return _copy.appUpdateFailedDescription(error);
+    }
+    if (_isCheckingAppUpdate) {
+      return _copy.appUpdateCheckingDescription;
+    }
+    if (_isDownloadingAppUpdate) {
+      return _copy.appUpdateDownloadingDescription(_appUpdateProgressLabel);
+    }
+
+    final downloadedInstaller = _downloadedUpdateInstaller;
+    if (downloadedInstaller != null) {
+      final version = _appUpdateCheck?.release?.version ?? '';
+      return _copy.appUpdateReadyDescription(version);
+    }
+
+    final check = _appUpdateCheck;
+    if (check == null) {
+      final version = _appUpdateCurrentVersion;
+      return version == null
+          ? _copy.appUpdateIdleDescription
+          : _copy.appUpdateInstalledVersionDescription(version);
+    }
+
+    return switch (check.availability) {
+      AppUpdateAvailability.notSupported =>
+        _copy.appUpdateUnsupportedDescription,
+      AppUpdateAvailability.upToDate =>
+        _copy.appUpdateCurrentVersionDescription(check.currentVersion),
+      AppUpdateAvailability.available => _copy.appUpdateAvailableDescription(
+        check.currentVersion,
+        check.release?.version ?? check.currentVersion,
+      ),
+      AppUpdateAvailability.unavailable =>
+        _copy.appUpdateUnavailableDescription(check.message ?? ''),
+    };
+  }
+
+  String get _appUpdateProgressLabel {
+    final progress = _appUpdateDownloadProgress;
+    if (progress == null) {
+      return _copy.isChinese ? '正在准备下载...' : 'Preparing download...';
+    }
+    final transferred = _formatByteCount(progress.transferredBytes);
+    final total = progress.totalBytes;
+    if (total == null) {
+      return transferred;
+    }
+    return '$transferred / ${_formatByteCount(total)}';
+  }
+
+  String _messageForAppUpdateError(Object error) {
+    if (error is AppUpdateException) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
+  String _formatByteCount(int value) {
+    if (value < 1024) {
+      return '$value B';
+    }
+    if (value < 1024 * 1024) {
+      return '${(value / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(value / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
   Widget _buildSettingsShell() {
     final sections = buildSettingsSections(_copy);
     final filteredSections = filterSettingsSections(
@@ -1049,6 +1259,23 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       onSavePromptFile: _savePromptFile,
       onSaveModelPreferences: _saveModelPreferences,
       onSaveModelsJson: _saveModelsJson,
+      appUpdateStatus: _appUpdateStatus,
+      appUpdateChecking: _isCheckingAppUpdate,
+      appUpdateDownloading: _isDownloadingAppUpdate,
+      appUpdateAvailable:
+          _appUpdateCheck?.hasUpdate == true &&
+          _downloadedUpdateInstaller == null,
+      appUpdateReadyToInstall: _downloadedUpdateInstaller != null,
+      appUpdateProgressPercent: _appUpdateDownloadProgress?.percent,
+      onCheckForUpdate: () {
+        unawaited(_checkForAppUpdate());
+      },
+      onDownloadUpdate: () {
+        unawaited(_downloadAppUpdate());
+      },
+      onQuitAndInstall: () {
+        unawaited(_quitAndInstallAppUpdate());
+      },
       onShowLicenses: () {
         showLicensePage(
           context: context,

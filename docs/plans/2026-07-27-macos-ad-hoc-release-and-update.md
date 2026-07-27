@@ -8,6 +8,13 @@
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
 
+## 当前进度
+
+- [x] R1：移除 App Sandbox，增加 universal ad-hoc 重签、签名 / entitlement / DMG / 架构验证脚本，并完成本机构建。
+- [x] R2：提交 tag 驱动 GitHub Actions workflow；尚未推送 release tag，因此远端构建与发布仍待首次正式版本验证。
+- [x] U1：完成 GitHub latest release 检查、严格 asset URL、semver 和流式下载 domain service 及回归测试。
+- [x] U2：完成 Settings 更新入口、打开 DMG 与 macOS 强制退出 bridge，并完成 widget / release build 验证。
+
 ## 目标
 
 macOS 版本可以在 GitHub Actions 中构建 universal Flutter release app，以 ad-hoc 签名验证后封装为 DMG 并发布到 GitHub Release。Pi App 能检查当前仓库的最新正式 Release，选择 universal DMG，显示真实下载进度、打开安装器，并在用户确认后退出当前应用以完成手动覆盖安装。
