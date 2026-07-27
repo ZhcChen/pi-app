@@ -72,6 +72,24 @@ flutter run -d macos
 
 在 Windows 或 Linux 上运行时，将最后一条命令替换为对应设备，例如 `flutter run -d windows` 或 `flutter run -d linux`。
 
+## macOS Ad-hoc 发布
+
+Pi App 当前按直接分发模式构建 macOS release：使用 ad-hoc 签名，不使用 App Sandbox、Developer ID 或 notarization。移除 App Sandbox 是外置 Pi core、网络访问、下载更新和完整 coding tools 的必要条件；因此该 build 不能作为 Mac App Store sandbox 版本发布。
+
+本机构建 universal DMG：
+
+```bash
+./desktop/scripts/build-macos-release.sh --arch universal
+```
+
+脚本会构建 Flutter release、以 `codesign --force --deep --sign -` 重签、验证签名和 entitlement、确认 `arm64` / `x86_64` 都存在，并输出：
+
+```text
+release/macos-universal/Pi-App-<version>-macos-universal.dmg
+```
+
+该目录已被 Git 忽略。ad-hoc 签名不具备 Developer ID 信任链，首次打开下载版本时用户可能需要在 Gatekeeper 中显式允许。
+
 ## 备注
 
 当前模块已接入真实的本地 `pi-host` SDK runtime：composer 会按选中项目的 `sessionCwd` 创建 Pi session、发送 prompt、展示文本流并支持 abort。新安装的默认 session 不提供内置工具；在设置中显式开启“读取工具”后，新 session 才能使用 `read`、`grep`、`find`、`ls`，开启“编码工具”后还会使用 `bash`、`edit`、`write`。旧版偏好文件会安全迁移为无工具，避免把历史默认值当成能力授权。这不是 sandbox，也尚未实现逐工具 approval。
