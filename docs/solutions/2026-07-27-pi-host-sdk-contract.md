@@ -10,6 +10,60 @@
 
 当前闭环已覆盖：按项目 cwd 创建持久化 session、发送 prompt、流式文本、tool lifecycle、abort、读取和设置 model/thinking。composer 已从“prepared task”展示状态替换为真实 session 状态与消息流。
 
+## 能力与版本基线
+
+### 当前运行时基线
+
+| 项目 | 当前值 | 说明 |
+| --- | --- | --- |
+| Pi App build manifest | `1.0.0+1` | `desktop/pubspec.yaml` 的桌面应用构建版本；不是独立 SDK 兼容版本。 |
+| `pi-host` package | `0.1.0` | 本地 private sidecar 的 package 版本。 |
+| Flutter <-> host protocol | `1` | `host/src/protocol.ts` 的 `protocolVersion`；当前只在 protocol 发生破坏性变化时递增。 |
+| Pi SDK | `@earendil-works/pi-coding-agent@0.82.0` | 精确锁定并完成实际 prompt 验证的版本。 |
+| Node runtime | `>=22.19.0` | host 的最低运行时要求；当前开发机版本不构成产品兼容承诺。 |
+| 能力引入基线 | `13e014e` | `feat: 接入 Pi host SDK 会话链路`；文档或计划提交不改变能力基线。 |
+
+> 当前 `host.health` 会返回 protocol 和 SDK version，但尚未返回 host build version。M1 打包阶段应把 host build version、SDK version 和 bundle manifest 一起纳入 runtime handshake；在此之前，本表、`host/package.json` 和 Git commit 是回溯来源。
+
+### 已交付能力矩阵
+
+| 能力 ID | 用户可见能力 | 引入基线 | host protocol | Pi SDK 验证版本 | 当前状态与证据 |
+| --- | --- | --- | --- | --- | --- |
+| `HOST-001` | 本地 sidecar health 与严格 LF JSONL 通信 | `13e014e` | `1` | `0.82.0` | 已交付；`host.health`、1 MiB 限制、stdout guard 由 host 测试覆盖。 |
+| `SESSION-001` | 按项目 `sessionCwd` 创建 Pi 持久化 session | `13e014e` | `1` | `0.82.0` | 已交付；使用 `SessionManager` / `AgentSessionRuntime`，Flutter 以 host session id 路由事件。 |
+| `RUN-001` | prompt、文本流、thinking 流与 `run.settled` | `13e014e` | `1` | `0.82.0` | 已交付；真实无工具 prompt 验证文本 `Pi host integration works.` 与最终 settled。 |
+| `RUN-002` | 用户中止运行 | `13e014e` | `1` | `0.82.0` | 已交付；`session.abort` 映射 SDK abort，widget / host 回归覆盖。 |
+| `MODEL-001` | 读取和设置 model / thinking level 的 host API | `13e014e` | `1` | `0.82.0` | host 已交付；完整 model picker 与 auth UI 尚未交付。 |
+| `TOOL-001` | 新 session 的工具白名单 | `13e014e` | `1` | `0.82.0` | 已交付；默认无工具，显式读取 / 编码能力映射内置工具，旧偏好安全迁移。 |
+| `RELIABILITY-001` | stdout 隔离、过大记录防护、sidecar 重启后的 session 失效恢复 | `13e014e` | `1` | `0.82.0` | 已交付；包含真实子进程 replacement 回归，旧进程退出不能中断新进程。 |
+| `EXTENSION-001` | 本地处理的 extension command / input handler 可正确结束 UI 运行状态 | `13e014e` | `1` | `0.82.0` | 已交付；host 合成 `handledWithoutRun: true` 的 `run.settled`。 |
+
+### SDK 能力暴露矩阵
+
+下表记录的是 Pi SDK `0.82.0` 已验证可提供的能力，与 Pi App 当前是否已包装为 host / GUI 能力的关系。`待设计` 不等于 SDK 不支持，只表示产品协议或交互尚未确定。
+
+| SDK 能力 | SDK 验证版本 | host 暴露 | GUI 暴露 | 当前结论 |
+| --- | --- | --- | --- | --- |
+| `AgentSession` prompt、abort、事件订阅 | `0.82.0` | 已暴露 | 已暴露核心流程 | 可用。 |
+| `AgentSessionRuntime`、`SessionManager` 持久化 session | `0.82.0` | 当前仅 create / state | 当前仅当前项目会话 | list / resume / fork / clone 待阶段 C。 |
+| `ModelRuntime`、models / auth 文件读取 | `0.82.0` | 已暴露 model / thinking API | 仅状态展示 | model picker、auth 状态待阶段 C / E。 |
+| 内置 coding tools 与 custom tools | `0.82.0` | 内置白名单已暴露 | 设置中的读取 / 编码选择已暴露 | custom tool 管理与逐工具审批待阶段 B / E。 |
+| tool execution lifecycle | `0.82.0` | 已规约为开始 / 更新 / 结束 | 仅运行摘要 | 受限 timeline、artifact 引用待阶段 D。 |
+| steering、follow-up、queue 状态 | `0.82.0` | `session.prompt.delivery` 已支持 | 未暴露 | 待阶段 C。 |
+| compaction、auto retry、session tree navigation | `0.82.0` | 仅部分终态规约 | 未暴露 | 待阶段 C。 |
+| settings、system prompts、`AGENTS.md`、skills、prompt templates | `0.82.0` | 资源加载已由 SDK 使用 | Pi Config Center 已覆盖部分 | 高频 runtime 设置和资源 UI 待阶段 E。 |
+| global / project-local extensions、commands、packages | `0.82.0` | 全局资源按 SDK 运行；项目资源强制未信任 | 未暴露 | trust、command palette、资源入口待阶段 B / E。 |
+| extension confirm / select / input 等 UI 请求 | `0.82.0` | 未定义产品 bridge | 未暴露 | 待阶段 E；复杂自定义 TUI 先降级诊断。 |
+
+### 维护规则
+
+1. 新增、删除或改变一个用户可见运行时能力时，必须在同一提交更新“已交付能力矩阵”；新增能力使用稳定 ID，例如 `SESSION-002`，不能复用已废弃 ID。
+2. 每一行都记录引入 commit、host protocol 和 Pi SDK 验证版本。SDK 升级后，即使接口未改，也要更新验证版本和证据。
+3. protocol 的新增可选字段 / event 可保持 `1`，但必须在矩阵记录引入 commit；破坏 Flutter <-> host 兼容性的变更必须递增 `protocolVersion` 并记录迁移路径。
+4. `pi-host` package 版本记录 sidecar 实现版本，不替代 protocol version；bundle 发布后应在 `host.health` 返回 build version，供运行时诊断使用。
+5. 计划中的能力不预先占用版本号。只有协议、实现和验证完成后，才从“SDK 能力暴露矩阵”的待办状态转入“已交付能力矩阵”。
+6. 每次 Pi SDK 升级都执行 `npm run check`、`npm test`、真实无副作用 prompt 和 `npm audit --omit=dev --audit-level=high`，并在本节记录结果与残余风险。
+
 ## 背景
 
 Flutter 适合承担桌面 UI 与平台壳层，但 Pi 的 `AgentSessionRuntime`、`ModelRuntime`、resource loading、session JSONL 和 extension 生命周期属于 Node 侧能力。让 Dart 直接实现 CLI RPC 的完整协议会导致 UI 绑定底层运行时细节，也会使后续 extension UI、session replacement 和打包难以演进。

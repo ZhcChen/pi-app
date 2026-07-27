@@ -7,6 +7,7 @@
 - 依赖文档：
   - `docs/plans/2026-07-26-desktop-follow-up-roadmap.md`
   - `docs/solutions/2026-07-26-pi-integration-modes.md`
+  - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`（含能力与版本基线）
 
 ## 当前优先切片
 
