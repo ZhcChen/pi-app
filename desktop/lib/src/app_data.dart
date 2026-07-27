@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'app_copy.dart';
+import 'project_registry_store.dart';
 import 'workspace_feature.dart';
 
 List<WorkspaceAction> buildPrimaryActions(AppCopy copy) {
@@ -53,19 +54,23 @@ List<WorkspacePromptCard> buildPromptCards(AppCopy copy) {
 
 List<WorkspaceProjectGroup> buildDesktopProjects(
   String? workspaceRootPath, {
-  List<String> additionalProjectPaths = const <String>[],
+  List<ProjectRegistryEntry> registeredProjects =
+      const <ProjectRegistryEntry>[],
 }) {
   final projectRoots = _resolveProjectRoots(
     workspaceRootPath,
-    additionalProjectPaths,
+    registeredProjects,
   );
   if (projectRoots.isEmpty) {
     return const <WorkspaceProjectGroup>[];
   }
 
   final projects = <WorkspaceProjectGroup>[];
-  for (final rootPath in projectRoots) {
-    final project = _buildWorkspaceProject(rootPath);
+  for (final root in projectRoots) {
+    final project = _buildWorkspaceProject(
+      root.path,
+      registryEntry: root.registryEntry,
+    );
     if (project != null) {
       projects.add(project);
     }
@@ -73,30 +78,56 @@ List<WorkspaceProjectGroup> buildDesktopProjects(
   return projects;
 }
 
-List<String> _resolveProjectRoots(
-  String? workspaceRootPath,
-  List<String> additionalProjectPaths,
-) {
-  final roots = <String>[];
-  final seen = <String>{};
+class _WorkspaceProjectRoot {
+  const _WorkspaceProjectRoot({required this.path, this.registryEntry});
 
-  void addRoot(String? rawPath) {
+  final String path;
+  final ProjectRegistryEntry? registryEntry;
+}
+
+List<_WorkspaceProjectRoot> _resolveProjectRoots(
+  String? workspaceRootPath,
+  List<ProjectRegistryEntry> registeredProjects,
+) {
+  final roots = <_WorkspaceProjectRoot>[];
+  final indicesByPath = <String, int>{};
+
+  void addRoot(String? rawPath, {ProjectRegistryEntry? registryEntry}) {
     final normalized = _normalizeProjectRoot(rawPath);
-    if (normalized == null || !seen.add(normalized)) {
+    if (normalized == null) {
       return;
     }
-    roots.add(normalized);
+
+    final pathKey = _projectRootKey(normalized);
+    final existingIndex = indicesByPath[pathKey];
+    if (existingIndex == null) {
+      indicesByPath[pathKey] = roots.length;
+      roots.add(
+        _WorkspaceProjectRoot(path: normalized, registryEntry: registryEntry),
+      );
+      return;
+    }
+
+    if (registryEntry != null && roots[existingIndex].registryEntry == null) {
+      roots[existingIndex] = _WorkspaceProjectRoot(
+        path: normalized,
+        registryEntry: registryEntry,
+      );
+    }
   }
 
   addRoot(_resolveWorkspaceRoot(workspaceRootPath));
-  for (final projectPath in additionalProjectPaths) {
-    addRoot(projectPath);
+  for (final project in registeredProjects) {
+    addRoot(project.path, registryEntry: project);
   }
 
   return roots;
 }
 
-WorkspaceProjectGroup? _buildWorkspaceProject(String rootPath) {
+WorkspaceProjectGroup? _buildWorkspaceProject(
+  String rootPath, {
+  ProjectRegistryEntry? registryEntry,
+}) {
   final rootDirectory = Directory(rootPath);
   if (!rootDirectory.existsSync()) {
     return null;
@@ -106,12 +137,14 @@ WorkspaceProjectGroup? _buildWorkspaceProject(String rootPath) {
   final recentTargets = _buildRecentTargets(rootDirectory);
 
   return WorkspaceProjectGroup(
-    name: _basename(rootDirectory.path),
+    name: registryEntry?.displayName ?? _basename(rootDirectory.path),
     branch: gitInfo.branch,
     items: recentTargets,
     workspacePath: rootDirectory.path,
     sessionCwd: rootDirectory.path,
     isGitRepository: gitInfo.isGitRepository,
+    registryId: registryEntry?.id,
+    isPinned: registryEntry?.isPinned ?? false,
   );
 }
 
@@ -126,6 +159,10 @@ String? _normalizeProjectRoot(String? rawPath) {
   }
 
   return Directory(trimmed).absolute.path;
+}
+
+String _projectRootKey(String path) {
+  return Platform.isWindows ? path.toLowerCase() : path;
 }
 
 List<WorkspaceProjectItem> _buildRecentTargets(Directory rootDirectory) {

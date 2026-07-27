@@ -166,10 +166,19 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   }
 
   String get manageProjectTooltip => isChinese ? '管理项目' : 'Manage project';
+  String get renameProjectLabel => isChinese ? '重命名项目' : 'Rename project';
+  String get renameProjectDialogTitle => isChinese ? '重命名项目' : 'Rename project';
+  String get projectNameFieldLabel => isChinese ? '显示名称' : 'Display name';
+  String get cancelActionLabel => isChinese ? '取消' : 'Cancel';
+  String get saveActionLabel => isChinese ? '保存' : 'Save';
   String get pinProjectLabel => isChinese ? '固定项目' : 'Pin project';
   String get unpinProjectLabel => isChinese ? '取消固定' : 'Unpin project';
   String get removeProjectLabel =>
       isChinese ? '从项目列表移除' : 'Remove from projects';
+
+  String projectRenamedNotice(String projectName) {
+    return isChinese ? '已更新项目名称：$projectName' : 'Renamed project: $projectName';
+  }
 
   String projectPinnedNotice(String projectName) {
     return isChinese ? '已固定项目：$projectName' : 'Pinned project: $projectName';

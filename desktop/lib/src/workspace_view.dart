@@ -8,10 +8,9 @@ class WorkspaceSidebar extends StatelessWidget {
     required this.preferences,
     required this.selectedActionIndex,
     required this.selectedProjectIndex,
-    required this.managedProjectPaths,
-    required this.pinnedProjectPaths,
     required this.onActionSelected,
     required this.onProjectSelected,
+    required this.onRenameProject,
     required this.onToggleProjectPinned,
     required this.onRemoveProject,
     required this.onAddProject,
@@ -26,10 +25,10 @@ class WorkspaceSidebar extends StatelessWidget {
   final AppPreferences preferences;
   final int selectedActionIndex;
   final int selectedProjectIndex;
-  final Set<String> managedProjectPaths;
-  final Set<String> pinnedProjectPaths;
   final ValueChanged<int> onActionSelected;
   final Future<void> Function(int) onProjectSelected;
+  final Future<void> Function(WorkspaceProjectGroup project, String alias)
+  onRenameProject;
   final Future<void> Function(WorkspaceProjectGroup) onToggleProjectPinned;
   final Future<void> Function(WorkspaceProjectGroup) onRemoveProject;
   final Future<void> Function() onAddProject;
@@ -121,20 +120,14 @@ class WorkspaceSidebar extends StatelessWidget {
                         interfaceDensity: density,
                         openDestination: preferences.openDestination,
                         selected: i == selectedProjectIndex,
-                        isManaged:
-                            projects[i].workspacePath != null &&
-                            managedProjectPaths.contains(
-                              projects[i].workspacePath,
-                            ),
-                        isPinned:
-                            projects[i].workspacePath != null &&
-                            pinnedProjectPaths.contains(
-                              projects[i].workspacePath,
-                            ),
+                        isManaged: projects[i].registryId != null,
+                        isPinned: projects[i].isPinned,
                         onTap: () {
                           onProjectSelected(i);
                         },
                         onOpenProject: () => onOpenProject(projects[i]),
+                        onRename: (alias) =>
+                            onRenameProject(projects[i], alias),
                         onTogglePinned: () =>
                             onToggleProjectPinned(projects[i]),
                         onRemove: () => onRemoveProject(projects[i]),

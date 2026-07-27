@@ -11,6 +11,7 @@ class ProjectRegistryEntry {
     required this.addedAt,
     this.lastOpenedAt,
     this.isPinned = false,
+    this.alias,
   });
 
   factory ProjectRegistryEntry.create(String path, {DateTime? timestamp}) {
@@ -29,6 +30,7 @@ class ProjectRegistryEntry {
       addedAt: isoTimestamp,
       lastOpenedAt: isoTimestamp,
       isPinned: false,
+      alias: null,
     );
   }
 
@@ -44,6 +46,7 @@ class ProjectRegistryEntry {
     final addedAt = json['addedAt']?.toString().trim();
     final lastOpenedAt = json['lastOpenedAt']?.toString().trim();
     final isPinned = json['pinned'] is bool ? json['pinned'] as bool : false;
+    final alias = _normalizeProjectAlias(json['alias']?.toString());
 
     return ProjectRegistryEntry(
       id: (id != null && id.isNotEmpty)
@@ -60,6 +63,7 @@ class ProjectRegistryEntry {
           ? lastOpenedAt
           : null,
       isPinned: isPinned,
+      alias: alias,
     );
   }
 
@@ -69,6 +73,9 @@ class ProjectRegistryEntry {
   final String addedAt;
   final String? lastOpenedAt;
   final bool isPinned;
+  final String? alias;
+
+  String get displayName => alias ?? name;
 
   ProjectRegistryEntry copyWith({String? lastOpenedAt, bool? isPinned}) {
     return ProjectRegistryEntry(
@@ -78,6 +85,19 @@ class ProjectRegistryEntry {
       addedAt: addedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
       isPinned: isPinned ?? this.isPinned,
+      alias: alias,
+    );
+  }
+
+  ProjectRegistryEntry withAlias(String? alias) {
+    return ProjectRegistryEntry(
+      id: id,
+      path: path,
+      name: name,
+      addedAt: addedAt,
+      lastOpenedAt: lastOpenedAt,
+      isPinned: isPinned,
+      alias: _normalizeProjectAlias(alias),
     );
   }
 
@@ -124,6 +144,19 @@ class ProjectRegistrySnapshot {
     }
     return null;
   }
+
+  ProjectRegistryEntry? entryForId(String? projectId) {
+    if (projectId == null || projectId.isEmpty) {
+      return null;
+    }
+
+    for (final entry in entries) {
+      if (entry.id == projectId) {
+        return entry;
+      }
+    }
+    return null;
+  }
 }
 
 abstract class ProjectRegistryStore {
@@ -137,6 +170,11 @@ abstract class ProjectRegistryStore {
   );
 
   Future<ProjectRegistrySnapshot> markProjectOpened(String projectId);
+
+  Future<ProjectRegistrySnapshot> setProjectAlias(
+    String projectId,
+    String? alias,
+  );
 
   Future<ProjectRegistrySnapshot> removeProject(String projectId);
 }
@@ -168,6 +206,19 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
     return File('${projectsDirectory.path}${Platform.pathSeparator}index.json');
   }
 
+  Directory resolveProjectDirectory(String projectId) {
+    return Directory(
+      '${resolveProjectsDirectory().path}${Platform.pathSeparator}${_projectStorageKey(projectId)}',
+    );
+  }
+
+  File resolveProjectMetadataFile(String projectId) {
+    final projectDirectory = resolveProjectDirectory(projectId);
+    return File(
+      '${projectDirectory.path}${Platform.pathSeparator}project.json',
+    );
+  }
+
   File resolveSettingsFile() {
     final root = resolveRootDirectory();
     return File('${root.path}${Platform.pathSeparator}settings.json');
@@ -177,14 +228,13 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
   Future<ProjectRegistrySnapshot> loadSnapshot() async {
     var snapshot = await _loadIndexSnapshot();
     final legacyProjectPaths = await _loadLegacyProjectPaths();
-    if (legacyProjectPaths.isEmpty) {
-      return snapshot;
+    if (legacyProjectPaths.isNotEmpty) {
+      snapshot = _mergeProjectPaths(snapshot, legacyProjectPaths);
+      await _saveSnapshot(snapshot);
+      await _clearLegacyProjectPaths();
     }
 
-    snapshot = _mergeProjectPaths(snapshot, legacyProjectPaths);
-    await _saveSnapshot(snapshot);
-    await _clearLegacyProjectPaths();
-    return snapshot;
+    return _hydrateProjectMetadata(snapshot);
   }
 
   @override
@@ -203,13 +253,12 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
       return snapshot;
     }
 
+    final newEntry = ProjectRegistryEntry.create(normalizedPath);
     final nextSnapshot = ProjectRegistrySnapshot(
-      entries: <ProjectRegistryEntry>[
-        ...snapshot.entries,
-        ProjectRegistryEntry.create(normalizedPath),
-      ],
+      entries: <ProjectRegistryEntry>[...snapshot.entries, newEntry],
     );
     await _saveSnapshot(nextSnapshot);
+    await _writeProjectMetadata(newEntry);
     return nextSnapshot;
   }
 
@@ -233,6 +282,21 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
   }
 
   @override
+  Future<ProjectRegistrySnapshot> setProjectAlias(
+    String projectId,
+    String? alias,
+  ) async {
+    final snapshot = await _updateProject(projectId, (entry) {
+      return entry.withAlias(alias);
+    });
+    final entry = snapshot.entryForId(projectId);
+    if (entry != null) {
+      await _writeProjectMetadata(entry);
+    }
+    return snapshot;
+  }
+
+  @override
   Future<ProjectRegistrySnapshot> removeProject(String projectId) async {
     final snapshot = await loadSnapshot();
     final entries = snapshot.entries
@@ -244,6 +308,7 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
 
     final nextSnapshot = ProjectRegistrySnapshot(entries: entries);
     await _saveSnapshot(nextSnapshot);
+    await _deleteProjectMetadata(projectId);
     return nextSnapshot;
   }
 
@@ -311,6 +376,66 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
       }),
       flush: true,
     );
+  }
+
+  Future<ProjectRegistrySnapshot> _hydrateProjectMetadata(
+    ProjectRegistrySnapshot snapshot,
+  ) async {
+    final entries = await Future.wait(
+      snapshot.entries.map(_hydrateProjectEntry),
+    );
+    return ProjectRegistrySnapshot(entries: entries);
+  }
+
+  Future<ProjectRegistryEntry> _hydrateProjectEntry(
+    ProjectRegistryEntry entry,
+  ) async {
+    try {
+      final metadataFile = resolveProjectMetadataFile(entry.id);
+      if (!await metadataFile.exists()) {
+        await _writeProjectMetadata(entry);
+        return entry;
+      }
+
+      final raw = await metadataFile.readAsString();
+      if (raw.trim().isEmpty) {
+        return entry;
+      }
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return entry;
+      }
+
+      return entry.withAlias(
+        _normalizeProjectAlias(decoded['alias']?.toString()),
+      );
+    } catch (_) {
+      return entry;
+    }
+  }
+
+  Future<void> _writeProjectMetadata(ProjectRegistryEntry entry) async {
+    final file = resolveProjectMetadataFile(entry.id);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      jsonEncode(<String, Object?>{
+        'version': 1,
+        'projectId': entry.id,
+        'path': entry.path,
+        'alias': entry.alias,
+      }),
+      flush: true,
+    );
+  }
+
+  Future<void> _deleteProjectMetadata(String projectId) async {
+    try {
+      final directory = resolveProjectDirectory(projectId);
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    } catch (_) {}
   }
 
   Future<List<String>> _loadLegacyProjectPaths() async {
@@ -449,6 +574,16 @@ class MemoryProjectRegistryStore implements ProjectRegistryStore {
   }
 
   @override
+  Future<ProjectRegistrySnapshot> setProjectAlias(
+    String projectId,
+    String? alias,
+  ) {
+    return _updateProject(projectId, (entry) {
+      return entry.withAlias(alias);
+    });
+  }
+
+  @override
   Future<ProjectRegistrySnapshot> removeProject(String projectId) async {
     final entries = _snapshot.entries
         .where((entry) => entry.id != projectId)
@@ -516,6 +651,16 @@ String? _normalizeProjectPath(String? rawPath) {
   }
 
   return Directory(trimmed).absolute.path;
+}
+
+String? _normalizeProjectAlias(String? rawAlias) {
+  final trimmed = rawAlias?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+String _projectStorageKey(String projectId) {
+  final sanitized = projectId.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  return sanitized.isEmpty ? 'project' : sanitized;
 }
 
 String _projectPathKey(String path) {

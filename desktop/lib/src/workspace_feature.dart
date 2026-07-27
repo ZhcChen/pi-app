@@ -44,9 +44,15 @@ abstract interface class WorkspaceCopy {
   String projectAlreadyAddedNotice(String projectName);
   String projectAddFailedNotice(String reason);
   String get manageProjectTooltip;
+  String get renameProjectLabel;
+  String get renameProjectDialogTitle;
+  String get projectNameFieldLabel;
+  String get cancelActionLabel;
+  String get saveActionLabel;
   String get pinProjectLabel;
   String get unpinProjectLabel;
   String get removeProjectLabel;
+  String projectRenamedNotice(String projectName);
   String projectPinnedNotice(String projectName);
   String projectUnpinnedNotice(String projectName);
   String projectRemovedNotice(String projectName);
@@ -97,6 +103,8 @@ class WorkspaceProjectGroup {
     this.workspacePath,
     this.sessionCwd,
     this.isGitRepository = false,
+    this.registryId,
+    this.isPinned = false,
   });
 
   final String name;
@@ -105,6 +113,8 @@ class WorkspaceProjectGroup {
   final String? workspacePath;
   final String? sessionCwd;
   final bool isGitRepository;
+  final String? registryId;
+  final bool isPinned;
 }
 
 class WorkspacePromptCard {

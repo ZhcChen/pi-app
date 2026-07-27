@@ -699,7 +699,7 @@ class _SidebarActionTile extends StatelessWidget {
 }
 
 /// Expandable project tile in the workspace sidebar.
-enum _ProjectMenuAction { togglePin, remove }
+enum _ProjectMenuAction { rename, togglePin, remove }
 
 class _ProjectTile extends StatefulWidget {
   const _ProjectTile({
@@ -712,6 +712,7 @@ class _ProjectTile extends StatefulWidget {
     required this.isPinned,
     required this.onTap,
     required this.onOpenProject,
+    required this.onRename,
     required this.onTogglePinned,
     required this.onRemove,
   });
@@ -725,6 +726,7 @@ class _ProjectTile extends StatefulWidget {
   final bool isPinned;
   final VoidCallback onTap;
   final VoidCallback onOpenProject;
+  final Future<void> Function(String alias) onRename;
   final Future<void> Function() onTogglePinned;
   final Future<void> Function() onRemove;
 
@@ -734,6 +736,22 @@ class _ProjectTile extends StatefulWidget {
 
 class _ProjectTileState extends State<_ProjectTile> {
   bool _isHovered = false;
+
+  Future<void> _showRenameProjectDialog() async {
+    final alias = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return _ProjectRenameDialog(
+          copy: widget.copy,
+          initialName: widget.project.name,
+        );
+      },
+    );
+
+    if (alias != null) {
+      await widget.onRename(alias);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -808,6 +826,9 @@ class _ProjectTileState extends State<_ProjectTile> {
                   ),
                   onSelected: (action) async {
                     switch (action) {
+                      case _ProjectMenuAction.rename:
+                        await _showRenameProjectDialog();
+                        break;
                       case _ProjectMenuAction.togglePin:
                         await widget.onTogglePinned();
                         break;
@@ -817,6 +838,29 @@ class _ProjectTileState extends State<_ProjectTile> {
                     }
                   },
                   itemBuilder: (context) => [
+                    PopupMenuItem<_ProjectMenuAction>(
+                      key: const Key('rename-project-menu-item'),
+                      value: _ProjectMenuAction.rename,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.drive_file_rename_outline_rounded,
+                            size: 16,
+                            color: palette.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.copy.renameProjectLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DesktopTypography.sidebarItem(palette),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
                     PopupMenuItem<_ProjectMenuAction>(
                       value: _ProjectMenuAction.togglePin,
                       child: Row(
@@ -872,6 +916,66 @@ class _ProjectTileState extends State<_ProjectTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProjectRenameDialog extends StatefulWidget {
+  const _ProjectRenameDialog({required this.copy, required this.initialName});
+
+  final WorkspaceCopy copy;
+  final String initialName;
+
+  @override
+  State<_ProjectRenameDialog> createState() => _ProjectRenameDialogState();
+}
+
+class _ProjectRenameDialogState extends State<_ProjectRenameDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialName,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return AlertDialog(
+      backgroundColor: palette.panelRaised,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      title: Text(
+        widget.copy.renameProjectDialogTitle,
+        style: DesktopTypography.settingsGroupLabel(palette),
+      ),
+      content: SizedBox(
+        width: 320,
+        child: TextField(
+          key: const Key('project-rename-input'),
+          controller: _controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+          decoration: InputDecoration(
+            labelText: widget.copy.projectNameFieldLabel,
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(widget.copy.cancelActionLabel),
+        ),
+        FilledButton(
+          key: const Key('save-project-rename-button'),
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(widget.copy.saveActionLabel),
+        ),
+      ],
     );
   }
 }

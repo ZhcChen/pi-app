@@ -279,7 +279,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       return;
     }
 
-    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    final entry = _projectRegistry.entryForId(project.registryId);
     if (entry == null) {
       return;
     }
@@ -299,7 +299,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   }
 
   Future<void> _toggleProjectPinned(WorkspaceProjectGroup project) async {
-    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    final entry = _projectRegistry.entryForId(project.registryId);
     if (entry == null || !widget.enableProjectPersistence) {
       return;
     }
@@ -327,8 +327,39 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
+  Future<void> _renameProject(
+    WorkspaceProjectGroup project,
+    String alias,
+  ) async {
+    final entry = _projectRegistry.entryForId(project.registryId);
+    if (entry == null || !widget.enableProjectPersistence) {
+      return;
+    }
+
+    try {
+      final snapshot = await widget.projectRegistryStore.setProjectAlias(
+        entry.id,
+        alias,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      _applyProjectSnapshot(
+        snapshot,
+        preferredSelectedPath: project.workspacePath,
+      );
+      final updatedEntry = snapshot.entryForId(entry.id);
+      _showNotice(
+        _copy.projectRenamedNotice(updatedEntry?.displayName ?? project.name),
+      );
+    } catch (error) {
+      _showNotice(_copy.projectManageFailedNotice(error.toString()));
+    }
+  }
+
   Future<void> _removeProject(WorkspaceProjectGroup project) async {
-    final entry = _projectRegistry.entryForPath(project.workspacePath);
+    final entry = _projectRegistry.entryForId(project.registryId);
     if (entry == null || !widget.enableProjectPersistence) {
       return;
     }
@@ -366,7 +397,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   }) {
     final projects = buildDesktopProjects(
       widget.workspaceRootPath,
-      additionalProjectPaths: snapshot.projectPaths,
+      registeredProjects: snapshot.orderedEntries,
     );
 
     setState(() {
@@ -637,19 +668,13 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
-                managedProjectPaths: _projectRegistry.entries
-                    .map((entry) => entry.path)
-                    .toSet(),
-                pinnedProjectPaths: _projectRegistry.entries
-                    .where((entry) => entry.isPinned)
-                    .map((entry) => entry.path)
-                    .toSet(),
                 onActionSelected: (index) {
                   setState(() {
                     _selectedActionIndex = index;
                   });
                 },
                 onProjectSelected: _selectProject,
+                onRenameProject: _renameProject,
                 onToggleProjectPinned: _toggleProjectPinned,
                 onRemoveProject: _removeProject,
                 onAddProject: _addProject,

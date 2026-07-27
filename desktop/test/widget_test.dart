@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -71,15 +72,55 @@ void main() {
 
     final added = await store.addProject('/workspace/pi-app');
     final addedEntry = added.entries.single;
+    await store.addProject('/workspace/notes');
     final pinned = await store.setProjectPinned(addedEntry.id, true);
     final opened = await store.markProjectOpened(addedEntry.id);
     final removed = await store.removeProject(addedEntry.id);
 
     expect(added.projectPaths, <String>['/workspace/pi-app']);
     expect(addedEntry.name, 'pi-app');
-    expect(pinned.entries.single.isPinned, true);
-    expect(opened.entries.single.lastOpenedAt, isNotNull);
-    expect(removed.entries, isEmpty);
+    expect(
+      pinned.entries.singleWhere((entry) => entry.id == addedEntry.id).isPinned,
+      true,
+    );
+    expect(pinned.orderedEntries.first.id, addedEntry.id);
+    expect(
+      opened.entries
+          .singleWhere((entry) => entry.id == addedEntry.id)
+          .lastOpenedAt,
+      isNotNull,
+    );
+    expect(removed.projectPaths, <String>['/workspace/notes']);
+  });
+
+  test('file project registry store persists project metadata', () async {
+    final root = await Directory.systemTemp.createTemp('pi-project-metadata-');
+    addTearDown(() async {
+      if (await root.exists()) {
+        await root.delete(recursive: true);
+      }
+    });
+    final source = Directory(
+      '${root.path}${Platform.pathSeparator}workspace-alpha',
+    )..createSync(recursive: true);
+    final store = FileProjectRegistryStore(rootDirectory: root);
+
+    final added = await store.addProject(source.path);
+    final entry = added.entries.single;
+    final metadataFile = store.resolveProjectMetadataFile(entry.id);
+    final renamed = await store.setProjectAlias(entry.id, 'Alpha workspace');
+    final reloaded = await store.loadSnapshot();
+    final metadata = jsonDecode(await metadataFile.readAsString());
+
+    expect(await metadataFile.exists(), true);
+    expect(renamed.entries.single.displayName, 'Alpha workspace');
+    expect(reloaded.entries.single.alias, 'Alpha workspace');
+    expect(metadata['projectId'], entry.id);
+    expect(metadata['path'], source.path);
+    expect(metadata['alias'], 'Alpha workspace');
+
+    await store.removeProject(entry.id);
+    expect(await store.resolveProjectDirectory(entry.id).exists(), false);
   });
 
   test('file project registry store migrates legacy project paths', () async {
@@ -533,14 +574,32 @@ void main() {
 
     await tester.tap(find.byKey(manageButton));
     await settleUi(tester);
-    await tester.tap(find.text('Pin project').last);
+    await tester.tap(find.byKey(const Key('rename-project-menu-item')));
+    await settleUi(tester);
+    await tester.enterText(
+      find.byKey(const Key('project-rename-input')),
+      'Workspace Alpha',
+    );
+    await tester.tap(find.byKey(const Key('save-project-rename-button')));
     await settleUi(tester);
 
     var updatedRegistry = await projectRegistryStore.loadSnapshot();
+    expect(updatedRegistry.entries.single.alias, 'Workspace Alpha');
+    expect(find.text('Workspace Alpha'), findsWidgets);
+
+    final renamedManageButton = const Key(
+      'manage-project-button-Workspace Alpha',
+    );
+    await tester.tap(find.byKey(renamedManageButton));
+    await settleUi(tester);
+    await tester.tap(find.text('Pin project').last);
+    await settleUi(tester);
+
+    updatedRegistry = await projectRegistryStore.loadSnapshot();
     expect(updatedRegistry.entries.single.isPinned, true);
     expect(find.byIcon(Icons.push_pin_outlined), findsWidgets);
 
-    await tester.tap(find.byKey(manageButton));
+    await tester.tap(find.byKey(renamedManageButton));
     await settleUi(tester);
     await tester.tap(find.text('Remove from projects').last);
     await settleUi(tester);
