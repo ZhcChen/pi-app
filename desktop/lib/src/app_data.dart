@@ -116,20 +116,7 @@ WorkspaceProjectGroup? _buildWorkspaceProject(String rootPath) {
 }
 
 String? _resolveWorkspaceRoot(String? workspaceRootPath) {
-  final configured = workspaceRootPath?.trim();
-  if (configured != null && configured.isNotEmpty) {
-    return configured;
-  }
-
-  try {
-    final currentDirectory = Directory.current;
-    if (currentDirectory.path.endsWith('${Platform.pathSeparator}desktop')) {
-      return currentDirectory.parent.path;
-    }
-    return currentDirectory.path;
-  } catch (_) {
-    return null;
-  }
+  return _normalizeProjectRoot(workspaceRootPath);
 }
 
 String? _normalizeProjectRoot(String? rawPath) {

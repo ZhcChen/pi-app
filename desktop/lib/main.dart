@@ -32,10 +32,9 @@ String? _defaultWorkspaceRootPath() {
     if (currentDirectory.path.endsWith('${Platform.pathSeparator}desktop')) {
       return currentDirectory.parent.path;
     }
-    return currentDirectory.path;
-  } catch (_) {
-    return null;
-  }
+  } catch (_) {}
+
+  return null;
 }
 
 Future<void> _prepareDesktopWindow() async {

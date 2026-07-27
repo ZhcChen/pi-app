@@ -205,6 +205,17 @@ void main() {
     expect(capturedRequest?.workspacePath, '/workspace/pi-app');
   });
 
+  testWidgets('app starts without an implicit project root', (tester) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+
+    await tester.pumpWidget(const PiDesktopApp(enablePersistence: false));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No projects available'), findsWidgets);
+    expect(find.byKey(const Key('project-overview-title')), findsNothing);
+  });
+
   testWidgets('renders settings views and switches language', (tester) async {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
@@ -251,11 +262,13 @@ void main() {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
     final runtimeController = MemoryDesktopRuntimeController();
+    final workspacePath = resolveRepoWorkspacePath();
 
     await tester.pumpWidget(
       PiDesktopApp(
         enablePersistence: false,
         runtimeController: runtimeController,
+        workspaceRootPath: workspacePath,
       ),
     );
     await tester.pumpAndSettle();
