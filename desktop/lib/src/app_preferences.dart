@@ -25,6 +25,7 @@ class AppPreferences {
     this.showBottomPanel = false,
     this.preventSleep = false,
     this.suggestedPrompts = true,
+    this.projectPaths = const <String>[],
   });
 
   final AppLanguage language;
@@ -40,6 +41,7 @@ class AppPreferences {
   final bool showBottomPanel;
   final bool preventSleep;
   final bool suggestedPrompts;
+  final List<String> projectPaths;
 
   AppPreferences copyWith({
     AppLanguage? language,
@@ -55,6 +57,7 @@ class AppPreferences {
     bool? showBottomPanel,
     bool? preventSleep,
     bool? suggestedPrompts,
+    List<String>? projectPaths,
   }) {
     return AppPreferences(
       language: language ?? this.language,
@@ -70,6 +73,7 @@ class AppPreferences {
       showBottomPanel: showBottomPanel ?? this.showBottomPanel,
       preventSleep: preventSleep ?? this.preventSleep,
       suggestedPrompts: suggestedPrompts ?? this.suggestedPrompts,
+      projectPaths: projectPaths ?? this.projectPaths,
     );
   }
 }

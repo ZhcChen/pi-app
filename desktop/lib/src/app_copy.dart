@@ -14,6 +14,7 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
 
   String get searchTooltip => isChinese ? '搜索' : 'Search';
   String get projectsLabel => isChinese ? '项目' : 'Projects';
+  String get addProjectTooltip => isChinese ? '添加项目' : 'Add project';
   String get tasksLabel => isChinese ? '任务' : 'Tasks';
   String get settingsLabel => isChinese ? '设置' : 'Settings';
   String get downloadRuntimeTooltip => isChinese ? '下载运行时' : 'Download runtime';
@@ -150,6 +151,20 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
       : 'There is no project context available for this task yet.';
   String get composerEmptyTaskNotice =>
       isChinese ? '先输入任务内容。' : 'Enter a task first.';
+  String projectAddedNotice(String projectName) {
+    return isChinese ? '已添加项目：$projectName' : 'Added project: $projectName';
+  }
+
+  String projectAlreadyAddedNotice(String projectName) {
+    return isChinese
+        ? '项目已存在于列表中：$projectName'
+        : 'Project is already in the list: $projectName';
+  }
+
+  String projectAddFailedNotice(String reason) {
+    return isChinese ? '添加项目失败：$reason' : 'Failed to add project: $reason';
+  }
+
   String composerPreparedNotice(String projectName) {
     return isChinese
         ? '任务已绑定到 $projectName 的 session cwd。'

@@ -95,6 +95,8 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         suggestedPrompts:
             _decodeBool(decoded['suggestedPrompts']) ??
             defaults.suggestedPrompts,
+        projectPaths:
+            _decodeStringList(decoded['projectPaths']) ?? defaults.projectPaths,
       );
     } catch (_) {
       return defaults;
@@ -124,6 +126,7 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         'showBottomPanel': preferences.showBottomPanel,
         'preventSleep': preferences.preventSleep,
         'suggestedPrompts': preferences.suggestedPrompts,
+        'projectPaths': preferences.projectPaths,
       }),
       flush: true,
     );
@@ -146,6 +149,15 @@ class MemoryDesktopPreferencesStore implements DesktopPreferencesStore {
 }
 
 bool? _decodeBool(Object? value) => value is bool ? value : null;
+
+List<String>? _decodeStringList(Object? value) {
+  if (value is! List) {
+    return null;
+  }
+
+  final items = value.whereType<String>().map((item) => item.trim()).toList();
+  return items;
+}
 
 String _serializeLanguage(AppLanguage language) {
   return switch (language) {

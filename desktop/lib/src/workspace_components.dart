@@ -699,7 +699,7 @@ class _SidebarActionTile extends StatelessWidget {
 }
 
 /// Expandable project tile in the workspace sidebar.
-class _ProjectTile extends StatelessWidget {
+class _ProjectTile extends StatefulWidget {
   const _ProjectTile({
     required this.copy,
     required this.project,
@@ -708,7 +708,6 @@ class _ProjectTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onOpenProject,
-    required this.onOpenProjectItem,
   });
 
   final WorkspaceCopy copy;
@@ -718,157 +717,128 @@ class _ProjectTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onOpenProject;
-  final ValueChanged<WorkspaceProjectItem> onOpenProjectItem;
+
+  @override
+  State<_ProjectTile> createState() => _ProjectTileState();
+}
+
+class _ProjectTileState extends State<_ProjectTile> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
 
-    return DesktopSelectionTile(
-      selected: selected,
-      radius: _WorkspaceComponentSpec.projectTileRadius,
-      animated: false,
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: desktopDensityValue(
-                interfaceDensity,
-                compact: 5,
-                comfortable: 7,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: DesktopSelectionTile(
+        selected: widget.selected,
+        onTap: widget.onTap,
+        height: desktopDensityValue(
+          widget.interfaceDensity,
+          compact: 36,
+          comfortable: 40,
+        ),
+        radius: _WorkspaceComponentSpec.projectTileRadius,
+        animated: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            children: [
+              Icon(
+                Icons.folder_outlined,
+                size: 16,
+                color: palette.textSecondary,
               ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: onTap,
-                    borderRadius: BorderRadius.circular(
-                      _WorkspaceComponentSpec.projectTileRadius,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.folder_outlined,
-                          size: 17,
-                          color: palette.textSecondary,
-                        ),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            project.name,
-                            style: DesktopTypography.sidebarItem(palette),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.project.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesktopTypography.sidebarItem(palette),
                 ),
-                if (selected && project.workspacePath != null) ...[
-                  const SizedBox(width: 8),
-                  DesktopIconActionButton(
-                    key: Key('open-project-button-${project.name}'),
-                    onPressed: onOpenProject,
-                    tooltip: copy.openTargetTooltip(openDestination),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    backgroundColor: palette.settingsField,
-                    foregroundColor: palette.textSecondary,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (selected)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 10, 10),
-              child: Column(
-                children: [
-                  for (final item in project.items)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: _ProjectItemRow(
-                        copy: copy,
-                        interfaceDensity: interfaceDensity,
-                        openDestination: openDestination,
-                        item: item,
-                        onOpen: item.targetPath == null
-                            ? null
-                            : () => onOpenProjectItem(item),
-                      ),
-                    ),
-                ],
               ),
-            ),
-        ],
+              if ((_isHovered || widget.selected) &&
+                  widget.project.workspacePath != null) ...[
+                const SizedBox(width: 8),
+                DesktopIconActionButton(
+                  key: Key('open-project-button-${widget.project.name}'),
+                  onPressed: widget.onOpenProject,
+                  tooltip: widget.copy.openTargetTooltip(
+                    widget.openDestination,
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                  backgroundColor: palette.settingsField,
+                  foregroundColor: palette.textSecondary,
+                  buttonSize: const Size(24, 24),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ProjectItemRow extends StatelessWidget {
-  const _ProjectItemRow({
-    required this.copy,
-    required this.interfaceDensity,
-    required this.openDestination,
-    required this.item,
-    this.onOpen,
+class _ProjectSectionHeader extends StatefulWidget {
+  const _ProjectSectionHeader({
+    required this.label,
+    required this.addTooltip,
+    required this.onAddProject,
   });
 
-  final WorkspaceCopy copy;
-  final AppInterfaceDensity interfaceDensity;
-  final AppOpenDestination openDestination;
-  final WorkspaceProjectItem item;
-  final VoidCallback? onOpen;
+  final String label;
+  final String addTooltip;
+  final Future<void> Function() onAddProject;
 
   @override
-  Widget build(BuildContext context) {
-    final palette = context.desktopPalette;
-
-    return SizedBox(
-      height: desktopDensityValue(
-        interfaceDensity,
-        compact: 30,
-        comfortable: 34,
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 2),
-          Expanded(
-            child: Text(
-              item.label,
-              style: DesktopTypography.projectItem(palette),
-            ),
-          ),
-          if (onOpen != null)
-            DesktopIconActionButton(
-              key: Key('open-project-item-button-${item.label}'),
-              onPressed: onOpen!,
-              tooltip: copy.openTargetTooltip(openDestination),
-              icon: const Icon(Icons.open_in_new_rounded, size: 15),
-              backgroundColor: palette.settingsField,
-              foregroundColor: palette.textSecondary,
-            ),
-        ],
-      ),
-    );
-  }
+  State<_ProjectSectionHeader> createState() => _ProjectSectionHeaderState();
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
-
-  final String label;
+class _ProjectSectionHeaderState extends State<_ProjectSectionHeader> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
 
-    return Align(
-      alignment: Alignment.centerLeft,
+    return MouseRegion(
+      key: const Key('projects-section-header'),
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(label, style: DesktopTypography.sectionLabel(palette)),
+        child: Row(
+          children: [
+            Text(widget.label, style: DesktopTypography.sectionLabel(palette)),
+            const SizedBox(width: 2),
+            Icon(Icons.expand_more_rounded, size: 16, color: palette.textMuted),
+            const Spacer(),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 120),
+              child: _isHovered
+                  ? DesktopIconActionButton(
+                      key: const Key('add-project-button'),
+                      onPressed: () {
+                        widget.onAddProject();
+                      },
+                      tooltip: widget.addTooltip,
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: palette.textMuted,
+                      buttonSize: const Size(24, 24),
+                    )
+                  : const SizedBox(
+                      key: ValueKey('project-header-spacer'),
+                      width: 24,
+                      height: 24,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

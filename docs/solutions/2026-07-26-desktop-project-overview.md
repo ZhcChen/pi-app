@@ -73,6 +73,18 @@
 
 这样下一步接 `pi-host` 时，不需要再返工“项目选择如何影响任务上下文”这条链。
 
+### 5. 左侧 `Projects` 改为扁平项目列表，并接上手动添加
+
+这轮把左侧项目区往参考图继续收：
+
+- 不再在 sidebar 内展开 recent targets
+- 项目列表改成单行扁平结构
+- `Projects` header 悬浮时才显示 `+`
+- `+` 会调用本地目录选择器，并把选中的目录加入项目列表
+- 手动添加的项目路径进入 `AppPreferences.projectPaths`，随 `~/.pi-app/settings.json` 持久化
+
+这样右侧 overview 继续负责“项目细节和 recent targets”，左侧只承担“项目选择与切换”，信息密度和职责都更清楚。
+
 ## 关键决策
 
 ### 只显示真实项目，不再保留演示项兜底
@@ -107,6 +119,7 @@
 新增验证覆盖：
 
 - `workspace open actions follow the current open destination`
+- `projects header reveals add action and adds a project`
 - `workspace overview uses real project data instead of seed items`
 - `composer submit binds task to the selected project session cwd`
 

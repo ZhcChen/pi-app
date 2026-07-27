@@ -51,30 +51,68 @@ List<WorkspacePromptCard> buildPromptCards(AppCopy copy) {
   ];
 }
 
-List<WorkspaceProjectGroup> buildDesktopProjects(String? workspaceRootPath) {
-  final resolvedRoot = _resolveWorkspaceRoot(workspaceRootPath);
-  if (resolvedRoot == null) {
+List<WorkspaceProjectGroup> buildDesktopProjects(
+  String? workspaceRootPath, {
+  List<String> additionalProjectPaths = const <String>[],
+}) {
+  final projectRoots = _resolveProjectRoots(
+    workspaceRootPath,
+    additionalProjectPaths,
+  );
+  if (projectRoots.isEmpty) {
     return const <WorkspaceProjectGroup>[];
   }
 
-  final rootDirectory = Directory(resolvedRoot);
+  final projects = <WorkspaceProjectGroup>[];
+  for (final rootPath in projectRoots) {
+    final project = _buildWorkspaceProject(rootPath);
+    if (project != null) {
+      projects.add(project);
+    }
+  }
+  return projects;
+}
+
+List<String> _resolveProjectRoots(
+  String? workspaceRootPath,
+  List<String> additionalProjectPaths,
+) {
+  final roots = <String>[];
+  final seen = <String>{};
+
+  void addRoot(String? rawPath) {
+    final normalized = _normalizeProjectRoot(rawPath);
+    if (normalized == null || !seen.add(normalized)) {
+      return;
+    }
+    roots.add(normalized);
+  }
+
+  addRoot(_resolveWorkspaceRoot(workspaceRootPath));
+  for (final projectPath in additionalProjectPaths) {
+    addRoot(projectPath);
+  }
+
+  return roots;
+}
+
+WorkspaceProjectGroup? _buildWorkspaceProject(String rootPath) {
+  final rootDirectory = Directory(rootPath);
   if (!rootDirectory.existsSync()) {
-    return const <WorkspaceProjectGroup>[];
+    return null;
   }
 
   final gitInfo = _resolveGitInfo(rootDirectory);
   final recentTargets = _buildRecentTargets(rootDirectory);
 
-  return [
-    WorkspaceProjectGroup(
-      name: _basename(rootDirectory.path),
-      branch: gitInfo.branch,
-      items: recentTargets,
-      workspacePath: rootDirectory.path,
-      sessionCwd: rootDirectory.path,
-      isGitRepository: gitInfo.isGitRepository,
-    ),
-  ];
+  return WorkspaceProjectGroup(
+    name: _basename(rootDirectory.path),
+    branch: gitInfo.branch,
+    items: recentTargets,
+    workspacePath: rootDirectory.path,
+    sessionCwd: rootDirectory.path,
+    isGitRepository: gitInfo.isGitRepository,
+  );
 }
 
 String? _resolveWorkspaceRoot(String? workspaceRootPath) {
@@ -92,6 +130,15 @@ String? _resolveWorkspaceRoot(String? workspaceRootPath) {
   } catch (_) {
     return null;
   }
+}
+
+String? _normalizeProjectRoot(String? rawPath) {
+  final trimmed = rawPath?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+
+  return Directory(trimmed).absolute.path;
 }
 
 List<WorkspaceProjectItem> _buildRecentTargets(Directory rootDirectory) {

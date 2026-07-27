@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_copy.dart';
@@ -18,6 +22,7 @@ class PiDesktopApp extends StatefulWidget {
     this.runtimeController,
     this.piConfigStore,
     this.workspaceRootPath,
+    this.pickProjectDirectory,
   });
 
   final bool enablePersistence;
@@ -25,6 +30,7 @@ class PiDesktopApp extends StatefulWidget {
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
   final String? workspaceRootPath;
+  final Future<String?> Function()? pickProjectDirectory;
 
   @override
   State<PiDesktopApp> createState() => _PiDesktopAppState();
@@ -110,6 +116,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
         workspaceRootPath: widget.workspaceRootPath,
+        pickProjectDirectory:
+            widget.pickProjectDirectory ?? _pickProjectDirectory,
         onPreferencesChanged: _handlePreferencesChanged,
       ),
     );
@@ -129,7 +137,12 @@ bool _samePreferences(AppPreferences a, AppPreferences b) {
       a.showInMenuBar == b.showInMenuBar &&
       a.showBottomPanel == b.showBottomPanel &&
       a.preventSleep == b.preventSleep &&
-      a.suggestedPrompts == b.suggestedPrompts;
+      a.suggestedPrompts == b.suggestedPrompts &&
+      listEquals(a.projectPaths, b.projectPaths);
+}
+
+Future<String?> _pickProjectDirectory() async {
+  return getDirectoryPath();
 }
 
 enum _DesktopRoute { workspace, settings }
@@ -141,6 +154,7 @@ class _PiDesktopShell extends StatefulWidget {
     required this.runtimeController,
     required this.piConfigStore,
     required this.workspaceRootPath,
+    required this.pickProjectDirectory,
     required this.onPreferencesChanged,
   });
 
@@ -149,6 +163,7 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
   final String? workspaceRootPath;
+  final Future<String?> Function() pickProjectDirectory;
   final ValueChanged<AppPreferences> onPreferencesChanged;
 
   @override
@@ -163,6 +178,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
   WorkspacePreparedTask? _preparedTask;
+  String? _preferredSelectedProjectPath;
 
   _DesktopRoute _route = _DesktopRoute.workspace;
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
@@ -196,7 +212,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   @override
   void initState() {
     super.initState();
-    _projects = buildDesktopProjects(widget.workspaceRootPath);
+    _projects = buildDesktopProjects(
+      widget.workspaceRootPath,
+      additionalProjectPaths: widget.preferences.projectPaths,
+    );
     _settingsSearchController.addListener(_onSettingsSearchChanged);
     _loadPiConfig();
   }
@@ -204,8 +223,12 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   @override
   void didUpdateWidget(covariant _PiDesktopShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
-      _refreshProjects();
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        !listEquals(
+          oldWidget.preferences.projectPaths,
+          widget.preferences.projectPaths,
+        )) {
+      _refreshProjects(preferredSelectedPath: _preferredSelectedProjectPath);
     }
   }
 
@@ -238,13 +261,33 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     widget.onPreferencesChanged(next);
   }
 
-  void _refreshProjects() {
-    final projects = buildDesktopProjects(widget.workspaceRootPath);
+  void _refreshProjects({String? preferredSelectedPath}) {
+    final currentSelectedPath = _selectedProject?.workspacePath;
+    final projects = buildDesktopProjects(
+      widget.workspaceRootPath,
+      additionalProjectPaths: widget.preferences.projectPaths,
+    );
+    final desiredPath = preferredSelectedPath ?? currentSelectedPath;
+
     setState(() {
       _projects = projects;
+      _preferredSelectedProjectPath = null;
       if (_projects.isEmpty) {
         _selectedProjectIndex = 0;
-      } else if (_selectedProjectIndex >= _projects.length) {
+        return;
+      }
+
+      if (desiredPath != null) {
+        final matchedIndex = _projects.indexWhere(
+          (project) => project.workspacePath == desiredPath,
+        );
+        if (matchedIndex >= 0) {
+          _selectedProjectIndex = matchedIndex;
+          return;
+        }
+      }
+
+      if (_selectedProjectIndex >= _projects.length) {
         _selectedProjectIndex = _projects.length - 1;
       }
     });
@@ -317,6 +360,48 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       _showNotice(_copy.piConfigSavedNotice);
     } catch (error) {
       _showNotice(_copy.piConfigSaveFailedNotice(error.toString()));
+    }
+  }
+
+  Future<void> _addProject() async {
+    try {
+      final pickedPath = await widget.pickProjectDirectory();
+      if (!mounted || pickedPath == null) {
+        return;
+      }
+
+      final normalizedPath = Directory(pickedPath.trim()).absolute.path;
+      if (normalizedPath.isEmpty) {
+        return;
+      }
+
+      final existingIndex = _projects.indexWhere(
+        (project) => project.workspacePath == normalizedPath,
+      );
+      if (existingIndex >= 0) {
+        setState(() {
+          _selectedProjectIndex = existingIndex;
+        });
+        _showNotice(
+          _copy.projectAlreadyAddedNotice(_projects[existingIndex].name),
+        );
+        return;
+      }
+
+      _preferredSelectedProjectPath = normalizedPath;
+      _updatePreferences(
+        widget.preferences.copyWith(
+          projectPaths: <String>[
+            ...widget.preferences.projectPaths,
+            normalizedPath,
+          ],
+        ),
+      );
+      _showNotice(
+        _copy.projectAddedNotice(_projectNameForPath(normalizedPath)),
+      );
+    } catch (error) {
+      _showNotice(_copy.projectAddFailedNotice(error.toString()));
     }
   }
 
@@ -397,6 +482,15 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _projectNameForPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final trimmed = normalized.endsWith('/') && normalized.length > 1
+        ? normalized.substring(0, normalized.length - 1)
+        : normalized;
+    final segments = trimmed.split('/');
+    return segments.isEmpty ? trimmed : segments.last;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -439,8 +533,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                     _selectedProjectIndex = index;
                   });
                 },
+                onAddProject: _addProject,
                 onOpenProject: _openProject,
-                onOpenProjectItem: _openProjectItem,
                 onOpenSettings: _openSettings,
               ),
             ),

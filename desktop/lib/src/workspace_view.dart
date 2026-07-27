@@ -10,8 +10,8 @@ class WorkspaceSidebar extends StatelessWidget {
     required this.selectedProjectIndex,
     required this.onActionSelected,
     required this.onProjectSelected,
+    required this.onAddProject,
     required this.onOpenProject,
-    required this.onOpenProjectItem,
     required this.onOpenSettings,
     super.key,
   });
@@ -24,9 +24,8 @@ class WorkspaceSidebar extends StatelessWidget {
   final int selectedProjectIndex;
   final ValueChanged<int> onActionSelected;
   final ValueChanged<int> onProjectSelected;
+  final Future<void> Function() onAddProject;
   final ValueChanged<WorkspaceProjectGroup> onOpenProject;
-  final void Function(WorkspaceProjectGroup project, WorkspaceProjectItem item)
-  onOpenProjectItem;
   final VoidCallback onOpenSettings;
 
   @override
@@ -88,7 +87,11 @@ class WorkspaceSidebar extends StatelessWidget {
           SizedBox(
             height: desktopDensityValue(density, compact: 14, comfortable: 18),
           ),
-          _SectionLabel(label: copy.projectsLabel),
+          _ProjectSectionHeader(
+            label: copy.projectsLabel,
+            addTooltip: copy.addProjectTooltip,
+            onAddProject: onAddProject,
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
@@ -108,8 +111,8 @@ class WorkspaceSidebar extends StatelessWidget {
                       padding: EdgeInsets.only(
                         bottom: desktopDensityValue(
                           density,
-                          compact: 6,
-                          comfortable: 8,
+                          compact: 3,
+                          comfortable: 4,
                         ),
                       ),
                       child: _ProjectTile(
@@ -120,8 +123,6 @@ class WorkspaceSidebar extends StatelessWidget {
                         selected: i == selectedProjectIndex,
                         onTap: () => onProjectSelected(i),
                         onOpenProject: () => onOpenProject(projects[i]),
-                        onOpenProjectItem: (item) =>
-                            onOpenProjectItem(projects[i], item),
                       ),
                     ),
                 const SizedBox(height: 12),

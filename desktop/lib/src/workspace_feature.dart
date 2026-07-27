@@ -11,6 +11,7 @@ part 'workspace_components.dart';
 abstract interface class WorkspaceCopy {
   String get searchTooltip;
   String get projectsLabel;
+  String get addProjectTooltip;
   String get tasksLabel;
   String get settingsLabel;
   String get downloadRuntimeTooltip;
@@ -39,6 +40,9 @@ abstract interface class WorkspaceCopy {
   String get projectNoRecentTargetsLabel;
   String get composerNoProjectNotice;
   String get composerEmptyTaskNotice;
+  String projectAddedNotice(String projectName);
+  String projectAlreadyAddedNotice(String projectName);
+  String projectAddFailedNotice(String reason);
   String composerPreparedNotice(String projectName);
   String projectRecentTargetDescription(String relativePath);
   String projectRepositoryStatus(bool isGitRepository);

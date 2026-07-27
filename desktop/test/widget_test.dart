@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +46,7 @@ void main() {
       showBottomPanel: true,
       preventSleep: true,
       suggestedPrompts: true,
+      projectPaths: <String>['/workspace/pi-app', '/workspace/notes'],
     );
 
     await store.savePreferences(expected);
@@ -63,6 +65,10 @@ void main() {
     expect(loaded.showBottomPanel, true);
     expect(loaded.preventSleep, true);
     expect(loaded.suggestedPrompts, true);
+    expect(loaded.projectPaths, <String>[
+      '/workspace/pi-app',
+      '/workspace/notes',
+    ]);
   });
 
   test(
@@ -368,7 +374,9 @@ void main() {
     await tester.tap(find.byKey(const Key('back-to-app-button')));
     await settleUi(tester);
 
-    await tester.tap(find.byKey(const Key('open-project-item-button-desktop')));
+    await tester.tap(
+      find.byKey(const Key('open-project-overview-item-button-desktop')),
+    );
     await settleUi(tester);
 
     expect(
@@ -380,6 +388,61 @@ void main() {
       '$workspacePath${Platform.pathSeparator}desktop',
     );
     expect(runtimeController.openCount, 2);
+  });
+
+  testWidgets('projects header reveals add action and adds a project', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final workspacePath = resolveRepoWorkspacePath();
+    final store = MemoryDesktopPreferencesStore();
+    final runtimeController = MemoryDesktopRuntimeController();
+    final addedProject = Directory(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}pi-desktop-added-project-test',
+    )..createSync(recursive: true);
+    addTearDown(() async {
+      if (await addedProject.exists()) {
+        await addedProject.delete(recursive: true);
+      }
+    });
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: true,
+        preferencesStore: store,
+        runtimeController: runtimeController,
+        workspaceRootPath: workspacePath,
+        pickProjectDirectory: () async => addedProject.path,
+      ),
+    );
+    await settleUi(tester);
+
+    expect(find.byKey(const Key('add-project-button')), findsNothing);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const Key('projects-section-header'))),
+    );
+    await settleUi(tester);
+
+    expect(find.byKey(const Key('add-project-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('add-project-button')));
+    await settleUi(tester);
+
+    expect(find.text(addedProject.path), findsWidgets);
+    expect(
+      find.text(
+        'Added project: ${addedProject.uri.pathSegments.where((segment) => segment.isNotEmpty).last}',
+      ),
+      findsOneWidget,
+    );
+
+    final savedPreferences = await store.loadPreferences();
+    expect(savedPreferences.projectPaths, <String>[addedProject.path]);
   });
 
   testWidgets(
