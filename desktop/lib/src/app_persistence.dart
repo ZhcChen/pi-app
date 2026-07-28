@@ -100,6 +100,9 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
               decoded['openDestination']?.toString(),
             ) ??
             defaults.openDestination,
+        piCoreExecutablePath: _decodeNonEmptyString(
+          decoded['piCoreExecutablePath'],
+        ),
         defaultPermissions: hasExplicitToolPolicy
             ? _decodeBool(decoded['defaultPermissions']) ??
                   defaults.defaultPermissions
@@ -139,6 +142,8 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         'openDestination': _serializeOpenDestination(
           preferences.openDestination,
         ),
+        if (preferences.piCoreExecutablePath != null)
+          'piCoreExecutablePath': preferences.piCoreExecutablePath,
         'toolPolicyVersion': 1,
         'defaultPermissions': preferences.defaultPermissions,
         'autoReview': preferences.autoReview,
@@ -169,6 +174,14 @@ class MemoryDesktopPreferencesStore implements DesktopPreferencesStore {
 }
 
 bool? _decodeBool(Object? value) => value is bool ? value : null;
+
+String? _decodeNonEmptyString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final normalized = value.trim();
+  return normalized.isEmpty ? null : normalized;
+}
 
 String _serializeLanguage(AppLanguage language) {
   return switch (language) {

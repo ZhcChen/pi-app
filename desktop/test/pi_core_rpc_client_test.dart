@@ -120,6 +120,46 @@ void main() {
     },
   );
 
+  test(
+    'direct Pi RPC gates and rechecks health for a changed executable',
+    () async {
+      final launches = <PiCoreRpcLaunchCommand>[];
+      final versionRequests = <String>[];
+      final workingDirectory = await Directory.systemTemp.createTemp(
+        'pi-core-rpc-runtime-gate-',
+      );
+      var executable = '/mock/first-pi';
+      var gateCount = 0;
+      final client = PiCoreRpcClient(
+        executableResolver: () => executable,
+        runtimeGate: () async {
+          gateCount += 1;
+        },
+        readVersion: (value) async {
+          versionRequests.add(value);
+          return '0.82.0-test';
+        },
+        startProcess: (command) {
+          launches.add(command);
+          return startNodeRpc(command, _rpcScript());
+        },
+      );
+
+      try {
+        await client.ensureStarted();
+        executable = '/mock/second-pi';
+        await client.createSession(cwd: workingDirectory.path);
+
+        expect(gateCount, 2);
+        expect(versionRequests, <String>['/mock/first-pi', '/mock/second-pi']);
+        expect(launches.single.executable, '/mock/second-pi');
+      } finally {
+        await client.dispose();
+        await workingDirectory.delete(recursive: true);
+      }
+    },
+  );
+
   test('direct Pi RPC accepts CRLF-delimited responses', () async {
     final workingDirectory = await Directory.systemTemp.createTemp(
       'pi-core-rpc-crlf-',

@@ -32,6 +32,8 @@ class PiCoreRpcLaunchCommand {
 typedef PiCoreRpcProcessStarter =
     Future<Process> Function(PiCoreRpcLaunchCommand command);
 typedef PiCoreVersionReader = Future<String> Function(String executable);
+typedef PiCoreExecutableResolver = String? Function();
+typedef PiCoreRuntimeGate = Future<void> Function();
 
 /// 已安装 Pi CLI 的 `--mode rpc` 产品适配器。
 ///
@@ -41,14 +43,20 @@ typedef PiCoreVersionReader = Future<String> Function(String executable);
 class PiCoreRpcClient implements PiHostClient {
   PiCoreRpcClient({
     Map<String, String>? environment,
+    PiCoreExecutableResolver? executableResolver,
+    PiCoreRuntimeGate? runtimeGate,
     PiCoreRpcProcessStarter? startProcess,
     PiCoreVersionReader? readVersion,
     this.extensionCompletionDelay = const Duration(milliseconds: 250),
   }) : _environment = environment,
+       _executableResolver = executableResolver,
+       _runtimeGate = runtimeGate,
        _startProcess = startProcess ?? _defaultStartProcess,
        _readVersion = readVersion ?? _defaultReadVersion;
 
   final Map<String, String>? _environment;
+  final PiCoreExecutableResolver? _executableResolver;
+  final PiCoreRuntimeGate? _runtimeGate;
   final PiCoreRpcProcessStarter _startProcess;
   final PiCoreVersionReader _readVersion;
   final Duration extensionCompletionDelay;
@@ -58,6 +66,7 @@ class PiCoreRpcClient implements PiHostClient {
       <String, _PiCoreRpcSession>{};
 
   Future<PiHostHealth>? _healthFuture;
+  String? _healthExecutable;
   int _nextRequestNumber = 0;
   int _nextSessionNumber = 0;
   bool _isDisposed = false;
@@ -66,20 +75,43 @@ class PiCoreRpcClient implements PiHostClient {
   Stream<PiHostEvent> get events => _events.stream;
 
   @override
-  Future<PiHostHealth> ensureStarted() {
+  Future<PiHostHealth> ensureStarted() async {
     if (_isDisposed) {
-      return Future<PiHostHealth>.error(
-        const PiHostClientException(
-          'Pi core RPC client has already been disposed.',
-        ),
+      throw const PiHostClientException(
+        'Pi core RPC client has already been disposed.',
       );
     }
-    return _healthFuture ??= _loadHealth();
+    await _ensureRuntimeReady();
+    return _ensureStartedForExecutable(_resolveExecutable());
   }
 
-  Future<PiHostHealth> _loadHealth() async {
+  Future<void> _ensureRuntimeReady() async {
+    final runtimeGate = _runtimeGate;
+    if (runtimeGate == null) {
+      return;
+    }
     try {
-      final version = await _readVersion(_resolveExecutable());
+      await runtimeGate();
+    } catch (_) {
+      throw const PiHostClientException('Pi core runtime is not ready.');
+    }
+  }
+
+  Future<PiHostHealth> _ensureStartedForExecutable(String executable) {
+    final existingHealth = _healthFuture;
+    if (existingHealth != null && _healthExecutable == executable) {
+      return existingHealth;
+    }
+
+    _healthExecutable = executable;
+    final health = _loadHealth(executable);
+    _healthFuture = health;
+    return health;
+  }
+
+  Future<PiHostHealth> _loadHealth(String executable) async {
+    try {
+      final version = await _readVersion(executable);
       if (version.trim().isEmpty) {
         throw const PiHostClientException('Pi core returned an empty version.');
       }
@@ -90,7 +122,10 @@ class PiCoreRpcClient implements PiHostClient {
         agentDir: environment['PI_CODING_AGENT_DIR']?.trim() ?? '',
       );
     } catch (_) {
-      _healthFuture = null;
+      if (_healthExecutable == executable) {
+        _healthFuture = null;
+        _healthExecutable = null;
+      }
       rethrow;
     }
   }
@@ -109,12 +144,14 @@ class PiCoreRpcClient implements PiHostClient {
       throw const PiHostClientException('Pi session cwd must not be empty.');
     }
     _validateTools(tools);
-    await ensureStarted();
+    await _ensureRuntimeReady();
+    final executable = _resolveExecutable();
+    await _ensureStartedForExecutable(executable);
 
     final sessionId =
         'pi-core-${DateTime.now().microsecondsSinceEpoch}-${_nextSessionNumber++}';
     final command = PiCoreRpcLaunchCommand(
-      executable: _resolveExecutable(),
+      executable: executable,
       arguments: <String>[
         '--mode',
         'rpc',
@@ -822,6 +859,10 @@ class PiCoreRpcClient implements PiHostClient {
   }
 
   String _resolveExecutable() {
+    final resolved = _executableResolver?.call()?.trim();
+    if (resolved != null && resolved.isNotEmpty) {
+      return resolved;
+    }
     final executable =
         (_environment ?? Platform.environment)['PI_CORE_EXECUTABLE']?.trim();
     return executable == null || executable.isEmpty ? 'pi' : executable;

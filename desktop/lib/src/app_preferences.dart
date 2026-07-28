@@ -18,6 +18,7 @@ class AppPreferences {
     this.interfaceDensity = AppInterfaceDensity.comfortable,
     this.codeFont = AppCodeFont.jetBrainsMono,
     this.openDestination = AppOpenDestination.vscode,
+    this.piCoreExecutablePath,
     this.defaultPermissions = true,
     this.autoReview = true,
     this.fullAccess = true,
@@ -33,6 +34,7 @@ class AppPreferences {
   final AppInterfaceDensity interfaceDensity;
   final AppCodeFont codeFont;
   final AppOpenDestination openDestination;
+  final String? piCoreExecutablePath;
   final bool defaultPermissions;
   final bool autoReview;
   final bool fullAccess;
@@ -48,6 +50,8 @@ class AppPreferences {
     AppInterfaceDensity? interfaceDensity,
     AppCodeFont? codeFont,
     AppOpenDestination? openDestination,
+    String? piCoreExecutablePath,
+    bool clearPiCoreExecutablePath = false,
     bool? defaultPermissions,
     bool? autoReview,
     bool? fullAccess,
@@ -63,6 +67,9 @@ class AppPreferences {
       interfaceDensity: interfaceDensity ?? this.interfaceDensity,
       codeFont: codeFont ?? this.codeFont,
       openDestination: openDestination ?? this.openDestination,
+      piCoreExecutablePath: clearPiCoreExecutablePath
+          ? null
+          : piCoreExecutablePath ?? this.piCoreExecutablePath,
       defaultPermissions: defaultPermissions ?? this.defaultPermissions,
       autoReview: autoReview ?? this.autoReview,
       fullAccess: fullAccess ?? this.fullAccess,

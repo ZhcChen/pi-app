@@ -13,6 +13,7 @@ import 'app_update_service.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
 import 'pi_core_rpc_client.dart';
+import 'pi_core_runtime.dart';
 import 'pi_host_client.dart';
 import 'project_registry_store.dart';
 import 'settings_feature.dart';
@@ -25,22 +26,26 @@ class PiDesktopApp extends StatefulWidget {
     this.preferencesStore,
     this.runtimeController,
     this.piConfigStore,
+    this.piCoreRuntimeController,
     this.piHostClient,
     this.appUpdateClient,
     this.projectRegistryStore,
     this.workspaceRootPath,
     this.pickProjectDirectory,
+    this.pickPiCoreExecutable,
   });
 
   final bool enablePersistence;
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
+  final PiCoreRuntimeController? piCoreRuntimeController;
   final PiHostClient? piHostClient;
   final AppUpdateClient? appUpdateClient;
   final ProjectRegistryStore? projectRegistryStore;
   final String? workspaceRootPath;
   final Future<String?> Function()? pickProjectDirectory;
+  final Future<String?> Function()? pickPiCoreExecutable;
 
   @override
   State<PiDesktopApp> createState() => _PiDesktopAppState();
@@ -53,8 +58,14 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.runtimeController ?? PlatformDesktopRuntimeController();
   late final PiConfigStore _piConfigStore =
       widget.piConfigStore ?? FilePiConfigStore();
+  late final PiCoreRuntimeController _piCoreRuntimeController =
+      widget.piCoreRuntimeController ?? PiCoreRuntimeController();
   late final PiHostClient _piHostClient =
-      widget.piHostClient ?? PiCoreRpcClient();
+      widget.piHostClient ??
+      PiCoreRpcClient(
+        executableResolver: _piCoreRuntimeController.resolveExecutableOverride,
+        runtimeGate: _piCoreRuntimeController.ensureReady,
+      );
   late final AppUpdateClient _appUpdateClient =
       widget.appUpdateClient ?? GitHubAppUpdateClient();
   late final ProjectRegistryStore _projectRegistryStore =
@@ -69,6 +80,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
   @override
   void initState() {
     super.initState();
+    _piCoreRuntimeController.addListener(_onPiCoreRuntimeChanged);
     if (widget.enablePersistence) {
       _syncRuntime(_preferences);
       _loadPersistedPreferences();
@@ -79,7 +91,47 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
   }
 
   Future<void> _syncRuntime(AppPreferences preferences) async {
+    _piCoreRuntimeController.configure(preferences.piCoreExecutablePath);
     await _runtimeController.sync(preferences);
+  }
+
+  void _onPiCoreRuntimeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _choosePiCoreExecutable() async {
+    final picker = widget.pickPiCoreExecutable ?? _pickPiCoreExecutable;
+    String? selectedPath;
+    try {
+      selectedPath = await picker();
+    } catch (_) {
+      return;
+    }
+    if (selectedPath == null || selectedPath.trim().isEmpty) {
+      return;
+    }
+    await _handlePreferencesChanged(
+      _preferences.copyWith(piCoreExecutablePath: selectedPath.trim()),
+    );
+    await _piCoreRuntimeController.refresh();
+  }
+
+  Future<void> _clearPiCoreExecutable() async {
+    await _handlePreferencesChanged(
+      _preferences.copyWith(clearPiCoreExecutablePath: true),
+    );
+    await _piCoreRuntimeController.refresh();
+  }
+
+  @override
+  void dispose() {
+    _piCoreRuntimeController.removeListener(_onPiCoreRuntimeChanged);
+    if (widget.piCoreRuntimeController == null) {
+      _piCoreRuntimeController.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadPersistedPreferences() async {
@@ -87,11 +139,16 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
     if (!mounted || _samePreferences(preferences, _preferences)) {
       return;
     }
+    final shouldRefreshPiCoreRuntime =
+        preferences.piCoreExecutablePath != _preferences.piCoreExecutablePath;
 
     setState(() {
       _preferences = preferences;
     });
     await _syncRuntime(preferences);
+    if (shouldRefreshPiCoreRuntime && widget.piCoreRuntimeController != null) {
+      await _piCoreRuntimeController.refresh();
+    }
   }
 
   Future<void> _handlePreferencesChanged(AppPreferences preferences) async {
@@ -138,6 +195,10 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeCapabilities: _runtimeController.capabilities,
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
+        piCoreRuntimeSnapshot: _piCoreRuntimeController.snapshot,
+        onRefreshPiCoreRuntime: _piCoreRuntimeController.refresh,
+        onChoosePiCoreExecutable: _choosePiCoreExecutable,
+        onClearPiCoreExecutable: _clearPiCoreExecutable,
         piHostClient: _piHostClient,
         appUpdateClient: _appUpdateClient,
         ownsPiHostClient: widget.piHostClient == null,
@@ -159,6 +220,7 @@ bool _samePreferences(AppPreferences a, AppPreferences b) {
       a.interfaceDensity == b.interfaceDensity &&
       a.codeFont == b.codeFont &&
       a.openDestination == b.openDestination &&
+      a.piCoreExecutablePath == b.piCoreExecutablePath &&
       a.defaultPermissions == b.defaultPermissions &&
       a.autoReview == b.autoReview &&
       a.fullAccess == b.fullAccess &&
@@ -172,6 +234,11 @@ Future<String?> _pickProjectDirectory() async {
   return getDirectoryPath();
 }
 
+Future<String?> _pickPiCoreExecutable() async {
+  final executable = await openFile();
+  return executable?.path;
+}
+
 enum _DesktopRoute { workspace, settings }
 
 class _PiDesktopShell extends StatefulWidget {
@@ -180,6 +247,10 @@ class _PiDesktopShell extends StatefulWidget {
     required this.runtimeCapabilities,
     required this.runtimeController,
     required this.piConfigStore,
+    required this.piCoreRuntimeSnapshot,
+    required this.onRefreshPiCoreRuntime,
+    required this.onChoosePiCoreExecutable,
+    required this.onClearPiCoreExecutable,
     required this.piHostClient,
     required this.appUpdateClient,
     required this.ownsPiHostClient,
@@ -194,6 +265,10 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
+  final PiCoreRuntimeSnapshot piCoreRuntimeSnapshot;
+  final Future<void> Function() onRefreshPiCoreRuntime;
+  final Future<void> Function() onChoosePiCoreExecutable;
+  final Future<void> Function() onClearPiCoreExecutable;
   final PiHostClient piHostClient;
   final AppUpdateClient appUpdateClient;
   final bool ownsPiHostClient;
@@ -1235,6 +1310,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       runtimeCapabilities: widget.runtimeCapabilities,
       piConfigSnapshot: _piConfigSnapshot,
       piConfigLoadError: _piConfigLoadError,
+      piCoreRuntimeSnapshot: widget.piCoreRuntimeSnapshot,
+      onRefreshPiCoreRuntime: widget.onRefreshPiCoreRuntime,
+      onChoosePiCoreExecutable: widget.onChoosePiCoreExecutable,
+      onClearPiCoreExecutable: widget.onClearPiCoreExecutable,
       searchController: _settingsSearchController,
       sections: filteredSections,
       selectedCategory: _selectedSettingsCategory,

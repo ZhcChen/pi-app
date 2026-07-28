@@ -8,6 +8,10 @@ class SettingsView extends StatelessWidget {
     required this.runtimeCapabilities,
     required this.piConfigSnapshot,
     required this.piConfigLoadError,
+    required this.piCoreRuntimeSnapshot,
+    required this.onRefreshPiCoreRuntime,
+    required this.onChoosePiCoreExecutable,
+    required this.onClearPiCoreExecutable,
     required this.searchController,
     required this.sections,
     required this.selectedCategory,
@@ -46,6 +50,10 @@ class SettingsView extends StatelessWidget {
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final PiConfigSnapshot? piConfigSnapshot;
   final String? piConfigLoadError;
+  final PiCoreRuntimeSnapshot piCoreRuntimeSnapshot;
+  final Future<void> Function() onRefreshPiCoreRuntime;
+  final Future<void> Function() onChoosePiCoreExecutable;
+  final Future<void> Function() onClearPiCoreExecutable;
   final TextEditingController searchController;
   final List<SettingsNavSection> sections;
   final SettingsCategory selectedCategory;
@@ -181,6 +189,10 @@ class SettingsView extends StatelessWidget {
                 copy: copy,
                 preferences: preferences,
                 runtimeCapabilities: runtimeCapabilities,
+                piCoreRuntimeSnapshot: piCoreRuntimeSnapshot,
+                onRefreshPiCoreRuntime: onRefreshPiCoreRuntime,
+                onChoosePiCoreExecutable: onChoosePiCoreExecutable,
+                onClearPiCoreExecutable: onClearPiCoreExecutable,
                 onLanguageChanged: onLanguageChanged,
                 onOpenDestinationChanged: onOpenDestinationChanged,
                 onDefaultPermissionsChanged: onDefaultPermissionsChanged,
@@ -243,6 +255,10 @@ class _GeneralSettingsContent extends StatelessWidget {
     required this.copy,
     required this.preferences,
     required this.runtimeCapabilities,
+    required this.piCoreRuntimeSnapshot,
+    required this.onRefreshPiCoreRuntime,
+    required this.onChoosePiCoreExecutable,
+    required this.onClearPiCoreExecutable,
     required this.onLanguageChanged,
     required this.onOpenDestinationChanged,
     required this.onDefaultPermissionsChanged,
@@ -267,6 +283,10 @@ class _GeneralSettingsContent extends StatelessWidget {
   final SettingsCopy copy;
   final AppPreferences preferences;
   final DesktopRuntimeCapabilities runtimeCapabilities;
+  final PiCoreRuntimeSnapshot piCoreRuntimeSnapshot;
+  final Future<void> Function() onRefreshPiCoreRuntime;
+  final Future<void> Function() onChoosePiCoreExecutable;
+  final Future<void> Function() onClearPiCoreExecutable;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<AppOpenDestination> onOpenDestinationChanged;
   final ValueChanged<bool> onDefaultPermissionsChanged;
@@ -322,6 +342,23 @@ class _GeneralSettingsContent extends StatelessWidget {
                   style: _AppTypography.settingsPageTitle(palette),
                 ),
                 const SizedBox(height: 46),
+                Text(
+                  copy.piCoreRuntimeSectionTitle,
+                  style: _AppTypography.settingsSectionTitle(palette),
+                ),
+                const SizedBox(height: 14),
+                _SettingsCard(
+                  child: _PiCoreRuntimeSettingsCard(
+                    copy: copy,
+                    snapshot: piCoreRuntimeSnapshot,
+                    hasSelectedExecutable:
+                        preferences.piCoreExecutablePath != null,
+                    onRefresh: onRefreshPiCoreRuntime,
+                    onChooseExecutable: onChoosePiCoreExecutable,
+                    onClearExecutable: onClearPiCoreExecutable,
+                  ),
+                ),
+                const SizedBox(height: 42),
                 Text(
                   copy.permissionsSectionTitle,
                   style: _AppTypography.settingsSectionTitle(palette),
@@ -530,6 +567,156 @@ class _GeneralSettingsContent extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PiCoreRuntimeSettingsCard extends StatelessWidget {
+  const _PiCoreRuntimeSettingsCard({
+    required this.copy,
+    required this.snapshot,
+    required this.hasSelectedExecutable,
+    required this.onRefresh,
+    required this.onChooseExecutable,
+    required this.onClearExecutable,
+  });
+
+  final SettingsCopy copy;
+  final PiCoreRuntimeSnapshot snapshot;
+  final bool hasSelectedExecutable;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onChooseExecutable;
+  final Future<void> Function() onClearExecutable;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+    final diagnostic = copy.piCoreRuntimeStatusDescription(
+      snapshot.status,
+      snapshot.diagnosticCode,
+    );
+    final executablePath =
+        snapshot.executablePath ?? copy.piCoreRuntimeNotDetectedLabel;
+    final version = snapshot.version ?? copy.piCoreRuntimeNotDetectedLabel;
+
+    return Padding(
+      key: const Key('pi-core-runtime-card'),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      copy.piCoreRuntimeTitle,
+                      style: _AppTypography.settingsRowTitle(palette),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      copy.piCoreRuntimeStatusLabel(snapshot.status),
+                      key: const Key('pi-core-runtime-status'),
+                      style: _AppTypography.settingsRowDescription(palette),
+                    ),
+                  ],
+                ),
+              ),
+              Tooltip(
+                message: copy.piCoreRuntimeRefreshTooltip,
+                child: IconButton(
+                  key: const Key('pi-core-runtime-refresh-button'),
+                  onPressed: () {
+                    unawaited(onRefresh());
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ),
+              Tooltip(
+                message: copy.piCoreRuntimeChooseTooltip,
+                child: IconButton(
+                  key: const Key('pi-core-runtime-choose-button'),
+                  onPressed: () {
+                    unawaited(onChooseExecutable());
+                  },
+                  icon: const Icon(Icons.folder_open_rounded),
+                ),
+              ),
+              if (hasSelectedExecutable)
+                Tooltip(
+                  message: copy.piCoreRuntimeClearTooltip,
+                  child: IconButton(
+                    key: const Key('pi-core-runtime-clear-button'),
+                    onPressed: () {
+                      unawaited(onClearExecutable());
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            diagnostic,
+            style: _AppTypography.settingsRowDescription(palette),
+          ),
+          const SizedBox(height: 14),
+          const _SettingsDivider(),
+          const SizedBox(height: 12),
+          _PiCoreRuntimeMetadataRow(
+            label: copy.piCoreRuntimePathLabel,
+            value: executablePath,
+          ),
+          const SizedBox(height: 8),
+          _PiCoreRuntimeMetadataRow(
+            label: copy.piCoreRuntimeVersionLabel,
+            value: version,
+          ),
+          const SizedBox(height: 8),
+          _PiCoreRuntimeMetadataRow(
+            label: copy.piCoreRuntimeSourceTitle,
+            value: copy.piCoreRuntimeSourceLabel(snapshot.source),
+            valueIsSource: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PiCoreRuntimeMetadataRow extends StatelessWidget {
+  const _PiCoreRuntimeMetadataRow({
+    required this.label,
+    required this.value,
+    this.valueIsSource = false,
+  });
+
+  final String label;
+  final String value;
+  final bool valueIsSource;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.appPalette;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 82,
+          child: Text(label, style: _AppTypography.settingsGroupLabel(palette)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SelectableText(
+            value,
+            maxLines: valueIsSource ? 1 : 2,
+            style: _AppTypography.settingsRowDescription(palette),
+          ),
+        ),
+      ],
     );
   }
 }

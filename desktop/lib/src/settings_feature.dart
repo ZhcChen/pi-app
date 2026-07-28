@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app_preferences.dart';
@@ -5,6 +7,7 @@ import 'app_runtime.dart';
 import 'desktop_design.dart';
 import 'desktop_primitives.dart';
 import 'pi_config_store.dart';
+import 'pi_core_runtime.dart';
 
 part 'settings_view.dart';
 part 'settings_components.dart';
@@ -93,6 +96,21 @@ abstract interface class SettingsCopy {
   String get searchSettingsHint;
   String get noSettingsFoundLabel;
   String get generalTitle;
+  String get piCoreRuntimeSectionTitle;
+  String get piCoreRuntimeTitle;
+  String piCoreRuntimeStatusLabel(PiCoreRuntimeStatus status);
+  String piCoreRuntimeStatusDescription(
+    PiCoreRuntimeStatus status,
+    PiCoreRuntimeDiagnosticCode diagnosticCode,
+  );
+  String piCoreRuntimeSourceLabel(PiCoreRuntimeSource? source);
+  String get piCoreRuntimeSourceTitle;
+  String get piCoreRuntimePathLabel;
+  String get piCoreRuntimeVersionLabel;
+  String get piCoreRuntimeNotDetectedLabel;
+  String get piCoreRuntimeRefreshTooltip;
+  String get piCoreRuntimeChooseTooltip;
+  String get piCoreRuntimeClearTooltip;
   String get permissionsSectionTitle;
   String get generalSectionTitle;
   String get appearanceTitle;

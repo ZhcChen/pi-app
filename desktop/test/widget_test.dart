@@ -97,6 +97,7 @@ void main() {
       interfaceDensity: AppInterfaceDensity.compact,
       codeFont: AppCodeFont.systemMono,
       openDestination: AppOpenDestination.terminal,
+      piCoreExecutablePath: '/mock/pi',
       defaultPermissions: false,
       autoReview: false,
       fullAccess: false,
@@ -115,6 +116,7 @@ void main() {
     expect(loaded.interfaceDensity, AppInterfaceDensity.compact);
     expect(loaded.codeFont, AppCodeFont.systemMono);
     expect(loaded.openDestination, AppOpenDestination.terminal);
+    expect(loaded.piCoreExecutablePath, '/mock/pi');
     expect(loaded.defaultPermissions, false);
     expect(loaded.autoReview, false);
     expect(loaded.fullAccess, false);
@@ -145,13 +147,19 @@ void main() {
       expect(migrated.fullAccess, false);
 
       await store.savePreferences(
-        const AppPreferences(defaultPermissions: true, fullAccess: true),
+        const AppPreferences(
+          piCoreExecutablePath: '/mock/pi',
+          defaultPermissions: true,
+          fullAccess: true,
+        ),
       );
       final saved =
           jsonDecode(await settingsFile.readAsString()) as Map<String, dynamic>;
       final reloaded = await store.loadPreferences();
 
       expect(saved['toolPolicyVersion'], 1);
+      expect(saved['piCoreExecutablePath'], '/mock/pi');
+      expect(reloaded.piCoreExecutablePath, '/mock/pi');
       expect(reloaded.defaultPermissions, true);
       expect(reloaded.fullAccess, true);
     },
@@ -776,6 +784,13 @@ process.stdin.on('data', (chunk) => {
     final runtimeController = MemoryDesktopRuntimeController();
     final workspacePath = resolveRepoWorkspacePath();
 
+    Future<void> tapSettingsControl(Key key) async {
+      final finder = find.byKey(key);
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
     await tester.pumpWidget(
       PiDesktopApp(
         enablePersistence: false,
@@ -802,20 +817,13 @@ process.stdin.on('data', (chunk) => {
     await tester.tap(find.text('Terminal').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('full-access-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('default-permissions-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('auto-review-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('show-in-menu-bar-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('show-bottom-panel-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('prevent-sleep-switch')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('suggested-prompts-switch')));
-    await tester.pumpAndSettle();
+    await tapSettingsControl(const Key('full-access-switch'));
+    await tapSettingsControl(const Key('default-permissions-switch'));
+    await tapSettingsControl(const Key('auto-review-switch'));
+    await tapSettingsControl(const Key('show-in-menu-bar-switch'));
+    await tapSettingsControl(const Key('show-bottom-panel-switch'));
+    await tapSettingsControl(const Key('prevent-sleep-switch'));
+    await tapSettingsControl(const Key('suggested-prompts-switch'));
 
     expect(runtimeController.lastSyncedPreferences?.showInMenuBar, false);
     expect(runtimeController.lastSyncedPreferences?.preventSleep, true);
@@ -833,6 +841,64 @@ process.stdin.on('data', (chunk) => {
     expect(find.text('Keep awake'), findsOneWidget);
     expect(find.text('Suggested prompts off'), findsOneWidget);
   });
+
+  testWidgets(
+    'Pi Core runtime card persists and clears a selected executable',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final preferencesStore = MemoryDesktopPreferencesStore();
+      final detector = MemoryPiCoreRuntimeDetector();
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: preferencesStore,
+          runtimeController: MemoryDesktopRuntimeController(),
+          piCoreRuntimeController: piCoreRuntimeController,
+          pickPiCoreExecutable: () async => '/mock/selected-pi',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('pi-core-runtime-card')), findsOneWidget);
+      expect(find.text('Checking'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('pi-core-runtime-refresh-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ready'), findsOneWidget);
+      expect(find.text('/mock/pi'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('pi-core-runtime-choose-button')));
+      await tester.pumpAndSettle();
+
+      expect(detector.lastSelectedExecutablePath, '/mock/selected-pi');
+      expect(
+        (await preferencesStore.loadPreferences()).piCoreExecutablePath,
+        '/mock/selected-pi',
+      );
+      expect(
+        find.byKey(const Key('pi-core-runtime-clear-button')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('pi-core-runtime-clear-button')));
+      await tester.pumpAndSettle();
+
+      expect(detector.lastSelectedExecutablePath, isNull);
+      expect(
+        (await preferencesStore.loadPreferences()).piCoreExecutablePath,
+        isNull,
+      );
+    },
+  );
 
   testWidgets('show in menu bar is disabled when runtime lacks support', (
     tester,

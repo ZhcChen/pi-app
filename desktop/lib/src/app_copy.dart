@@ -2,6 +2,7 @@
 
 import 'app_preferences.dart';
 import 'pi_config_store.dart';
+import 'pi_core_runtime.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
 
@@ -29,6 +30,87 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
       isChinese ? '没有找到匹配的设置项' : 'No settings found';
 
   String get generalTitle => isChinese ? '通用' : 'General';
+  String get piCoreRuntimeSectionTitle =>
+      isChinese ? 'Pi Core 运行时' : 'Pi Core runtime';
+  String get piCoreRuntimeTitle => isChinese ? 'Pi Core' : 'Pi Core';
+  String piCoreRuntimeStatusLabel(PiCoreRuntimeStatus status) {
+    return switch (status) {
+      PiCoreRuntimeStatus.checking => isChinese ? '正在检测' : 'Checking',
+      PiCoreRuntimeStatus.missing => isChinese ? '未找到 Pi' : 'Pi not found',
+      PiCoreRuntimeStatus.invalidExecutable =>
+        isChinese ? '路径不可用' : 'Executable unavailable',
+      PiCoreRuntimeStatus.incompatibleVersion =>
+        isChinese ? '版本不兼容' : 'Version incompatible',
+      PiCoreRuntimeStatus.healthCheckFailed =>
+        isChinese ? 'RPC 健康检查失败' : 'RPC health check failed',
+      PiCoreRuntimeStatus.ready => isChinese ? '运行正常' : 'Ready',
+    };
+  }
+
+  String piCoreRuntimeStatusDescription(
+    PiCoreRuntimeStatus status,
+    PiCoreRuntimeDiagnosticCode diagnosticCode,
+  ) {
+    if (status == PiCoreRuntimeStatus.ready) {
+      return isChinese
+          ? '受限 RPC health 检查已通过。'
+          : 'The restricted RPC health check passed.';
+    }
+    return switch (diagnosticCode) {
+      PiCoreRuntimeDiagnosticCode.none =>
+        isChinese ? '正在检测已安装的 Pi。' : 'Checking the installed Pi runtime.',
+      PiCoreRuntimeDiagnosticCode.pathNotFound =>
+        isChinese
+            ? '所选路径不存在或不是可执行文件。'
+            : 'The selected path does not point to an executable file.',
+      PiCoreRuntimeDiagnosticCode.notExecutable =>
+        isChinese
+            ? '所选 Pi 文件没有执行权限。'
+            : 'The selected Pi file is not executable.',
+      PiCoreRuntimeDiagnosticCode.versionCommandFailed =>
+        isChinese ? '无法运行 pi --version。' : 'Could not run pi --version.',
+      PiCoreRuntimeDiagnosticCode.versionUnrecognized =>
+        isChinese ? '无法识别 Pi 版本。' : 'Could not recognize the Pi version.',
+      PiCoreRuntimeDiagnosticCode.versionUnsupported =>
+        isChinese
+            ? '当前仅验证支持 Pi 0.82.0。'
+            : 'Only Pi 0.82.0 is currently verified.',
+      PiCoreRuntimeDiagnosticCode.rpcStartFailed =>
+        isChinese ? '无法启动受限 Pi RPC。' : 'Could not start restricted Pi RPC.',
+      PiCoreRuntimeDiagnosticCode.rpcTimedOut =>
+        isChinese
+            ? '受限 Pi RPC health 检查超时。'
+            : 'The restricted Pi RPC health check timed out.',
+      PiCoreRuntimeDiagnosticCode.rpcInvalidJson =>
+        isChinese ? 'Pi RPC 返回了无效的 JSONL。' : 'Pi RPC returned invalid JSONL.',
+      PiCoreRuntimeDiagnosticCode.rpcRejected =>
+        isChinese
+            ? 'Pi RPC 拒绝了 health 请求。'
+            : 'Pi RPC rejected the health request.',
+    };
+  }
+
+  String piCoreRuntimeSourceLabel(PiCoreRuntimeSource? source) {
+    return switch (source) {
+      PiCoreRuntimeSource.environmentOverride => 'PI_CORE_EXECUTABLE',
+      PiCoreRuntimeSource.savedPreference =>
+        isChinese ? '已选路径' : 'Selected path',
+      PiCoreRuntimeSource.path => 'PATH',
+      null => isChinese ? '未发现' : 'Not detected',
+    };
+  }
+
+  String get piCoreRuntimeSourceTitle => isChinese ? '来源' : 'Source';
+  String get piCoreRuntimePathLabel => isChinese ? '路径' : 'Path';
+  String get piCoreRuntimeVersionLabel => isChinese ? '版本' : 'Version';
+  String get piCoreRuntimeNotDetectedLabel =>
+      isChinese ? '未检测到' : 'Not detected';
+  String get piCoreRuntimeRefreshTooltip =>
+      isChinese ? '重新检测 Pi Core' : 'Refresh Pi Core detection';
+  String get piCoreRuntimeChooseTooltip =>
+      isChinese ? '选择 Pi 可执行文件' : 'Choose Pi executable';
+  String get piCoreRuntimeClearTooltip =>
+      isChinese ? '清除已选路径' : 'Clear selected path';
   String get permissionsSectionTitle => isChinese ? '权限' : 'Permissions';
   String get generalSectionTitle => isChinese ? '通用' : 'General';
   String get appearanceTitle => isChinese ? '外观' : 'Appearance';
