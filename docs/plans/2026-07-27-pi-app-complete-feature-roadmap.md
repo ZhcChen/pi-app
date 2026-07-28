@@ -1,7 +1,7 @@
 # Pi App 完整功能主路线图
 
 - 任务：将 Pi App 从“具备历史 SDK host 回归链路的桌面工作台”建设为可日常使用的官方 Pi core 桌面 coding client
-- 状态：草稿
+- 状态：进行中（任务拆解阶段，尚未进入 R1 实现）
 - 负责人：Pi
 - 日期：2026-07-27
 - 当前版本基线：`0.1.0+1`
@@ -82,6 +82,41 @@
 | P5 | 发布质量、可恢复性与跨平台 | Q1、D1、D2 | P3；D2 以后续平台策略为准 |
 
 每个执行单元都应作为独立提交和独立 `/goal`。阶段 P0 至阶段 P2 均是最高优先级；阶段 P3 是完成核心日常 workflow 的高优先级；阶段 P4、P5 根据 macOS 使用证据排序，不允许为了视觉功能跳过阶段 P0。
+
+## 任务看板
+
+状态含义：`可开始` 表示当前没有未解决的产品或技术前置；`待前置` 表示不得提前实现；`待排期` 表示在 macOS 核心闭环后按实际使用证据安排。每个任务完成后必须更新本表、对应执行单元、验证证据和 capability matrix。
+
+| ID | 状态 | 依赖 | 可交付结果 | 完成门槛 |
+| --- | --- | --- | --- | --- |
+| R1 | 可开始 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
+| R2 | 待前置 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback |
+| I1 | 待前置 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分 |
+| I2 | 待前置 | I1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
+| P1 | 待前置 | R1、R2 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
+| C1 | 待前置 | R2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
+| C2 | 待前置 | C1 | steer / follow-up / abort / retry 状态机 | 崩溃、迟到 event、恢复可解释 |
+| O1 | 待前置 | R2、P1 | 受限工具 timeline、失败诊断 | 大输出不进入 widget state，敏感信息不泄露 |
+| O2 | 待前置 | O1 | 文件变更摘要、overview / Git 刷新 | 不自动修改 Git 或覆盖外部编辑器 |
+| M1 | 待前置 | R2、C1 | model / thinking / auth / config 闭环 | 运行中不能静默热切换 |
+| S1 | 待前置 | R2、P1 | project trust 行为证据与 UI | 撤销 trust 后资源不继续加载 |
+| M2 | 待前置 | M1、S1 | commands / prompts / skills resource browser | 来源与可执行性清晰可见 |
+| W1 | 待前置 | I1、S1 | 可选 `pi-light-ce` profile 入口 | 不自动安装或 init 项目 |
+| E1 | 待前置 | M2、S1 | 最小 extension UI bridge 与降级诊断 | timeout / abort / 不支持 UI 可恢复 |
+| Q1 | 待前置 | R2、I2、C2、O1 | 故障矩阵、日志、恢复指导 | 可预期失败均有可操作状态 |
+| D1 | 待前置 | Q1、阶段 P0-P3 | 干净 macOS 验收、首个 Release 证据 | 真实 tag / DMG / direct RPC smoke test 通过 |
+| D2 | 待排期 | D1、平台调研 | Windows / Linux parity | 各平台各自 installer / process / CI 证据 |
+
+### R1 当前任务包
+
+R1 是唯一可立即开始的实现包，按以下顺序拆分提交；任何子任务发现 RPC 语义不满足时，应停止后续迁移并先更新证据与计划。
+
+- [ ] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
+- [ ] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
+- [ ] R1.3：验证 prompt、文本 / thinking stream、`agent_settled` 终态、abort、进程退出和迟到 event 的真实顺序。
+- [ ] R1.4：验证 builtin tool lifecycle、工具输出截断、extension 本地处理 prompt 与终态语义。
+- [ ] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
+- [ ] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
 
 ## 阶段拆分
 
