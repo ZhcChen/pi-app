@@ -992,6 +992,47 @@ process.stdin.on('data', (chunk) => {
     expect(runtimeController.openCount, 2);
   });
 
+  testWidgets('sidebar section labels keep text and icons centered', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+
+    await tester.pumpWidget(const PiDesktopApp(enablePersistence: false));
+    await settleUi(tester);
+
+    void expectCenteredLabel({
+      required Key key,
+      required String text,
+      required IconData icon,
+    }) {
+      final labelFinder = find.byKey(key);
+      final labelCenter = tester.getCenter(labelFinder);
+      final textCenter = tester.getCenter(find.text(text).first);
+      final iconCenter = tester.getCenter(find.byIcon(icon));
+
+      expect(tester.getSize(labelFinder).height, 24);
+      expect(textCenter.dy, closeTo(labelCenter.dy, 0.5));
+      expect(iconCenter.dy, closeTo(labelCenter.dy, 0.5));
+    }
+
+    expectCenteredLabel(
+      key: const Key('projects-section-label'),
+      text: 'Projects',
+      icon: Icons.expand_more_rounded,
+    );
+    expectCenteredLabel(
+      key: const Key('tasks-section-label'),
+      text: 'Tasks',
+      icon: Icons.chevron_right_rounded,
+    );
+
+    expect(
+      tester.getRect(find.byKey(const Key('projects-section-label'))).left,
+      tester.getRect(find.byKey(const Key('tasks-section-label'))).left,
+    );
+  });
+
   testWidgets('projects header adds and manages a registry project', (
     tester,
   ) async {

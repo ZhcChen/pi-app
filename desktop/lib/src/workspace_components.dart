@@ -1137,20 +1137,13 @@ class _ProjectSectionHeaderState extends State<_ProjectSectionHeader> {
           child: Row(
             children: [
               Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: DesktopTypography.sectionLabel(palette),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      Icons.expand_more_rounded,
-                      size: 16,
-                      color: palette.textMuted,
-                    ),
-                  ],
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _SidebarSectionLabel(
+                    label: widget.label,
+                    icon: Icons.expand_more_rounded,
+                    labelKey: const Key('projects-section-label'),
+                  ),
                 ),
               ),
               SizedBox(
@@ -1187,6 +1180,49 @@ class _ProjectSectionHeaderState extends State<_ProjectSectionHeader> {
   }
 }
 
+class _SidebarSectionLabel extends StatelessWidget {
+  const _SidebarSectionLabel({
+    required this.label,
+    required this.icon,
+    required this.labelKey,
+  });
+
+  final String label;
+  final IconData icon;
+  final Key labelKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return SizedBox(
+      key: labelKey,
+      height: 24,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: DesktopTypography.sectionLabel(palette),
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: Center(
+              child: Icon(icon, size: 16, color: palette.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CollapsedSectionRow extends StatelessWidget {
   const _CollapsedSectionRow({required this.label});
 
@@ -1194,16 +1230,15 @@ class _CollapsedSectionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.desktopPalette;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        children: [
-          Text(label, style: DesktopTypography.sectionLabel(palette)),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, size: 16, color: palette.textMuted),
-        ],
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: _SidebarSectionLabel(
+          label: label,
+          icon: Icons.chevron_right_rounded,
+          labelKey: const Key('tasks-section-label'),
+        ),
       ),
     );
   }
