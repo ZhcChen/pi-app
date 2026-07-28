@@ -3,6 +3,9 @@
 - 主题：Flutter 桌面端通过本地 `pi-host` 接入 Pi SDK 的运行时契约
 - 日期：2026-07-27
 - 关联计划：`docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+- Direct RPC 证据：`docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`
+
+> **历史基线说明，2026-07-28：** 本文记录的是已完成的 `Flutter -> pi-host -> Pi SDK` 回归基线，不再定义生产运行时方向。当前生产方向是用户已安装官方 Pi core 的 `pi --mode rpc`；R1 证据见上述 direct RPC matrix。
 
 ## 摘要
 
@@ -68,7 +71,7 @@
 
 Flutter 适合承担桌面 UI 与平台壳层，但 Pi 的 `AgentSessionRuntime`、`ModelRuntime`、resource loading、session JSONL 和 extension 生命周期属于 Node 侧能力。让 Dart 直接实现 CLI RPC 的完整协议会导致 UI 绑定底层运行时细节，也会使后续 extension UI、session replacement 和打包难以演进。
 
-官方 SDK 文档明确给出 `createAgentSessionRuntime()`、`createAgentSessionServices()`、`ModelRuntime` 和 session event 模型。因此 host 使用 SDK，而 `pi --mode rpc` 仅保留为排障或替代实现参考，不作为应用主链。
+官方 SDK 文档明确给出 `createAgentSessionRuntime()`、`createAgentSessionServices()`、`ModelRuntime` 和 session event 模型，因此历史 host 采用 SDK。此处的 host 继续仅作为回归参考；direct RPC 已在 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md` 通过 R1 验证，并是后续生产主线。
 
 ## 关键结论
 
@@ -128,7 +131,7 @@ Pi SDK 对 extension command/input handler 可在 `preflightResult(true)` 后直
 - 命令：`cd host && npm run check`
   - TypeScript 严格检查通过。
 - 命令：`cd host && npm test`
-  - 8 个测试通过，覆盖严格 LF JSONL、writer 顺序和 1 MiB 限制、stdout guard、请求与工具白名单验证、session/prompt event、abort/model/thinking 路由。
+  - 12 个测试通过，覆盖历史 host 的严格 LF JSONL、writer 顺序和 1 MiB 限制、stdout guard、请求与工具白名单验证、session/prompt event、abort/model/thinking 路由，以及 direct RPC harness 的 LF / CRLF / Unicode separator / 超限 / request-response 关联回归。
 - 命令：`cd desktop && flutter analyze`
   - 静态检查通过。
 - 命令：`cd desktop && flutter test`
@@ -137,11 +140,10 @@ Pi SDK 对 extension command/input handler 可在 `preflightResult(true)` 后直
   - macOS debug bundle 构建通过。
 - 手工证据：通过真实 `host/dist/src/index.js` 发送无副作用 prompt，收到文本 `Pi host integration works.` 及 `run.settled`；另以临时全局 extension command 验证本地处理 prompt 返回 `handledWithoutRun: true` 的 `run.settled`，未触发模型调用。
 
-## 后续事项
+## 历史后续事项
 
-- 把 Node runtime、SDK 依赖与 `host` 纳入 macOS/Windows/Linux bundle，补 sidecar 查找、版本协商、崩溃重启和诊断日志。
-- 实现项目 trust UI，再允许加载 project-local `.pi` extensions、packages、skills 和 settings。
-- 补 session list、resume、fork、clone 与 per-project session 索引。
-- 将 `Pi Config` 中保存的 model/thinking 与活跃 host session 的刷新/切换时机做成明确交互。
-- 将当前 tool lifecycle 摘要扩展为可展开 timeline，并接入 extension UI bridge。
+- **不执行**：将 Node runtime、SDK 依赖与 `host` 纳入 macOS/Windows/Linux bundle 的旧方案已被外置 Pi core 方向替代；参见 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`。
+- session list、resume、fork、clone 与 per-project session 索引转入 direct RPC 的 C1。
+- model / thinking 的活跃 session 交互转入 direct RPC 的 M1。
+- tool timeline 与 extension UI bridge 分别转入 O1 和 E1。
 - `npm audit --omit=dev --audit-level=high` 目前报告 Pi SDK 内嵌 `minimatch@10.2.5 -> brace-expansion@5.0.7` 的高危 DoS 公告。常规 `npm audit fix` 和根级 override 无法替换 SDK 的嵌套安装树；需随上游 Pi SDK 发布修复版本后升级并重新验证。

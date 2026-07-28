@@ -1,7 +1,7 @@
 # Pi App 完整功能主路线图
 
 - 任务：将 Pi App 从“具备历史 SDK host 回归链路的桌面工作台”建设为可日常使用的官方 Pi core 桌面 coding client
-- 状态：进行中（任务拆解阶段，尚未进入 R1 实现）
+- 状态：进行中（R1 已完成，R2 可开始）
 - 负责人：Pi
 - 日期：2026-07-27
 - 当前版本基线：`0.1.0+1`
@@ -11,6 +11,7 @@
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
   - `docs/plans/2026-07-27-macos-ad-hoc-release-and-update.md`
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
+  - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`（已废弃的历史基线）
 
 ## 产品完成定义
@@ -89,9 +90,9 @@
 
 | ID | 状态 | 依赖 | 可交付结果 | 完成门槛 |
 | --- | --- | --- | --- | --- |
-| R1 | 可开始 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
-| R2 | 待前置 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback |
-| I1 | 待前置 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分 |
+| R1 | 已完成 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
+| R2 | 可开始 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback |
+| I1 | 可开始 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分 |
 | I2 | 待前置 | I1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
 | P1 | 待前置 | R1、R2 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
 | C1 | 待前置 | R2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
@@ -109,14 +110,16 @@
 
 ### R1 当前任务包
 
-R1 是唯一可立即开始的实现包，按以下顺序拆分提交；任何子任务发现 RPC 语义不满足时，应停止后续迁移并先更新证据与计划。
+R1 已完成并形成 direct RPC 证据。R2 是建议的下一执行单元；I1 也已满足技术前置，但当前不与 R2 并行改动同一工作区。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
 
-- [ ] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
-- [ ] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
-- [ ] R1.3：验证 prompt、文本 / thinking stream、`agent_settled` 终态、abort、进程退出和迟到 event 的真实顺序。
-- [ ] R1.4：验证 builtin tool lifecycle、工具输出截断、extension 本地处理 prompt 与终态语义。
-- [ ] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
-- [ ] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
+- [x] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
+- [x] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
+- [x] R1.3：验证 prompt、文本 / thinking stream、`agent_settled` 终态、abort、进程退出和迟到 event 的真实顺序。
+- [x] R1.4：验证 builtin tool lifecycle、工具输出截断、extension 本地处理 prompt 与终态语义。
+- [x] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
+- [x] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
+
+R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`。下一执行单元为 R2；不得将本次验证结果误解为 production transport 已切换。
 
 ## 阶段拆分
 
@@ -174,7 +177,7 @@ R1 是唯一可立即开始的实现包，按以下顺序拆分提交；任何�
 - 涉及文件 / 模块：`desktop/lib/src/pi_host_client.dart` 的替换边界、新增 RPC client / protocol adapter、`desktop_shell.dart`、workspace state、Dart / widget tests。
 - 前置依赖：R1。
 - 验证方式：单元测试 LF framing、1 MiB 上限、迟到 event、进程替换和 malformed input；真实多项目 prompt / stream / abort smoke test。
-- 完成标准：production 只启动已发现的 `pi --mode rpc`，workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具。
+- 完成标准：production 只启动已发现的 `pi --mode rpc`，workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具，Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
 
 ### I1：Pi Core Detector 与诊断卡
 

@@ -1,7 +1,7 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：待执行
+- 状态：进行中（R1 已完成，R2 待执行）
 - 负责人：Pi
 - 日期：2026-07-27
 - 依赖文档：
@@ -9,6 +9,7 @@
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
   - `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`（完整产品上层路线图）
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
+  - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`（R1 真实 Pi RPC 证据）
 
 ## 目标
 
@@ -108,6 +109,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### R1：RPC Capability Matrix
 
 - 所属阶段：阶段 1。
+- 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`。
 - 目标：写一个独立 RPC harness / fixture，针对 Pi CLI `0.82.0` 逐项验证当前 host product contract 的等价能力。
 - 涉及文件 / 模块：新增 RPC fixture、测试、`docs/solutions/2026-07-27-pi-host-sdk-contract.md`。
 - 前置依赖：本机官方 Pi core、可用的无副作用模型认证用于真实 prompt 验证。
@@ -121,7 +123,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 - 涉及文件 / 模块：runtime client abstraction、RPC client、desktop shell、workspace feature、测试。
 - 前置依赖：R1 矩阵和 `--no-approve` 未信任项目基线通过。
 - 验证方式：Dart 单元 / widget tests、真实 Pi session 的 prompt / stream / abort、旧 process 退出竞态回归。
-- 完成标准：生产默认 transport 为 direct RPC，默认启动参数包含经 R1 验证的 `--no-approve`；workspace 不读取原始 RPC schema；旧 host 不作为静默 fallback。
+- 完成标准：生产默认 transport 为 direct RPC，默认启动参数包含经 R1 验证的 `--no-approve`；workspace 不读取原始 RPC schema；旧 host 不作为静默 fallback；Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
 
 ### I1：Pi Core Detector
 

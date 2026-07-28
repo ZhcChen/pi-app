@@ -2,6 +2,8 @@
 
 `host/` 是 Pi App 的本地 Node sidecar。Flutter 不直接调用 Pi SDK；它通过 stdin/stdout 的严格 JSONL 协议向 host 创建会话、发送任务、接收流事件并中止运行。
 
+> **历史基线说明，2026-07-28：** `host/` 只保留为 SDK 回归参考，不是后续生产 runtime。生产方向是用户安装的官方 `pi --mode rpc`，其 R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`。不要将 Node、Pi SDK 或 `host/dist` 打入 Pi App bundle。
+
 ## 运行时边界
 
 - SDK：`@earendil-works/pi-coding-agent@0.82.0`
@@ -24,7 +26,23 @@ npm install
 npm run check
 npm test
 npm run build
+npm run verify:rpc-contract -- --pi /opt/homebrew/bin/pi
 ```
+
+## R1 Direct RPC 验证
+
+`npm run verify:rpc-contract -- --pi /opt/homebrew/bin/pi` 是 R1 的显式真实 Pi 验证，不属于默认 `npm test`。它会使用当前 Pi 配置中的可用模型，并覆盖：
+
+- 严格 LF JSONL、request / response 关联、1 MiB 防护和进程退出录制；
+- `get_state`、持久化 session 的首次 prompt 物化、`--session` resume、model / thinking 设置；
+- prompt 文本 / 可选 thinking stream、`agent_settled`、abort、`steer`、`follow_up`；
+- 完整 builtin tools 的 tool lifecycle、direct `bash` 流式输出与截断；
+- 完整 builtin tools 加 `--no-approve` 时 project-local extension / prompt / skill 不加载，以及 `--approve` 对照；
+- project-local extension command 的本地处理终态语义。
+
+命令默认把原始 request / event JSONL 和摘要写到系统临时目录 `$TMPDIR/pi-app-rpc-contract-*`，其中可能包含测试 prompt、模型文本和本地路径。不要把这些录制文件提交到仓库或附加到公开 issue。可用 `--output <仓库外目录>` 保留指定证据目录，用 `--timeout-ms <毫秒>` 调整单个等待上限。
+
+该验证只为 R1 生成兼容性证据，不改变 Flutter 的生产 transport；在 R2 完成前，`LocalPiHostClient` 仍是现有应用的生产路径。验证脚本使用 direct `bash` 仅为观测 RPC 行为；未来 Dart adapter 不得向 Flutter 暴露 raw `bash` / `abort_bash` command。
 
 启动 host 后，可通过标准输入发送一行一个 JSON 对象：
 
@@ -78,4 +96,4 @@ PI_HOST_ENTRYPOINT=/absolute/path/to/host/dist/src/index.js \
 flutter run -d macos
 ```
 
-当前 macOS/Windows/Linux bundle 尚未包含 Node runtime 与 host 依赖，这是打包阶段的待办。独立 bundle 中找不到 sidecar 时，composer 会显示明确的 host 不可用错误。
+当前 macOS/Windows/Linux bundle 不包含 Node runtime 与 host 依赖。`LocalPiHostClient` 仍会从当前开发目录定位 `host/dist/src/index.js`，但这只服务历史回归；direct RPC 完成迁移后，production bundle 不得查找或启动 sidecar。
