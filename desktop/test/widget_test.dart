@@ -848,7 +848,13 @@ process.stdin.on('data', (chunk) => {
       configureWindow(tester);
       addTearDown(() => resetWindow(tester));
       final preferencesStore = MemoryDesktopPreferencesStore();
-      final detector = MemoryPiCoreRuntimeDetector();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.ready,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+        ),
+      );
       final piCoreRuntimeController = PiCoreRuntimeController(
         detector: detector,
       );
@@ -875,6 +881,8 @@ process.stdin.on('data', (chunk) => {
 
       expect(find.text('Ready'), findsOneWidget);
       expect(find.text('/mock/pi'), findsOneWidget);
+      expect(find.text('Reported version'), findsOneWidget);
+      expect(find.text('Not detected'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('pi-core-runtime-choose-button')));
       await tester.pumpAndSettle();

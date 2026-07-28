@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-const String supportedPiCoreVersion = '0.82.0';
 const int piCoreRuntimeMaxJsonlRecordBytes = 1024 * 1024;
 const Duration _piCoreRuntimeCommandTimeout = Duration(seconds: 5);
 const Duration _piCoreRuntimeShutdownTimeout = Duration(milliseconds: 500);
@@ -13,7 +12,6 @@ enum PiCoreRuntimeStatus {
   checking,
   missing,
   invalidExecutable,
-  incompatibleVersion,
   healthCheckFailed,
   ready,
 }
@@ -24,9 +22,6 @@ enum PiCoreRuntimeDiagnosticCode {
   none,
   pathNotFound,
   notExecutable,
-  versionCommandFailed,
-  versionUnrecognized,
-  versionUnsupported,
   rpcStartFailed,
   rpcTimedOut,
   rpcInvalidJson,
@@ -133,45 +128,13 @@ class PlatformPiCoreRuntimeDetector implements PiCoreRuntimeDetector {
       );
     }
 
-    final String versionOutput;
+    // 版本仅用于诊断；受限 RPC health 决定 Pi 是否可用。
+    String? version;
     try {
-      versionOutput = await _processRunner.readVersion(
-        candidate.executablePath,
+      version = _versionForDisplay(
+        await _processRunner.readVersion(candidate.executablePath),
       );
-    } on _PiCoreRuntimeProbeException catch (error) {
-      return PiCoreRuntimeSnapshot(
-        status: PiCoreRuntimeStatus.incompatibleVersion,
-        source: candidate.source,
-        executablePath: candidate.executablePath,
-        diagnosticCode: error.code,
-      );
-    } catch (_) {
-      return PiCoreRuntimeSnapshot(
-        status: PiCoreRuntimeStatus.incompatibleVersion,
-        source: candidate.source,
-        executablePath: candidate.executablePath,
-        diagnosticCode: PiCoreRuntimeDiagnosticCode.versionCommandFailed,
-      );
-    }
-
-    final version = _parseVersion(versionOutput);
-    if (version == null) {
-      return PiCoreRuntimeSnapshot(
-        status: PiCoreRuntimeStatus.incompatibleVersion,
-        source: candidate.source,
-        executablePath: candidate.executablePath,
-        diagnosticCode: PiCoreRuntimeDiagnosticCode.versionUnrecognized,
-      );
-    }
-    if (version != supportedPiCoreVersion) {
-      return PiCoreRuntimeSnapshot(
-        status: PiCoreRuntimeStatus.incompatibleVersion,
-        source: candidate.source,
-        executablePath: candidate.executablePath,
-        version: version,
-        diagnosticCode: PiCoreRuntimeDiagnosticCode.versionUnsupported,
-      );
-    }
+    } catch (_) {}
 
     try {
       await _processRunner.checkHealth(candidate.executablePath);
@@ -394,7 +357,7 @@ class MemoryPiCoreRuntimeDetector implements PiCoreRuntimeDetector {
       status: PiCoreRuntimeStatus.ready,
       source: PiCoreRuntimeSource.path,
       executablePath: '/mock/pi',
-      version: supportedPiCoreVersion,
+      version: 'test',
     ),
     this.executableOverride,
   }) : _snapshot = snapshot;
@@ -460,9 +423,7 @@ class _PlatformPiCoreRuntimeProcessRunner
         '--version',
       ], runInShell: false);
     } on ProcessException {
-      throw const _PiCoreRuntimeProbeException(
-        PiCoreRuntimeDiagnosticCode.versionCommandFailed,
-      );
+      throw StateError('Could not read Pi core version.');
     }
 
     final stdout = BytesBuilder(copy: false);
@@ -484,21 +445,13 @@ class _PlatformPiCoreRuntimeProcessRunner
       ]).timeout(_piCoreRuntimeCommandTimeout);
       final exitCode = values.first! as int;
       if (exitCode != 0) {
-        throw const _PiCoreRuntimeProbeException(
-          PiCoreRuntimeDiagnosticCode.versionCommandFailed,
-        );
+        throw StateError('Pi core version check failed.');
       }
       return utf8.decode(stdout.takeBytes());
     } on TimeoutException {
-      throw const _PiCoreRuntimeProbeException(
-        PiCoreRuntimeDiagnosticCode.versionCommandFailed,
-      );
-    } on _PiCoreRuntimeProbeException {
-      rethrow;
+      throw StateError('Pi core version check timed out.');
     } catch (_) {
-      throw const _PiCoreRuntimeProbeException(
-        PiCoreRuntimeDiagnosticCode.versionCommandFailed,
-      );
+      throw StateError('Could not read Pi core version.');
     } finally {
       await _stopProcess(process);
       await stdoutSubscription.cancel();
@@ -687,9 +640,18 @@ bool _isAbsolutePath(String path) {
   return path.startsWith(Platform.pathSeparator);
 }
 
-String? _parseVersion(String output) {
-  final match = RegExp(
-    r'(?<![0-9A-Za-z.-])(\d+\.\d+\.\d+)(?![0-9A-Za-z.-])',
-  ).firstMatch(output);
-  return match?.group(1);
+String? _versionForDisplay(String output) {
+  final normalized = output.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  final semanticVersion = RegExp(
+    r'\d+(?:\.\d+)+(?:[-+][0-9A-Za-z.-]+)?',
+  ).firstMatch(normalized);
+  if (semanticVersion != null) {
+    return semanticVersion.group(0);
+  }
+  return normalized.length <= 160
+      ? normalized
+      : '${normalized.substring(0, 157)}...';
 }

@@ -131,7 +131,7 @@ void main() {
     expect(snapshot.status, PiCoreRuntimeStatus.ready);
     expect(snapshot.source, PiCoreRuntimeSource.path);
     expect(snapshot.executablePath, executablePath);
-    expect(snapshot.version, supportedPiCoreVersion);
+    expect(snapshot.version, '0.82.0');
     expect(runner.versionRequests, <String>[executablePath]);
     expect(runner.healthRequests, <String>[executablePath]);
   });
@@ -189,31 +189,33 @@ void main() {
     );
   });
 
-  test('detector rejects a Pi version outside the verified contract', () async {
+  test('detector accepts a newer Pi version when RPC health passes', () async {
     const selectedPath = '/mock/newer-pi';
+    final runner = _FakeProcessRunner(versionOutput: 'pi 0.83.0');
     final detector = PlatformPiCoreRuntimeDetector(
       environment: const <String, String>{},
       fileInspector: _FakeFileInspector(const <String, PiCoreRuntimeFileState>{
         selectedPath: PiCoreRuntimeFileState.executable,
       }),
-      processRunner: _FakeProcessRunner(versionOutput: 'pi 0.83.0'),
+      processRunner: runner,
     );
 
     final snapshot = await detector.detect(
       selectedExecutablePath: selectedPath,
     );
 
-    expect(snapshot.status, PiCoreRuntimeStatus.incompatibleVersion);
+    expect(snapshot.status, PiCoreRuntimeStatus.ready);
     expect(snapshot.version, '0.83.0');
-    expect(
-      snapshot.diagnosticCode,
-      PiCoreRuntimeDiagnosticCode.versionUnsupported,
-    );
+    expect(runner.healthRequests, <String>[selectedPath]);
   });
 
-  test('detector rejects qualified and extended Pi versions', () async {
+  test('detector accepts qualified and extended Pi versions', () async {
     const selectedPath = '/mock/qualified-pi';
-    for (final output in <String>['pi 0.82.0-beta', 'pi 0.82.0.1']) {
+    for (final entry in <(String, String)>[
+      ('pi 0.82.0-beta', '0.82.0-beta'),
+      ('pi 0.82.0.1', '0.82.0.1'),
+    ]) {
+      final runner = _FakeProcessRunner(versionOutput: entry.$1);
       final detector = PlatformPiCoreRuntimeDetector(
         environment: const <String, String>{},
         fileInspector: _FakeFileInspector(
@@ -221,37 +223,57 @@ void main() {
             selectedPath: PiCoreRuntimeFileState.executable,
           },
         ),
-        processRunner: _FakeProcessRunner(versionOutput: output),
+        processRunner: runner,
       );
 
       final snapshot = await detector.detect(
         selectedExecutablePath: selectedPath,
       );
 
-      expect(snapshot.status, PiCoreRuntimeStatus.incompatibleVersion);
-      expect(snapshot.isReady, isFalse);
+      expect(snapshot.status, PiCoreRuntimeStatus.ready);
+      expect(snapshot.version, entry.$2);
+      expect(runner.healthRequests, <String>[selectedPath]);
     }
   });
 
-  test('detector reports an unreadable Pi version command', () async {
+  test('detector continues when version metadata is unavailable', () async {
     const selectedPath = '/mock/version-failure-pi';
+    final runner = _FakeProcessRunner(versionError: StateError('failed'));
     final detector = PlatformPiCoreRuntimeDetector(
       environment: const <String, String>{},
       fileInspector: _FakeFileInspector(const <String, PiCoreRuntimeFileState>{
         selectedPath: PiCoreRuntimeFileState.executable,
       }),
-      processRunner: _FakeProcessRunner(versionError: StateError('failed')),
+      processRunner: runner,
     );
 
     final snapshot = await detector.detect(
       selectedExecutablePath: selectedPath,
     );
 
-    expect(snapshot.status, PiCoreRuntimeStatus.incompatibleVersion);
-    expect(
-      snapshot.diagnosticCode,
-      PiCoreRuntimeDiagnosticCode.versionCommandFailed,
+    expect(snapshot.status, PiCoreRuntimeStatus.ready);
+    expect(snapshot.version, isNull);
+    expect(runner.healthRequests, <String>[selectedPath]);
+  });
+
+  test('detector continues when version output is empty', () async {
+    const selectedPath = '/mock/empty-version-pi';
+    final runner = _FakeProcessRunner(versionOutput: '   \n');
+    final detector = PlatformPiCoreRuntimeDetector(
+      environment: const <String, String>{},
+      fileInspector: _FakeFileInspector(const <String, PiCoreRuntimeFileState>{
+        selectedPath: PiCoreRuntimeFileState.executable,
+      }),
+      processRunner: runner,
     );
+
+    final snapshot = await detector.detect(
+      selectedExecutablePath: selectedPath,
+    );
+
+    expect(snapshot.status, PiCoreRuntimeStatus.ready);
+    expect(snapshot.version, isNull);
+    expect(runner.healthRequests, <String>[selectedPath]);
   });
 
   test('detector reports a restricted RPC health failure', () async {
@@ -269,7 +291,7 @@ void main() {
     );
 
     expect(snapshot.status, PiCoreRuntimeStatus.healthCheckFailed);
-    expect(snapshot.version, supportedPiCoreVersion);
+    expect(snapshot.version, '0.82.0');
     expect(snapshot.diagnosticCode, PiCoreRuntimeDiagnosticCode.rpcStartFailed);
   });
 

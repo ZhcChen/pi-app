@@ -44,6 +44,63 @@ void main() {
   }
 
   test(
+    'direct Pi RPC treats unavailable version metadata as unknown',
+    () async {
+      final client = PiCoreRpcClient(
+        readVersion: (_) async => throw StateError('version unavailable'),
+      );
+
+      try {
+        final health = await client.ensureStarted();
+
+        expect(health.sdkVersion, 'unknown');
+      } finally {
+        await client.dispose();
+      }
+    },
+  );
+
+  test('direct Pi RPC treats empty version metadata as unknown', () async {
+    final client = PiCoreRpcClient(readVersion: (_) async => '   ');
+
+    try {
+      final health = await client.ensureStarted();
+
+      expect(health.sdkVersion, 'unknown');
+    } finally {
+      await client.dispose();
+    }
+  });
+
+  test(
+    'direct Pi RPC creates a session after version metadata fails',
+    () async {
+      final workingDirectory = await Directory.systemTemp.createTemp(
+        'pi-core-rpc-version-metadata-',
+      );
+      var gateCalls = 0;
+      final client = PiCoreRpcClient(
+        executableResolver: () => '/mock/pi',
+        runtimeGate: () async {
+          gateCalls += 1;
+        },
+        readVersion: (_) async => throw StateError('version unavailable'),
+        startProcess: (command) => startNodeRpc(command, _rpcScript()),
+      );
+
+      try {
+        final session = await client.createSession(cwd: workingDirectory.path);
+
+        expect(session.id, startsWith('pi-core-'));
+        expect(gateCalls, 1);
+      } finally {
+        await client.dispose();
+        await workingDirectory.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'direct Pi RPC maps product events and preserves launch boundaries',
     () async {
       final launches = <PiCoreRpcLaunchCommand>[];

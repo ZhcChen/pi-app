@@ -111,14 +111,19 @@ class PiCoreRpcClient implements PiHostClient {
 
   Future<PiHostHealth> _loadHealth(String executable) async {
     try {
-      final version = await _readVersion(executable);
-      if (version.trim().isEmpty) {
-        throw const PiHostClientException('Pi core returned an empty version.');
+      var version = 'unknown';
+      try {
+        final reportedVersion = (await _readVersion(executable)).trim();
+        if (reportedVersion.isNotEmpty) {
+          version = reportedVersion;
+        }
+      } catch (_) {
+        // 版本元数据不能阻止实际可用的 Pi RPC runtime。
       }
       final environment = _environment ?? Platform.environment;
       return PiHostHealth(
         protocolVersion: _piCoreRpcProtocolVersion,
-        sdkVersion: version.trim(),
+        sdkVersion: version,
         agentDir: environment['PI_CODING_AGENT_DIR']?.trim() ?? '',
       );
     } catch (_) {
