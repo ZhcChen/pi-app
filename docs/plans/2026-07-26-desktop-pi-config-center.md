@@ -1,10 +1,13 @@
 # desktop Pi Config 可视化配置计划
 
 - 任务：在 `desktop` 设置页中提供 `pi` 全局配置中心，识别并可视化编辑 `~/.pi/agent`（或等效配置根）下的关键配置与提示词文件
-- 状态：执行中
+- 状态：已拆分（已完成 Config Center 基线；剩余配置、resources、trust、auth 与 extension 范围已迁入总路线图）
 - 负责人：Pi
 - 日期：2026-07-26
 - 承接计划：`docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
+- 当前计划入口：`docs/plans/README.md`
+
+> **文档状态，2026-07-28：** 本文件的阶段 1-3 已交付，作为当前 Config Center 基线保留。阶段 4-5 的剩余内容不得直接按旧假设执行：model/thinking/auth/config 进入 M1，resources 进入 M2，project trust 进入 S1，extension 交互进入 E1；均以 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md` 的状态和前置为准。
 
 ## 当前进度
 
@@ -20,9 +23,7 @@
   - 设置页新增 `Pi Models` 分类
   - 支持结构化编辑 `defaultProvider`、`defaultModel`、`defaultThinkingLevel`、`enabledModels`
   - 支持 `models.json` 原始高级编辑器，并展示 custom providers / models / auth 摘要
-- 待执行：阶段 4-5
-  - `settings.json` 其余高频项
-  - resources / advanced / trust / auth 的后续入口
+- 已拆分：`settings.json` 其余高频项、resources / advanced / trust / auth 的后续入口分别由当前总路线图的 M1、M2、S1、E1 管理；当前不得从本文件直接创建执行任务。
 
 ## 目标
 
@@ -325,14 +326,12 @@ UI 上可以展示成“Pi Home”或“Global Pi Config”，但底层解析必
 - 验证方式：文件读写与状态展示验证
 - 完成标准：高级用户可触达 `packages/extensions/skills/prompts/themes` 及 `auth.json`/`trust.json`
 
-## `/goal` 建议作用域
+## 历史 `/goal` 记录
 
-- 当前建议把 `/goal` 绑定到：`阶段 1 + 阶段 2 + 阶段 3`
-- 不建议一开始就把全部 `Pi Config Center` 作为单个 `/goal`
-- 最自然的第一条闭环是：
-  1. 配置根识别
-  2. prompt/context 编辑
-  3. 模型偏好结构化配置
+阶段 1-3 已完成。以下旧建议只用于追溯当时的交付边界，不能作为当前 `/goal` 入口；后续配置工作必须按 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md` 的 M1、M2、S1、E1 前置拆分。
+
+- 历史第一条闭环依次覆盖配置根识别、prompt/context 编辑和模型偏好结构化配置。
+- 不应将整个 Pi Config Center 作为单个 `/goal`。
 
 ## 验证方式
 

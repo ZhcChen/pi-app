@@ -11,7 +11,7 @@
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`（含能力与版本基线）
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`（外置 Pi core 架构修订）
 
-> **文档状态，2026-07-27：** 本文件记录已完成的 SDK host 主链及其历史规划，整份文档中的 bundle、`pi-host`、SDK adapter、工具审批和旧 `/goal` 描述均不可执行。完整产品上层路线图为 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`；当前第一个可执行入口是 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 R1，生产方向为已安装官方 Pi core 的 `pi --mode rpc`。
+> **文档状态，2026-07-28：** 本文件记录已完成的 SDK host 主链及其历史规划，整份文档中的 bundle、`pi-host`、SDK adapter、工具审批和旧 `/goal` 描述均不可执行。完整产品上层路线图为 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`，计划入口为 `docs/plans/README.md`；当前下一执行单元为 I1，生产方向为已安装官方 Pi core 的 `pi --mode rpc`。
 
 ## 已完成的首条主链（历史基线）
 
@@ -41,8 +41,7 @@
   - sidecar stdout 使用 Pi `output-guard` 隔离普通日志；host 重启会使旧 GUI session 失效并在下一次提交时重建
   - 新安装的默认 session 不获内置工具；用户显式开启“读取工具”后添加 `read`、`grep`、`find`、`ls`，开启“编码工具”后再添加 `bash`、`edit`、`write`
   - extension command/input handler 的本地完成路径会发出终态，不会让 composer 卡在运行中
-- 待执行：阶段 2 / 单元 6 及后续
-  - 完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与受管理 Pi core 的安装 / 检测 / 兼容性
+- 已拆分：完整消息/工具 timeline、session 管理、trust UI、model picker、auth UI 与受管理 Pi core 的安装 / 检测 / 兼容性已迁入当前总路线图；不得从本文件直接执行。
 
 ## 已废弃的旧下一阶段方案（仅历史记录，不可执行）
 
@@ -260,7 +259,7 @@
 - 验证方式：设计评审与 demo contract 文档
 - 完成标准：明确 Flutter <-> host 的 request/event 协议，说明哪些接口映射 SDK、哪些保留产品适配层
 
-#### 当前执行细则（2026-07-27）
+#### 历史执行细则（2026-07-27）
 
 - host 目录固定为 `host/`，使用 ESM Node，并将 `@earendil-works/pi-coding-agent` 精确锁定为 `0.82.0`
 - 输入输出均为严格 JSONL：只以 LF 分帧；启动时通过 Pi `output-guard` 将普通 stdout 转到 stderr，raw stdout 只输出协议对象；单条记录上限为 1 MiB
@@ -307,7 +306,7 @@
 - 验证方式：手工发送 prompt，GUI 收到真实回复流
 - 完成标准：当前空态工作区可变成真实对话入口
 
-#### 当前执行细则（2026-07-27）
+#### 历史执行细则（2026-07-27）
 
 - 新增独立 `PiHostClient` abstraction，不扩展已有 `DesktopRuntimeController`
 - production client 负责本地 Node sidecar 生命周期与 stdio JSONL；测试使用 `MemoryPiHostClient`
@@ -387,15 +386,11 @@
 - 验证方式：全新环境启动验证
 - 完成标准：桌面包内可稳定启动 host，并能输出诊断信息
 
-## `/goal` 建议作用域
+## 历史 `/goal` 记录
 
-- 当前建议先把 `/goal` 绑定到：`阶段 0 + 阶段 1`
-- 不建议一开始就把整个“desktop 主功能开发”作为单个 `/goal`
-- 推荐的连续闭环是：
-  1. `pi-host spike`
-  2. Flutter 接 prompt / stream
-  3. tool timeline
-  4. session / model / auth
+本文件采用的 SDK host、bundle sidecar 和旧阶段划分已废弃。以下建议仅保留为历史交付顺序，不能创建新的 `/goal`；当前入口、顺序与细化范围见 `docs/plans/README.md` 和 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`。
+
+- 历史连续闭环依次为：`pi-host spike`、Flutter prompt/stream 接线、tool timeline、session/model/auth。
 
 ## 验证方式
 

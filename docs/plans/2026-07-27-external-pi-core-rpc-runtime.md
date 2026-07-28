@@ -1,9 +1,11 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1、R2 已完成；I1、P1 可开始）
+- 状态：进行中（R1、R2 已完成；I1 为当前下一单元；P1 部分完成；I2 待前置）
 - 负责人：Pi
 - 日期：2026-07-27
+- 上层总看板：`docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
+- 计划入口与状态约定：`docs/plans/README.md`
 - 依赖文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
@@ -56,7 +58,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ## 实现思路
 
 1. 先用独立 spike 验证 Pi RPC 能覆盖当前 UI 所需的 session、stream、abort、model、thinking 和工具 lifecycle，不先改 workspace。
-2. 以通用 runtime client 边界替代 `PiHostClient` 的生产绑定：`PiCoreRpcClient` 在 Dart 内完成 Pi RPC 到稳定产品事件的映射；旧 SDK host 仅保留为开发回归参考，直到迁移验收后再决定删除。
+2. 以通用 runtime client 边界替代 `PiHostClient` 的生产绑定：`PiCoreRpcClient` 在 Dart 内完成 Pi RPC 到稳定产品事件的映射；旧 SDK host 仅保留为显式开发回归参考，不是 production fallback。
 3. 新增 `PiCoreRuntimeController`，从用户显式选择路径和 `PATH` 检测 `pi`，执行 `pi --version` 与受限 RPC state handshake，不读取 auth 内容、不加载项目资源。
 4. macOS 安装由设置页下载官方 script 到临时文件并显示真实 HTTP 下载进度，然后在用户可见 Terminal 执行。官方 installer 需要 TTY 才能在缺少 Node 时完成交互式安装，Pi App 只能显示确定阶段并轮询 health，不能伪造包管理器百分比。
 5. 新 session 默认以完整 builtin tool allowlist 启动。R1 必须先验证显式 `--no-approve` 能阻止 project-local executable resources 的自动加载；只有该验证通过，R2 / P1 才能将“完整工具 + 未信任项目”作为生产默认。旧受限偏好和 runtime diagnostic 触发授权 / 修复 modal。
@@ -130,6 +132,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### I1：Pi Core Detector
 
 - 所属阶段：阶段 3。
+- 状态：可开始；当前下一执行单元。
 - 目标：实现 `PiCoreRuntimeController` 和设置页 runtime card。
 - 涉及文件 / 模块：app preferences / persistence、settings feature / view、process abstraction、测试 fake。
 - 前置依赖：R1 的兼容版本规则。
@@ -139,19 +142,20 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### I2：官方 Installer Launcher
 
 - 所属阶段：阶段 4。
+- 状态：待前置；在 I1 与 P1 完成后执行。
 - 目标：下载官方 script、显示下载状态、创建本地日志、在 macOS Terminal 启动并轮询安装结果。
 - 涉及文件 / 模块：runtime controller、macOS platform bridge、settings view、HTTP / process fake、测试。
-- 前置依赖：I1。
+- 前置依赖：I1、P1。
 - 验证方式：本地 HTTP fixture 的字节下载进度、Terminal launch command 生成、取消等待、安装后 detector 重试、真实干净环境手工 smoke test。
 - 完成标准：Pi App 不执行 `curl | sh`；官方 script 始终在可见 Terminal 中运行；无 Node 环境的交互式安装可继续；应用显示下载来源和脚本路径，但不把本地下载表述为内容完整性校验，也不显示伪百分比。
 
 ### P1：完整工具默认与迁移授权
 
 - 所属阶段：阶段 5。
-- 状态：可开始；R2 已将新配置默认切为完整 builtin tools，旧无版本或显式受限策略仍保持受限。未授权 / 失能 modal 和恢复路径仍待实现。
-- 目标：将新偏好切换为完整 builtin tool 默认，修改 legacy migration，并加入未授权 / 失能 modal。
+- 状态：进行中；新配置默认完整 builtin tools、legacy migration 和持久化加载期间的受限 bootstrap 已完成，授权/修复 modal 与 runtime 工具失能路径待实现。
+- 目标：完成旧受限策略和 runtime diagnostic 的授权 / 修复交互，保留新 session 的完整 builtin tool 默认与现有安全迁移行为。
 - 涉及文件 / 模块：`app_preferences.dart`、`app_persistence.dart`、desktop shell、settings copy / view、RPC launch arguments、测试。
-- 前置依赖：R2，以及 R1 的 `--no-approve` trust baseline。
+- 前置依赖：R2，以及 R1 的 `--no-approve` trust baseline；剩余 runtime diagnostic 修复路径依赖 I1。
 - 验证方式：新安装、旧 `toolPolicyVersion: 1`、用户拒绝、用户授权、Pi runtime diagnostic 的 widget / client 回归。
 - 完成标准：默认参数包含 `read,grep,find,ls,bash,edit,write`；用户拒绝时不扩大权限；所有 UI 明确说明这不是 sandbox。
 
@@ -173,15 +177,17 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 - 验证方式：含 project-local extension / prompt / skill 的 fixture、显式 trust / 撤销 trust、工具调用、abort、重启回归。
 - 完成标准：明确哪些 project resources 会在显式 trust 后加载、撤销后如何失效；据此创建 project trust UI 的后续计划。
 
+## 当前执行顺序
+
+本子计划的技术实现顺序服从总看板：`I1 -> P1 -> I2`。I1 建立 runtime 状态来源；P1 使用该状态完成授权/修复路径；I2 最后复用 detector 完成安装后的重新检测。C1 由总看板在 I2 之后安排，不在本文件重复维护。
+
 ## `/goal` 建议作用域
 
-1. `/goal R1`：仅 RPC capability spike 与证据文档。
-2. `/goal R2`：仅 direct RPC client / adapter 迁移和回归。
-3. `/goal I1`：仅 runtime detector 和设置状态卡。
-4. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
-5. `/goal P1`：仅默认工具策略、legacy migration 和授权 modal。
-6. `/goal W1`：仅可选 workflow profile 入口。
-7. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
+1. `/goal I1`：仅 runtime detector 和设置状态卡。
+2. `/goal P1`：仅授权/修复 modal、runtime 工具失能路径与迁移回归；不重做已交付的完整 tools 默认。
+3. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
+4. `/goal W1`：仅可选 workflow profile 入口。
+5. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
 
 不应把整个迁移作为单个 `/goal`。
 

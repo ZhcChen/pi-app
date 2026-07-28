@@ -1,10 +1,12 @@
 # macOS Ad-hoc 发布与 GitHub 更新执行计划
 
 - 任务：为 Pi App 建立 macOS ad-hoc 签名、tag 驱动 GitHub Release、架构匹配 DMG 资产，以及应用内下载并打开安装器的更新流程
-- 状态：进行中
+- 状态：待首个正式 tag 验证（发布与更新实现已完成）
 - 负责人：Pi
 - 日期：2026-07-27
 - 关联计划：
+  - `docs/plans/README.md`（计划入口、状态约定与当前执行队列）
+  - `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`（唯一总看板）
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
 
@@ -14,6 +16,9 @@
 - [x] R2：提交 tag 驱动 GitHub Actions workflow；尚未推送 release tag，因此远端构建与发布仍待首次正式版本验证。
 - [x] U1：完成 GitHub latest release 检查、严格 asset URL、semver 和流式下载 domain service 及回归测试。
 - [x] U2：完成 Settings 更新入口、打开 DMG 与 macOS 强制退出 bridge，并完成 widget / release build 验证。
+- [ ] D1：在满足主路线图 P0-P3 前置后，创建 `v0.1.0`，验证 GitHub Actions、universal DMG、GitHub Release、应用内更新和手动覆盖安装闭环。
+
+> 本计划的实现单元已完成；当前状态不是新的开发切片，而是等待正式 tag 的真实交付验收。tag 必须等于 `desktop/pubspec.yaml` 的 build name，即当前 `0.1.0+1` 对应 `v0.1.0`。
 
 ## 目标
 

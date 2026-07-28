@@ -79,10 +79,10 @@
 - 验证方式：`flutter analyze`
 - 完成标准：模块说明明确，静态检查通过
 
-## `/goal` 建议作用域
+## 历史 `/goal` 记录
 
-- 当前建议把 `/goal` 绑定到“desktop 模块初始化脚手架”这一组连续单元
-- 不建议把后续 `pi agent` GUI 功能开发整体作为单个 `/goal`
+- 历史 `/goal` 曾绑定“desktop 模块初始化脚手架”这一组连续单元；该单元已完成。
+- 当前 Pi App 功能开发的计划与执行入口以 `docs/plans/README.md` 为准。
 
 ## 验证方式
 
