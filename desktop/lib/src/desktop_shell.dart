@@ -957,16 +957,6 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
-  Future<void> _openProjectItem(
-    WorkspaceProjectGroup project,
-    WorkspaceProjectItem item,
-  ) async {
-    await _openTarget(
-      targetPath: item.targetPath,
-      workspacePath: project.workspacePath,
-    );
-  }
-
   Future<void> _openTarget({
     required String? targetPath,
     required String? workspacePath,
@@ -1072,12 +1062,6 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 onAbortTask: () {
                   unawaited(_abortComposerTask());
                 },
-                onOpenProject: selectedProject == null
-                    ? null
-                    : () => _openProject(selectedProject),
-                onOpenProjectItem: selectedProject == null
-                    ? null
-                    : (item) => _openProjectItem(selectedProject, item),
               ),
             ),
           ],

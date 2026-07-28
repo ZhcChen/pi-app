@@ -134,12 +134,11 @@ WorkspaceProjectGroup? _buildWorkspaceProject(
   }
 
   final gitInfo = _resolveGitInfo(rootDirectory);
-  final recentTargets = _buildRecentTargets(rootDirectory);
 
   return WorkspaceProjectGroup(
     name: registryEntry?.displayName ?? _basename(rootDirectory.path),
     branch: gitInfo.branch,
-    items: recentTargets,
+    items: const <WorkspaceProjectItem>[],
     workspacePath: rootDirectory.path,
     sessionCwd: rootDirectory.path,
     isGitRepository: gitInfo.isGitRepository,
@@ -163,62 +162,6 @@ String? _normalizeProjectRoot(String? rawPath) {
 
 String _projectRootKey(String path) {
   return Platform.isWindows ? path.toLowerCase() : path;
-}
-
-List<WorkspaceProjectItem> _buildRecentTargets(Directory rootDirectory) {
-  final items = <WorkspaceProjectItem>[];
-  final candidatePaths = <String>['README.md', 'docs', 'desktop', 'assets'];
-
-  for (final relativePath in candidatePaths) {
-    final targetPath = _resolveWorkspacePath(rootDirectory.path, relativePath);
-    if (targetPath == null) {
-      continue;
-    }
-
-    final file = File(targetPath);
-    final directory = Directory(targetPath);
-    final exists = file.existsSync() || directory.existsSync();
-    if (!exists) {
-      continue;
-    }
-
-    items.add(
-      WorkspaceProjectItem(
-        label: _basename(relativePath),
-        targetPath: targetPath,
-        relativePath: relativePath,
-        kind: directory.existsSync()
-            ? WorkspaceProjectItemKind.directory
-            : WorkspaceProjectItemKind.file,
-      ),
-    );
-  }
-
-  if (items.isNotEmpty) {
-    return items;
-  }
-
-  final fallbackEntries =
-      rootDirectory
-          .listSync(followLinks: false)
-          .where((entry) => !_basename(entry.path).startsWith('.'))
-          .toList()
-        ..sort((a, b) => _basename(a.path).compareTo(_basename(b.path)));
-
-  for (final entry in fallbackEntries.take(4)) {
-    items.add(
-      WorkspaceProjectItem(
-        label: _basename(entry.path),
-        targetPath: entry.path,
-        relativePath: _basename(entry.path),
-        kind: entry is Directory
-            ? WorkspaceProjectItemKind.directory
-            : WorkspaceProjectItemKind.file,
-      ),
-    );
-  }
-
-  return items;
 }
 
 ({String? branch, bool isGitRepository}) _resolveGitInfo(
@@ -293,16 +236,4 @@ String _basename(String path) {
       : normalized;
   final segments = trimmed.split('/');
   return segments.isEmpty ? trimmed : segments.last;
-}
-
-String? _resolveWorkspacePath(String workspaceRootPath, String relativePath) {
-  if (workspaceRootPath.isEmpty) {
-    return null;
-  }
-
-  return Uri.directory(
-    workspaceRootPath.endsWith(Platform.pathSeparator)
-        ? workspaceRootPath
-        : '$workspaceRootPath${Platform.pathSeparator}',
-  ).resolve(relativePath).toFilePath(windows: Platform.isWindows);
 }

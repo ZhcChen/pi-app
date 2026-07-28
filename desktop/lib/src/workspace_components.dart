@@ -25,7 +25,6 @@ class _HeroMark extends StatelessWidget {
   }
 }
 
-/// Prompt suggestion card used in the empty-state workspace canvas.
 class _PromptCardTile extends StatelessWidget {
   const _PromptCardTile({required this.card});
 
@@ -54,9 +53,10 @@ class _PromptCardTile extends StatelessWidget {
 }
 
 class _WorkspaceEmptyState extends StatelessWidget {
-  const _WorkspaceEmptyState({required this.copy});
+  const _WorkspaceEmptyState({required this.copy, required this.promptCards});
 
   final WorkspaceCopy copy;
+  final List<WorkspacePromptCard> promptCards;
 
   @override
   Widget build(BuildContext context) {
@@ -82,153 +82,11 @@ class _WorkspaceEmptyState extends StatelessWidget {
               style: DesktopTypography.projectItem(palette),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectOverview extends StatelessWidget {
-  const _ProjectOverview({
-    required this.copy,
-    required this.preferences,
-    required this.project,
-    required this.promptCards,
-    required this.session,
-    required this.onOpenProject,
-    required this.onOpenProjectItem,
-  });
-
-  final WorkspaceCopy copy;
-  final AppPreferences preferences;
-  final WorkspaceProjectGroup project;
-  final List<WorkspacePromptCard> promptCards;
-  final WorkspaceSessionState? session;
-  final VoidCallback? onOpenProject;
-  final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.desktopPalette;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            copy.projectOverviewTitle,
-            key: const Key('project-overview-title'),
-            style: DesktopTypography.sectionLabel(palette),
-          ),
-          const SizedBox(height: 10),
-          Text(project.name, style: DesktopTypography.heroTitle(palette)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _WorkspaceStatusPill(
-                icon: Icons.folder_open_outlined,
-                label: copy.projectRepositoryStatus(project.isGitRepository),
-              ),
-              if (project.branch != null && project.branch!.isNotEmpty)
-                _WorkspaceStatusPill(
-                  icon: Icons.merge_type_outlined,
-                  label: project.branch!,
-                ),
-              if (project.items.isNotEmpty)
-                _WorkspaceStatusPill(
-                  icon: Icons.layers_outlined,
-                  label: '${project.items.length}',
-                ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _ProjectOverviewCard(
-            title: copy.projectDetailsTitle,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ProjectDetailLine(
-                  label: copy.projectPathLabel,
-                  value:
-                      project.workspacePath ?? copy.openTargetUnavailableLabel,
-                ),
-                if (project.branch != null && project.branch!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _ProjectDetailLine(
-                    label: copy.projectBranchLabel,
-                    value: project.branch!,
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _ProjectDetailLine(
-                  label: copy.projectRepositoryLabel,
-                  value: copy.projectRepositoryStatus(project.isGitRepository),
-                ),
-                if (project.sessionCwd != null) ...[
-                  const SizedBox(height: 12),
-                  _ProjectDetailLine(
-                    label: copy.projectSessionCwdLabel,
-                    value: project.sessionCwd!,
-                  ),
-                ],
-                if (project.workspacePath != null && onOpenProject != null) ...[
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: DesktopTextActionButton(
-                      buttonKey: const Key('open-project-overview-button'),
-                      onPressed: onOpenProject!,
-                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: copy.projectOpenRootLabel,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (session?.hasActivity == true) ...[
-            const SizedBox(height: 18),
-            _ProjectSessionTranscript(copy: copy, session: session!),
-          ],
-          const SizedBox(height: 18),
-          _ProjectOverviewCard(
-            title: copy.projectRecentTargetsTitle,
-            child: project.items.isEmpty
-                ? Text(
-                    copy.projectNoRecentTargetsLabel,
-                    style: DesktopTypography.projectItem(palette),
-                  )
-                : Column(
-                    children: [
-                      for (var i = 0; i < project.items.length; i++) ...[
-                        _ProjectOverviewTargetRow(
-                          copy: copy,
-                          openDestination: preferences.openDestination,
-                          item: project.items[i],
-                          onOpen:
-                              project.items[i].targetPath == null ||
-                                  onOpenProjectItem == null
-                              ? null
-                              : () => onOpenProjectItem!(project.items[i]),
-                        ),
-                        if (i < project.items.length - 1)
-                          const Divider(height: 18, thickness: 0.6),
-                      ],
-                    ],
-                  ),
-          ),
           if (promptCards.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            Text(
-              copy.projectSuggestionsTitle,
-              style: DesktopTypography.sectionLabel(palette),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 28),
             Wrap(
               key: const Key('workspace-suggested-prompts'),
-              alignment: WrapAlignment.start,
+              alignment: WrapAlignment.center,
               spacing: 14,
               runSpacing: 14,
               children: promptCards
@@ -238,6 +96,26 @@ class _ProjectOverview extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ProjectSessionCanvas extends StatelessWidget {
+  const _ProjectSessionCanvas({required this.copy, required this.session});
+
+  final WorkspaceCopy copy;
+  final WorkspaceSessionState? session;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeSession = session;
+    if (activeSession == null || !activeSession.hasActivity) {
+      return const SizedBox.shrink();
+    }
+
+    return SingleChildScrollView(
+      key: const Key('workspace-session-transcript'),
+      child: _ProjectSessionTranscript(copy: copy, session: activeSession),
     );
   }
 }
@@ -378,89 +256,6 @@ class _ProjectOverviewCard extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-class _ProjectDetailLine extends StatelessWidget {
-  const _ProjectDetailLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.desktopPalette;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: DesktopTypography.sectionLabel(palette)),
-        const SizedBox(height: 3),
-        SelectableText(value, style: DesktopTypography.sidebarItem(palette)),
-      ],
-    );
-  }
-}
-
-class _ProjectOverviewTargetRow extends StatelessWidget {
-  const _ProjectOverviewTargetRow({
-    required this.copy,
-    required this.openDestination,
-    required this.item,
-    this.onOpen,
-  });
-
-  final WorkspaceCopy copy;
-  final AppOpenDestination openDestination;
-  final WorkspaceProjectItem item;
-  final VoidCallback? onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.desktopPalette;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(
-            item.kind == WorkspaceProjectItemKind.directory
-                ? Icons.folder_outlined
-                : Icons.description_outlined,
-            size: 16,
-            color: palette.textSecondary,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.label, style: DesktopTypography.sidebarItem(palette)),
-              if (item.relativePath != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  copy.projectRecentTargetDescription(item.relativePath!),
-                  style: DesktopTypography.projectItem(palette),
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (onOpen != null) ...[
-          const SizedBox(width: 10),
-          DesktopIconActionButton(
-            key: Key('open-project-overview-item-button-${item.label}'),
-            onPressed: onOpen!,
-            tooltip: copy.openTargetTooltip(openDestination),
-            icon: const Icon(Icons.open_in_new_rounded, size: 15),
-            backgroundColor: palette.settingsField,
-            foregroundColor: palette.textSecondary,
-          ),
-        ],
-      ],
     );
   }
 }

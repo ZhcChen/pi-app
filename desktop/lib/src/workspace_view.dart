@@ -191,8 +191,6 @@ class WorkspaceCanvas extends StatelessWidget {
     required this.session,
     required this.onSubmitTask,
     required this.onAbortTask,
-    required this.onOpenProject,
-    required this.onOpenProjectItem,
     super.key,
   });
 
@@ -204,8 +202,6 @@ class WorkspaceCanvas extends StatelessWidget {
   final WorkspaceSessionState? session;
   final VoidCallback onSubmitTask;
   final VoidCallback? onAbortTask;
-  final VoidCallback? onOpenProject;
-  final ValueChanged<WorkspaceProjectItem>? onOpenProjectItem;
 
   @override
   Widget build(BuildContext context) {
@@ -223,16 +219,11 @@ class WorkspaceCanvas extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 920),
                   child: project == null
-                      ? _WorkspaceEmptyState(copy: copy)
-                      : _ProjectOverview(
+                      ? _WorkspaceEmptyState(
                           copy: copy,
-                          preferences: preferences,
-                          project: project!,
                           promptCards: promptCards,
-                          session: session,
-                          onOpenProject: onOpenProject,
-                          onOpenProjectItem: onOpenProjectItem,
-                        ),
+                        )
+                      : _ProjectSessionCanvas(copy: copy, session: session),
                 ),
               ),
             ),

@@ -696,6 +696,37 @@ process.stdin.on('data', (chunk) => {
       findsOneWidget,
     );
     expect(find.byKey(const Key('project-overview-title')), findsNothing);
+    expect(
+      find.byKey(const Key('workspace-suggested-prompts')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('projectless workspace respects suggested prompts setting', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+
+    await tester.pumpWidget(const PiDesktopApp(enablePersistence: false));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('workspace-suggested-prompts')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('open-settings-button')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('suggested-prompts-switch')),
+    );
+    await tester.tap(find.byKey(const Key('suggested-prompts-switch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('back-to-app-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('workspace-suggested-prompts')), findsNothing);
   });
 
   testWidgets(
@@ -800,10 +831,7 @@ process.stdin.on('data', (chunk) => {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const Key('workspace-suggested-prompts')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('workspace-suggested-prompts')), findsNothing);
     expect(find.byKey(const Key('workspace-bottom-panel')), findsNothing);
     expect(find.text('VS Code · Coding tools · Auto-review'), findsOneWidget);
     expect(runtimeController.lastSyncedPreferences?.showInMenuBar, true);
@@ -976,19 +1004,18 @@ process.stdin.on('data', (chunk) => {
     await tester.tap(find.byKey(const Key('back-to-app-button')));
     await settleUi(tester);
 
-    await tester.tap(
+    expect(
       find.byKey(const Key('open-project-overview-item-button-desktop')),
+      findsNothing,
     );
+    await tester.tap(find.byKey(const Key('open-project-button-pi-app')));
     await settleUi(tester);
 
     expect(
       runtimeController.lastOpenRequest?.destination,
       AppOpenDestination.terminal,
     );
-    expect(
-      runtimeController.lastOpenRequest?.targetPath,
-      '$workspacePath${Platform.pathSeparator}desktop',
-    );
+    expect(runtimeController.lastOpenRequest?.targetPath, workspacePath);
     expect(runtimeController.openCount, 2);
   });
 
@@ -1148,7 +1175,79 @@ process.stdin.on('data', (chunk) => {
   });
 
   testWidgets(
-    'workspace overview uses real project data instead of seed items',
+    'project sessions stay scoped when switching between selected projects',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final projectA = Directory.systemTemp.createTempSync('pi-workspace-a-');
+      final projectB = Directory.systemTemp.createTempSync('pi-workspace-b-');
+      addTearDown(() {
+        projectA.deleteSync(recursive: true);
+        projectB.deleteSync(recursive: true);
+      });
+      final projectAName = projectA.uri.pathSegments
+          .where((segment) => segment.isNotEmpty)
+          .last;
+      final projectBName = projectB.uri.pathSegments
+          .where((segment) => segment.isNotEmpty)
+          .last;
+      final registryStore = MemoryProjectRegistryStore(
+        initialSnapshot: ProjectRegistrySnapshot(
+          entries: <ProjectRegistryEntry>[
+            ProjectRegistryEntry.create(projectB.path),
+          ],
+        ),
+      );
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: MemoryDesktopPreferencesStore(),
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: registryStore,
+          workspaceRootPath: projectA.path,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Keep this session with project A.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsOneWidget,
+      );
+      expect(find.text('Keep this session with project A.'), findsOneWidget);
+
+      await tester.tap(find.text(projectBName).first);
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsNothing,
+      );
+      expect(find.text('Keep this session with project A.'), findsNothing);
+      expect(find.text(projectBName), findsWidgets);
+
+      await tester.tap(find.text(projectAName).first);
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsOneWidget,
+      );
+      expect(find.text('Keep this session with project A.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'selected project hides overview content until a session has activity',
     (tester) async {
       configureWindow(tester);
       addTearDown(() => resetWindow(tester));
@@ -1162,13 +1261,15 @@ process.stdin.on('data', (chunk) => {
       );
       await settleUi(tester);
 
-      expect(find.byKey(const Key('project-overview-title')), findsOneWidget);
+      expect(find.byKey(const Key('project-overview-title')), findsNothing);
+      expect(
+        find.byKey(const Key('workspace-suggested-prompts')),
+        findsNothing,
+      );
+      expect(find.text('Project details'), findsNothing);
+      expect(find.text('Recent targets'), findsNothing);
       expect(find.text('yuance'), findsNothing);
       expect(find.text('novel-1'), findsNothing);
-      expect(find.text('Project overview'), findsOneWidget);
-      expect(find.text('docs'), findsWidgets);
-      expect(find.text('desktop'), findsWidgets);
-      expect(find.text('assets'), findsWidgets);
       expect(find.byKey(const Key('composer-session-cwd')), findsOneWidget);
       expect(find.text(workspacePath), findsWidgets);
     },
@@ -1221,6 +1322,10 @@ process.stdin.on('data', (chunk) => {
       );
       expect(hostSession.cwd, workspacePath);
       expect(find.text('Pi session'), findsOneWidget);
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsOneWidget,
+      );
       expect(
         find.text('Review the current desktop workspace shell.'),
         findsOneWidget,
