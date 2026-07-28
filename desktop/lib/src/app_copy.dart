@@ -241,6 +241,9 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get projectSuggestionsTitle =>
       isChinese ? '建议提示' : 'Suggested prompts';
   String get sessionConversationTitle => isChinese ? 'Pi 会话' : 'Pi session';
+  String get sessionUserLabel => isChinese ? '你' : 'You';
+  String get sessionAssistantLabel => 'Pi';
+  String get sessionStreamingLabel => isChinese ? '生成中' : 'Generating';
   String get projectPathLabel => isChinese ? '项目路径' : 'Project path';
   String get projectRepositoryLabel => isChinese ? '仓库状态' : 'Repository';
   String get projectBranchLabel => isChinese ? '分支' : 'Branch';

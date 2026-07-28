@@ -1322,10 +1322,12 @@ process.stdin.on('data', (chunk) => {
       );
       expect(hostSession.cwd, workspacePath);
       expect(find.text('Pi session'), findsOneWidget);
+      expect(find.byKey(const Key('workspace-session-header')), findsOneWidget);
       expect(
         find.byKey(const Key('workspace-session-transcript')),
         findsOneWidget,
       );
+      expect(find.byKey(const Key('workspace-user-message')), findsOneWidget);
       expect(
         find.text('Review the current desktop workspace shell.'),
         findsOneWidget,
@@ -1347,6 +1349,48 @@ process.stdin.on('data', (chunk) => {
       await settleUi(tester);
 
       expect(find.text('The host stream is connected.'), findsOneWidget);
+      expect(
+        find.byKey(const Key('workspace-assistant-message')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('workspace-streaming-indicator')),
+        findsOneWidget,
+      );
+
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.toolStarted,
+          sessionId: piHostClient.promptRequests.single.sessionId,
+          data: const <String, dynamic>{'toolName': 'read'},
+        ),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-active-tool')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('workspace-session-active-tool')),
+          matching: find.text('Running read'),
+        ),
+        findsOneWidget,
+      );
+
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.toolCompleted,
+          sessionId: piHostClient.promptRequests.single.sessionId,
+        ),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-active-tool')),
+        findsNothing,
+      );
 
       await tester.tap(find.byKey(const Key('abort-composer-task-button')));
       await settleUi(tester);
@@ -1356,9 +1400,96 @@ process.stdin.on('data', (chunk) => {
       ]);
       expect(find.text('Task aborted'), findsWidgets);
       expect(
+        find.byKey(const Key('workspace-streaming-indicator')),
+        findsNothing,
+      );
+      expect(
         find.byKey(const Key('submit-composer-task-button')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'conversation transcript keeps message bubbles within a narrow light workspace',
+    (tester) async {
+      tester.view.physicalSize = const Size(760, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: MemoryDesktopPreferencesStore(
+            initialPreferences: const AppPreferences(
+              themeMode: AppThemeMode.light,
+              interfaceDensity: AppInterfaceDensity.compact,
+            ),
+          ),
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Inspect https://example.com/a-very-long-unbroken-workspace-reference-that-must-stay-contained.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.messageDelta,
+          sessionId: piHostClient.promptRequests.single.sessionId,
+          data: const <String, dynamic>{
+            'delta':
+                'The response keeps a readable line height while a long path such as /Users/chen/code/pi-app/desktop/lib/src/workspace_components.dart remains inside the transcript.',
+          },
+        ),
+      );
+      await settleUi(tester);
+
+      final transcript = find.byKey(const Key('workspace-session-transcript'));
+      final userBubble = find.byKey(const Key('workspace-message-0'));
+      final assistantMessage = find.byKey(const Key('workspace-message-1'));
+      final transcriptRect = tester.getRect(transcript);
+      final userBubbleRect = tester.getRect(userBubble);
+      final assistantRect = tester.getRect(assistantMessage);
+      final sessionStatus = find.descendant(
+        of: find.byKey(const Key('workspace-session-header')),
+        matching: find.text('Pi is running'),
+      );
+      final assistantRole = find.descendant(
+        of: assistantMessage,
+        matching: find.text('Pi'),
+      );
+
+      expect(Theme.of(tester.element(transcript)).brightness, Brightness.light);
+      expect(
+        userBubbleRect.width,
+        lessThanOrEqualTo(transcriptRect.width * 0.83),
+      );
+      expect(userBubbleRect.left, greaterThanOrEqualTo(transcriptRect.left));
+      expect(userBubbleRect.right, lessThanOrEqualTo(transcriptRect.right));
+      expect(assistantRect.left, greaterThanOrEqualTo(transcriptRect.left));
+      expect(assistantRect.right, lessThanOrEqualTo(transcriptRect.right));
+      expect(
+        tester.widget<Text>(sessionStatus).style?.color,
+        const Color(0xFF5D6774),
+      );
+      expect(
+        tester.widget<Text>(assistantRole).style?.color,
+        const Color(0xFF232831),
+      );
+      expect(
+        tester.widget<Text>(find.text('Generating')).style?.color,
+        const Color(0xFF5D6774),
+      );
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -1409,6 +1540,8 @@ process.stdin.on('data', (chunk) => {
         findsOneWidget,
       );
       expect(find.byKey(const Key('abort-composer-task-button')), findsNothing);
+      expect(find.byKey(const Key('workspace-session-error')), findsOneWidget);
+      expect(find.text('Pi host exited unexpectedly.'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('workspace-composer-input')),

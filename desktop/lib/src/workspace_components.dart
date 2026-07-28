@@ -10,7 +10,8 @@ class _WorkspaceComponentSpec {
   static const double composerInputRadius = 20;
   static const double bottomPanelRadius = 18;
   static const double projectTileRadius = 12;
-  static const double overviewCardRadius = 18;
+  static const double conversationBubbleRadius = 8;
+  static const double conversationEventRadius = 6;
 }
 
 class _HeroMark extends StatelessWidget {
@@ -129,135 +130,444 @@ class _ProjectSessionTranscript extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
+    final errorMessage = session.errorMessage;
 
-    return _ProjectOverviewCard(
-      title: copy.sessionConversationTitle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _WorkspaceStatusPill(
-                icon: _statusIcon(session.status),
-                label: copy.sessionStatusLabel(session.status),
-              ),
-              if (session.modelLabel != null)
-                _WorkspaceStatusPill(
-                  icon: Icons.memory_rounded,
-                  label: '${session.modelLabel} · ${session.thinkingLevel}',
-                ),
-              if (session.activeToolName != null)
-                _WorkspaceStatusPill(
-                  icon: Icons.construction_outlined,
-                  label: copy.sessionToolStatusLabel(session.activeToolName!),
-                ),
-            ],
-          ),
-          if (session.errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              session.errorMessage!,
-              key: const Key('workspace-session-error'),
-              style: DesktopTypography.projectItem(
-                palette,
-              ).copyWith(color: const Color(0xFFE97878)),
-            ),
-          ],
-          if (session.messages.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            for (var index = 0; index < session.messages.length; index++) ...[
-              _ConversationMessageRow(
-                message: session.messages[index],
-                palette: palette,
-              ),
-              if (index < session.messages.length - 1)
-                const Divider(height: 18, thickness: 0.6),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  IconData _statusIcon(WorkspaceRunStatus status) {
-    return switch (status) {
-      WorkspaceRunStatus.idle => Icons.pause_circle_outline_rounded,
-      WorkspaceRunStatus.starting => Icons.hourglass_top_rounded,
-      WorkspaceRunStatus.running => Icons.auto_awesome_rounded,
-      WorkspaceRunStatus.settled => Icons.check_circle_outline_rounded,
-      WorkspaceRunStatus.aborted => Icons.cancel_outlined,
-      WorkspaceRunStatus.failed => Icons.error_outline_rounded,
-    };
-  }
-}
-
-class _ConversationMessageRow extends StatelessWidget {
-  const _ConversationMessageRow({required this.message, required this.palette});
-
-  final WorkspaceConversationMessage message;
-  final DesktopPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final isUser = message.role == WorkspaceConversationRole.user;
-
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(
-            isUser ? Icons.person_outline_rounded : Icons.auto_awesome_rounded,
-            size: 16,
-            color: isUser ? palette.textSecondary : palette.accent,
+        _SessionTranscriptHeader(copy: copy, session: session),
+        if (session.activeToolName != null) ...[
+          const SizedBox(height: 14),
+          _SessionEventStrip(
+            eventKey: const Key('workspace-session-active-tool'),
+            icon: Icons.construction_outlined,
+            label: copy.sessionToolStatusLabel(session.activeToolName!),
+            accentColor: palette.accent,
+            backgroundColor: palette.settingsField,
+            foregroundColor: palette.textPrimary,
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: SelectableText(
-            message.text,
-            key: isUser
-                ? const Key('workspace-user-message')
-                : const Key('workspace-assistant-message'),
-            style: DesktopTypography.sidebarItem(palette),
+        ],
+        if (errorMessage != null) ...[
+          const SizedBox(height: 14),
+          _SessionEventStrip(
+            eventKey: const Key('workspace-session-error'),
+            icon: Icons.error_outline_rounded,
+            label: copy.sessionStatusLabel(WorkspaceRunStatus.failed),
+            detail: errorMessage,
+            accentColor: Theme.of(context).colorScheme.error,
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+            foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
           ),
-        ),
-        if (message.isStreaming) ...[
-          const SizedBox(width: 8),
-          Icon(Icons.more_horiz_rounded, size: 16, color: palette.textMuted),
+        ],
+        if (session.messages.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          for (var index = 0; index < session.messages.length; index++) ...[
+            _ConversationMessageBlock(
+              copy: copy,
+              message: session.messages[index],
+              index: index,
+            ),
+            if (index < session.messages.length - 1) const SizedBox(height: 18),
+          ],
         ],
       ],
     );
   }
 }
 
-class _ProjectOverviewCard extends StatelessWidget {
-  const _ProjectOverviewCard({required this.title, required this.child});
+class _SessionTranscriptHeader extends StatelessWidget {
+  const _SessionTranscriptHeader({required this.copy, required this.session});
 
-  final String title;
-  final Widget child;
+  final WorkspaceCopy copy;
+  final WorkspaceSessionState session;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+    final modelLabel = session.modelLabel;
+    final statusColor = _sessionStatusColor(context, session.status);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          key: const Key('workspace-session-header'),
+          spacing: 14,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _SessionHeaderItem(
+              icon: Icons.auto_awesome_rounded,
+              label: copy.sessionConversationTitle,
+              iconColor: palette.accent,
+              textStyle: DesktopTypography.settingsSectionTitle(palette),
+            ),
+            _SessionHeaderItem(
+              icon: _statusIcon(session.status),
+              label: copy.sessionStatusLabel(session.status),
+              iconColor: statusColor,
+              textStyle: DesktopTypography.conversationRole(palette),
+            ),
+            if (modelLabel != null)
+              _SessionHeaderItem(
+                icon: Icons.memory_rounded,
+                label: '$modelLabel · ${session.thinkingLevel}',
+                tooltip: '$modelLabel · ${session.thinkingLevel}',
+                iconColor: palette.textMuted,
+                textStyle: DesktopTypography.conversationRole(palette),
+                maxWidth: 300,
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Divider(height: 1, thickness: 1, color: palette.divider),
+      ],
+    );
+  }
+}
+
+class _SessionHeaderItem extends StatelessWidget {
+  const _SessionHeaderItem({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.textStyle,
+    this.maxWidth,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final TextStyle textStyle;
+  final double? maxWidth;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = maxWidth == null
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: iconColor),
+              const SizedBox(width: 6),
+              Text(label, style: textStyle),
+            ],
+          )
+        : ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth!),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 15, color: iconColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textStyle,
+                  ),
+                ),
+              ],
+            ),
+          );
+
+    return tooltip == null
+        ? content
+        : Tooltip(message: tooltip!, child: content);
+  }
+}
+
+class _SessionEventStrip extends StatelessWidget {
+  const _SessionEventStrip({
+    required this.eventKey,
+    required this.icon,
+    required this.label,
+    this.detail,
+    required this.accentColor,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final Key eventKey;
+  final IconData icon;
+  final String label;
+  final String? detail;
+  final Color accentColor;
+  final Color backgroundColor;
+  final Color foregroundColor;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
 
-    return DesktopSurface(
-      color: palette.panel,
-      radius: _WorkspaceComponentSpec.overviewCardRadius,
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      child: Column(
+    return Container(
+      key: eventKey,
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(
+          _WorkspaceComponentSpec.conversationEventRadius,
+        ),
+        border: Border(left: BorderSide(color: accentColor, width: 2)),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: DesktopTypography.settingsGroupLabel(palette)),
-          const SizedBox(height: 12),
-          child,
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: 16, color: accentColor),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: DesktopTypography.conversationRole(
+                    palette,
+                  ).copyWith(color: foregroundColor),
+                ),
+                if (detail != null) ...[
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    detail!,
+                    style: DesktopTypography.conversationBody(
+                      palette,
+                    ).copyWith(color: foregroundColor),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class _ConversationMessageBlock extends StatelessWidget {
+  const _ConversationMessageBlock({
+    required this.copy,
+    required this.message,
+    required this.index,
+  });
+
+  final WorkspaceCopy copy;
+  final WorkspaceConversationMessage message;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return message.role == WorkspaceConversationRole.user
+        ? _UserConversationMessage(copy: copy, message: message, index: index)
+        : _AssistantConversationMessage(
+            copy: copy,
+            message: message,
+            index: index,
+          );
+  }
+}
+
+class _UserConversationMessage extends StatelessWidget {
+  const _UserConversationMessage({
+    required this.copy,
+    required this.message,
+    required this.index,
+  });
+
+  final WorkspaceCopy copy;
+  final WorkspaceConversationMessage message;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final proportionalMaxWidth = constraints.maxWidth * 0.82;
+        final maxBubbleWidth = proportionalMaxWidth > 680
+            ? 680.0
+            : proportionalMaxWidth;
+
+        return Align(
+          alignment: Alignment.centerRight,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            child: Container(
+              key: Key('workspace-message-$index'),
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+              decoration: BoxDecoration(
+                color: palette.selection,
+                borderRadius: BorderRadius.circular(
+                  _WorkspaceComponentSpec.conversationBubbleRadius,
+                ),
+                border: Border.all(color: palette.dividerLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ConversationRoleLabel(
+                    icon: Icons.person_outline_rounded,
+                    label: copy.sessionUserLabel,
+                    iconColor: palette.textSecondary,
+                  ),
+                  const SizedBox(height: 7),
+                  SelectableText(
+                    message.text,
+                    key: const Key('workspace-user-message'),
+                    style: DesktopTypography.conversationBody(palette),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AssistantConversationMessage extends StatelessWidget {
+  const _AssistantConversationMessage({
+    required this.copy,
+    required this.message,
+    required this.index,
+  });
+
+  final WorkspaceCopy copy;
+  final WorkspaceConversationMessage message;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return Container(
+      key: Key('workspace-message-$index'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 2,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            color: palette.accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _ConversationRoleLabel(
+                      icon: Icons.auto_awesome_rounded,
+                      label: copy.sessionAssistantLabel,
+                      iconColor: palette.accent,
+                      textColor: palette.textPrimary,
+                    ),
+                    if (message.isStreaming)
+                      Semantics(
+                        liveRegion: true,
+                        label: copy.sessionStreamingLabel,
+                        child: Row(
+                          key: const Key('workspace-streaming-indicator'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.more_horiz_rounded,
+                              size: 16,
+                              color: palette.accent,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              copy.sessionStreamingLabel,
+                              style: DesktopTypography.conversationStreaming(
+                                palette,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  message.text,
+                  key: const Key('workspace-assistant-message'),
+                  style: DesktopTypography.conversationBody(palette),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConversationRoleLabel extends StatelessWidget {
+  const _ConversationRoleLabel({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    this.textColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final Color? textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: iconColor),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: DesktopTypography.conversationRole(
+            palette,
+          ).copyWith(color: textColor ?? iconColor),
+        ),
+      ],
+    );
+  }
+}
+
+IconData _statusIcon(WorkspaceRunStatus status) {
+  return switch (status) {
+    WorkspaceRunStatus.idle => Icons.pause_circle_outline_rounded,
+    WorkspaceRunStatus.starting => Icons.hourglass_top_rounded,
+    WorkspaceRunStatus.running => Icons.auto_awesome_rounded,
+    WorkspaceRunStatus.settled => Icons.check_circle_outline_rounded,
+    WorkspaceRunStatus.aborted => Icons.cancel_outlined,
+    WorkspaceRunStatus.failed => Icons.error_outline_rounded,
+  };
+}
+
+Color _sessionStatusColor(BuildContext context, WorkspaceRunStatus status) {
+  final palette = context.desktopPalette;
+
+  return switch (status) {
+    WorkspaceRunStatus.starting || WorkspaceRunStatus.running => palette.accent,
+    WorkspaceRunStatus.failed => Theme.of(context).colorScheme.error,
+    WorkspaceRunStatus.settled => palette.textSecondary,
+    WorkspaceRunStatus.idle || WorkspaceRunStatus.aborted => palette.textMuted,
+  };
 }
 
 /// Primary task composer shown at the bottom of the workspace.

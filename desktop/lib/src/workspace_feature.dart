@@ -28,6 +28,9 @@ abstract interface class WorkspaceCopy {
   String get projectRecentTargetsTitle;
   String get projectSuggestionsTitle;
   String get sessionConversationTitle;
+  String get sessionUserLabel;
+  String get sessionAssistantLabel;
+  String get sessionStreamingLabel;
   String get projectPathLabel;
   String get projectRepositoryLabel;
   String get projectBranchLabel;

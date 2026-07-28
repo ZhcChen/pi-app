@@ -306,6 +306,27 @@ class DesktopTypography {
     height: 1.45,
   );
 
+  static TextStyle conversationRole(DesktopPalette palette) => TextStyle(
+    color: palette.textSecondary,
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    height: 1.2,
+  );
+
+  static TextStyle conversationBody(DesktopPalette palette) => TextStyle(
+    color: palette.textPrimary,
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    height: 1.5,
+  );
+
+  static TextStyle conversationStreaming(DesktopPalette palette) => TextStyle(
+    color: palette.textSecondary,
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    height: 1.2,
+  );
+
   static TextStyle codePreview(DesktopPalette palette) => TextStyle(
     color: palette.textPrimary,
     fontSize: 11.5,
