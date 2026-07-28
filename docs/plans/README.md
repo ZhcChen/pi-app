@@ -29,6 +29,7 @@ P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好�
 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) | 唯一总看板 | 更新所有执行单元的状态、依赖、顺序与完成门槛。 |
 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) | runtime 子计划 | 细化 R1/R2/I1/P1/I2/W1/S1；不与总看板竞争状态权威。 |
 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) | 交付子计划 | 记录发布实现、首个 tag 验证与手动更新约束。 |
+| [macOS 开发应用身份与图标隔离](2026-07-28-macos-development-app-identity.md) | 执行中 | 记录 Debug/Profile 与 Release 的原生身份、图标和可并存验证。 |
 | [Pi Core RPC R1 能力矩阵](../solutions/2026-07-28-pi-core-rpc-capability-matrix.md) | 兼容性证据 | 记录 Pi CLI 实测版本、RPC 语义、tools/trust 边界；不作为 runtime 版本 gate。 |
 | [Pi Core RPC Adapter 迁移](../solutions/2026-07-28-pi-core-rpc-adapter-migration.md) | R2 交付证据 | 记录 direct RPC adapter、真实 smoke、引入提交和当前限制。 |
 | [Pi Core 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | I1 交付证据 | 记录路径发现、版本信息、受限 health、设置卡、验证和限制。 |
