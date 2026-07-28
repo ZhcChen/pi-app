@@ -121,7 +121,7 @@
 
 ### R1 与 R2 当前状态
 
-R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，I1 已完成 Pi core 检测、精确版本 gate、受限 health 与设置诊断，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。当前执行队列固定为 I1、P1、I2、C1；P1 是下一执行单元，I2 与 C1 不得抢跑。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
+R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，I1 已完成 Pi core 检测、版本信息采集、受限 health 与设置诊断，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。版本记录是验证和排障证据，不是启动 gate；当前执行队列固定为 I1、P1、I2、C1，P1 是下一执行单元，I2 与 C1 不得抢跑。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
 
 - [x] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
 - [x] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
@@ -150,7 +150,7 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 
 - 目标：让 macOS 用户知道 Pi core 是否可用、如何安装和如何修复，同时把新 session 迁移到经验证的完整 builtin coding tools 默认。
 - 边界：官方 installer 必须在可见 Terminal 运行；不读取 auth、不自动更新 Pi core、不把 `pi-light-ce` 当作 runtime。
-- 验收重点：未安装、损坏、不兼容、兼容、检测失败可区分；旧限制策略不会静默升级；用户能明确选择完整工具或保持受限。
+- 验收重点：未安装、路径损坏、报告版本缺失、RPC health 失败和运行正常可区分；旧限制策略不会静默升级；用户能明确选择完整工具或保持受限。
 
 ### 阶段 P3：日常 Coding Workspace
 
@@ -189,17 +189,17 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 - 涉及文件 / 模块：`desktop/lib/src/pi_host_client.dart` 的替换边界、新增 RPC client / protocol adapter、`desktop_shell.dart`、workspace state、Dart / widget tests。
 - 前置依赖：R1。
 - 验证方式：单元测试 LF framing、1 MiB 上限、迟到 event、进程替换和 malformed input；真实多项目 prompt / stream / abort smoke test。
-- 完成标准：production 仅启动通过显式 runtime override 或 `PATH` 解析的 direct `pi --mode rpc`；I1 已将可执行路径、版本兼容性与 health 变成用户可见诊断。workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具，Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
+- 完成标准：production 仅启动通过显式 runtime override 或 `PATH` 解析的 direct `pi --mode rpc`；I1 已将可执行路径、报告版本与受限 RPC health 变成用户可见诊断，且不以版本号阻止启动。workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具，Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
 
 ### I1：Pi Core Detector 与诊断卡
 
 - 所属阶段：P2。
 - 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
-- 目标：实现 `PiCoreRuntimeController`，检测用户选择路径、`PI_CORE_EXECUTABLE` 与 `PATH` 中的 `pi`，运行精确版本判定和受限 RPC health。
+- 目标：实现 `PiCoreRuntimeController`，检测用户选择路径、`PI_CORE_EXECUTABLE` 与 `PATH` 中的 `pi`，尽力采集报告版本并运行受限 RPC health。
 - 涉及文件 / 模块：runtime abstraction、preferences / persistence、settings feature / view / copy、process fake、测试。
-- 前置依赖：R1 的兼容版本规则。
-- 验证方式：模拟缺失、不可执行、路径错误、版本不兼容、RPC handshake 失败和兼容 Pi；widget 状态回归；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
-- 完成结果：设置页展示绝对路径、来源、版本、状态、诊断和刷新/选择/清除操作；默认 client 对新 session 执行 runtime gate，既有 session process 不受路径切换影响；不读取 auth，不加载项目 resources。
+- 前置依赖：R1 的 RPC health contract。
+- 验证方式：模拟缺失、不可执行、路径错误、新版 / 预发布 / 扩展版本、版本信息缺失、RPC handshake 失败和健康 Pi；widget 状态回归；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
+- 完成结果：设置页展示绝对路径、来源、报告版本、状态、诊断和刷新/选择/清除操作；可用性只由受限 RPC health 决定，默认 client 对新 session 执行 runtime gate，既有 session process 不受路径切换影响；不读取 auth，不加载项目 resources。
 
 ### I2：官方 Pi Core Installer Launcher
 
@@ -305,7 +305,7 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 ### Q1：可靠性、日志与恢复矩阵
 
 - 所属阶段：P5。
-- 目标：统一 RPC process crash、malformed JSONL、兼容性错误、installer 失败、下载失败、session 失效和资源拒绝的诊断与恢复动作。
+- 目标：统一 RPC process crash、malformed JSONL、RPC health / schema 错误、installer 失败、下载失败、session 失效和资源拒绝的诊断与恢复动作。
 - 涉及文件 / 模块：runtime controller、diagnostic store、local logs、settings / workspace notices、自动化 fixture。
 - 前置依赖：R2、I2、C2、O1。
 - 验证方式：故障注入、1 MiB 边界、重复启动、旧进程迟到退出、日志路径检查和用户可恢复性手工评估。
@@ -317,8 +317,8 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 - 目标：在真实非开发环境完成 Pi core 检测 / 安装、direct RPC coding、更新和恢复 smoke test，并用 `v<build-name>` 创建第一个 GitHub Release。
 - 涉及文件 / 模块：release scripts、GitHub Actions、版本记录、release notes、手工测试证据。
 - 前置依赖：阶段 P0 至阶段 P3 完成；Q1 关键故障矩阵通过。
-- 验证方式：干净 macOS 用户环境、无 Pi / 有不兼容 Pi / 有兼容 Pi 三种路径；tag gate、DMG、首次打开、更新、真实 prompt / tool / abort / resume。
-- 完成标准：发布资产、Pi App build、Pi core range、RPC adapter version、hash、签名模式和残余风险均有可追溯记录；不把 ad-hoc 签名描述为 notarized / Gatekeeper 受信任发布。
+- 验证方式：干净 macOS 用户环境、无 Pi / 路径不可用或 health 失败的 Pi / health 正常 Pi 三种路径；tag gate、DMG、首次打开、更新、真实 prompt / tool / abort / resume。
+- 完成标准：发布资产、Pi App build、Pi core 报告版本与验证证据、RPC adapter version、hash、签名模式和残余风险均有可追溯记录；不把 ad-hoc 签名描述为 notarized / Gatekeeper 受信任发布。
 
 ### D2：Windows 与 Linux Direct RPC Parity
 
@@ -358,7 +358,7 @@ R1、R2、I1 已完成，不应重新创建对应 `/goal`。禁止把整份路�
 
 ## 风险与待确认事项
 
-1. Pi CLI RPC schema 或语义随上游版本变化，必须通过兼容版本范围、adapter version 和真实 smoke test 管理，不能只依赖 SDK 类型声明。
+1. Pi CLI RPC schema 或语义随上游版本变化，必须通过 adapter version 和真实 smoke test 管理，不能只依赖 SDK 类型声明或版本号 gate。
 2. R1 若不能证明 `--no-approve` 对 project-local executable resources 的安全基线，R2 / P1 不能把完整 builtin tools 作为生产默认；需要重新设计 trust-first 启动参数。
 3. 官方 `install.sh` 的 TTY 行为和 PATH 刷新不能由后台进程可靠控制，安装 UI 必须如实表达“等待 / 重新检测”，不许伪造取消或百分比。
 4. session 文件、extension resources 和 auth 属于 Pi core 管理边界；Pi App 不应直接编辑、复制或上传它们。

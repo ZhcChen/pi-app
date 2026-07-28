@@ -16,7 +16,7 @@
 
 R1 以真实 Pi CLI `0.82.0` 完成了 direct RPC 的最小产品能力验证。R2 可以开始实现 `PiCoreRpcClient` 和 Dart adapter，但必须遵守下文的事件、session、abort、extension 和进程生命周期限制。
 
-这不表示 Flutter 已切换 production transport，也不表示 Pi App 已经支持任意 Pi CLI 版本。当前兼容范围仅为已验证的 `0.82.0`；每次扩大范围或升级 Pi core 都必须重新执行本矩阵的真实验证。
+这不表示 Flutter 已切换 production transport，也不表示任意 Pi CLI 版本都已获得同等完整的实测证据。当前证据只覆盖 `0.82.0`；每次升级 Pi core 都应重新执行本矩阵的真实验证并记录结果。该证据范围不是 Pi App 的 runtime 版本 gate：只要受限 RPC health 通过，应用会允许用户安装的 Pi 启动。
 
 ## 验证产物
 

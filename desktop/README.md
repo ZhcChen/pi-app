@@ -49,7 +49,7 @@
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
 - `pi_config_store.dart` 负责 `pi` 全局配置根识别、模型配置读写与 prompt 文件编辑
 - `pi_core_rpc_client.dart` 负责生产 direct `pi --mode rpc` transport、JSONL framing、process lifecycle 和稳定事件映射
-- `pi_core_runtime.dart` 负责 Pi core 发现、精确版本判定、受限 RPC health、路径选择和 runtime gate
+- `pi_core_runtime.dart` 负责 Pi core 发现、版本信息采集、受限 RPC health、路径选择和 runtime gate
 - `pi_host_client.dart` 负责稳定产品接口、历史 `LocalPiHostClient` 回归实现与 `MemoryPiHostClient` 测试 fake
 - `project_registry_store.dart` 负责 `~/.pi-app/projects/index.json` 项目注册表、`projects/<project-id>/project.json` 项目元数据、旧项目路径迁移与项目别名/固定/最近访问/移除操作
 - `pi_config_view.dart` 承接 settings 内部的 `Pi Models` / `Pi Prompts` 页面实现
@@ -71,7 +71,7 @@ flutter test
 flutter run -d macos
 ```
 
-开发或运行 composer 前，系统需要可从 `PATH` 找到官方 `pi`，或在设置页选择绝对可执行路径；测试可显式设置 `PI_CORE_EXECUTABLE=/absolute/path/to/pi`。I1 已提供精确 `0.82.0` 版本兼容性、受限 RPC health 和设置页诊断；I2 将补充官方 installer launcher。
+开发或运行 composer 前，系统需要可从 `PATH` 找到官方 `pi`，或在设置页选择绝对可执行路径；测试可显式设置 `PI_CORE_EXECUTABLE=/absolute/path/to/pi`。I1 会尽力采集 Pi 报告版本用于诊断，但不会以版本号阻止启动；受限 RPC health 才是可用性准入。I2 将补充官方 installer launcher。
 
 真实 Pi adapter smoke 不属于默认 `flutter test`，因为它会发送真实 prompt：
 

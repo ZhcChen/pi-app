@@ -17,7 +17,7 @@
 
 ## 目标
 
-完成后，Pi App 不再把 Node runtime 或 `@earendil-works/pi-coding-agent` 放入产品 bundle。macOS 用户可在设置中检测已安装的官方 Pi core；缺失或不兼容时，可下载并在可见 Terminal 中执行官方 `https://pi.dev/install.sh`，然后由应用重新检测并建立 Pi RPC 会话。
+完成后，Pi App 不再把 Node runtime 或 `@earendil-works/pi-coding-agent` 放入产品 bundle。macOS 用户可在设置中检测已安装的官方 Pi core；缺失、路径不可用或受限 RPC health 失败时，可下载并在可见 Terminal 中执行官方 `https://pi.dev/install.sh`，然后由应用重新检测并建立 Pi RPC 会话。
 
 Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露给 view model。新安装默认请求完整 builtin tool 集；旧的无工具或受限偏好、以及 runtime 确认的工具不可用状态，会在会话前弹出授权 / 修复对话。`pi-light-ce` 只作为设置中的可选 workflow profile，不是 Pi core 的安装来源。
 
@@ -27,7 +27,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 - Flutter -> Pi CLI RPC JSONL transport、事件规约和 workspace 接线。
 - 现有工具偏好从默认无工具迁移为默认完整 builtin tool 集，并提供旧状态授权对话。
 - `pi-light-ce` 的可选检测 / 安装入口，不自动初始化任何项目。
-- Pi CLI `0.82.0` 的兼容性 spike、版本记录、自动化与手工回归。
+- Pi CLI `0.82.0` 的兼容性 spike、版本记录、自动化与手工回归；该实证基线不构成 runtime 启动限制。
 
 ## 非目标
 
@@ -53,14 +53,14 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
   - 生产端只启动已安装的 `pi --mode rpc`。
   - RPC 仍严格按 LF JSONL 分帧，单条记录保留 1 MiB 防护。
   - workspace 继续消费稳定产品事件，不直接依赖 Pi RPC 原始 event。
-  - 初始兼容基线是 Pi CLI `0.82.0`；扩大版本范围前必须补回归证据。
+  - Pi CLI `0.82.0` 是当前实测证据基线；后续版本应补回归证据，但 runtime 不得以版本号拒绝启动。
   - builtin tools 默认启用不表示 project trust、sandbox 或 OS 级权限。
 
 ## 实现思路
 
 1. 先用独立 spike 验证 Pi RPC 能覆盖当前 UI 所需的 session、stream、abort、model、thinking 和工具 lifecycle，不先改 workspace。
 2. 以通用 runtime client 边界替代 `PiHostClient` 的生产绑定：`PiCoreRpcClient` 在 Dart 内完成 Pi RPC 到稳定产品事件的映射；旧 SDK host 仅保留为显式开发回归参考，不是 production fallback。
-3. 新增 `PiCoreRuntimeController`，从用户显式选择路径和 `PATH` 检测 `pi`，执行 `pi --version` 与受限 RPC state handshake，不读取 auth 内容、不加载项目资源。
+3. 新增 `PiCoreRuntimeController`，从用户显式选择路径和 `PATH` 检测 `pi`，尽力采集 `pi --version` 信息并运行受限 RPC state handshake；可用性只由 health 决定，不读取 auth 内容、不加载项目资源。
 4. macOS 安装由设置页下载官方 script 到临时文件并显示真实 HTTP 下载进度，然后在用户可见 Terminal 执行。官方 installer 需要 TTY 才能在缺少 Node 时完成交互式安装，Pi App 只能显示确定阶段并轮询 health，不能伪造包管理器百分比。
 5. 新 session 默认以完整 builtin tool allowlist 启动。R1 必须先验证显式 `--no-approve` 能阻止 project-local executable resources 的自动加载；只有该验证通过，R2 / P1 才能将“完整工具 + 未信任项目”作为生产默认。旧受限偏好和 runtime diagnostic 触发授权 / 修复 modal。
 
@@ -80,9 +80,9 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 
 ### 阶段 3：I1 Pi Core Runtime 检测
 
-- 目标：在设置中提供 Pi core 状态、路径、版本、兼容性和诊断入口。
+- 目标：在设置中提供 Pi core 状态、路径、报告版本和诊断入口。
 - 边界：不读取或编辑 auth，不自动安装，不加载项目资源。
-- 验收重点：未安装、发现但不兼容、损坏、兼容、检测失败五种状态可区分且有可操作信息。
+- 验收重点：未安装、路径不可用、版本信息缺失但 health 通过、RPC health 失败和运行正常可区分且有可操作信息；版本号不得作为启动限制。
 
 ### 阶段 4：I2 官方 Pi 安装流程
 
@@ -136,9 +136,9 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 - 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
 - 目标：实现 `PiCoreRuntimeController` 和设置页 runtime card。
 - 涉及文件 / 模块：app preferences / persistence、settings feature / view、process abstraction、测试 fake。
-- 前置依赖：R1 的兼容版本规则。
-- 验证方式：模拟 `pi` 缺失、错误版本、不可执行、RPC handshake 失败、兼容 Pi；widget 状态测试；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
-- 完成结果：以 `PI_CORE_EXECUTABLE`、用户已选路径和 `PATH` 发现 Pi，精确接受 `0.82.0`，以临时空目录运行 `--no-approve --no-tools` 的 `get_state` health；状态卡支持刷新、选择和清除路径，新 session 经 runtime gate 启动。
+- 前置依赖：R1 的 RPC health contract。
+- 验证方式：模拟 `pi` 缺失、路径错误、不可执行、新版 / 预发布 / 扩展版本、版本信息缺失、RPC handshake 失败和健康 Pi；widget 状态测试；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
+- 完成结果：以 `PI_CORE_EXECUTABLE`、用户已选路径和 `PATH` 发现 Pi，尽力展示其报告版本；以临时空目录运行 `--no-approve --no-tools` 的 `get_state` health 决定可用性，不以版本号拒绝启动；状态卡支持刷新、选择和清除路径，新 session 经 runtime gate 启动。
 
 ### I2：官方 Installer Launcher
 
@@ -204,7 +204,7 @@ I1 已完成。当前子计划的执行顺序服从总看板：`P1 -> I2`。P1 �
 ## 风险 / 待验证问题
 
 - 官方 installer 在无 Node 场景要求 TTY；应用需要用可见 Terminal 运行，不能保证所有安装步骤都可从 Flutter 获得精确进度。本地下载脚本便于展示来源和进度，但不构成独立内容完整性校验，首版信任根是用户确认的官方 HTTPS 来源。
-- Pi RPC 的版本化兼容承诺必须由 R1 证据驱动；初期只支持 `0.82.0`，不能把“命令存在”视为兼容。
+- Pi RPC schema 或语义随上游版本变化时，必须由 R1 证据和真实 smoke 驱动 adapter 维护；Pi App 记录观察到的版本并建议重跑验证，但不把版本号作为启动 gate。
 - 默认启用 `bash`、`edit`、`write` 是用户确定的产品策略，但它们不提供路径隔离、网络隔离或 OS 权限限制。
 - 系统 PATH 在 Terminal 安装后可能尚未反映到 Pi App 进程；detector 需要支持用户选择可执行路径并重新扫描。
 - `pi-light-ce` 当前 installer 的脚本来源和更新语义独立于 Pi core；其安装不能影响 Pi core 更新或项目 trust，且用户显式执行可变脚本的风险必须在 UI 中披露。

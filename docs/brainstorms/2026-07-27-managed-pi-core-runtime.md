@@ -13,14 +13,14 @@
 
 此前 M1 假设把完整 Node runtime、`host/dist` 和 `@earendil-works/pi-coding-agent` 放入 Pi App bundle。该路径会让 Pi App 变成另一份 Pi runtime 的分发者，和产品定位冲突。
 
-新的产品方向是：Pi App 只增强用户独立安装的 Pi core。用户在设置中只看到“Pi core”，可检查其安装、兼容性、版本、日志和更新状态；Node、`pi-coding-agent`、安装器和可选工作流 profile 都是 Pi core 的内部组成，不与 Pi App bundle 绑定。
+新的产品方向是：Pi App 只增强用户独立安装的 Pi core。用户在设置中只看到“Pi core”，可检查其安装、报告版本、受限 RPC health、日志和更新状态；Node、`pi-coding-agent`、安装器和可选工作流 profile 都是 Pi core 的内部组成，不与 Pi App bundle 绑定。
 
 用户提出使用 `https://github.com/ZhcChen/pi-light-ce` 初始化。已核对其 `v0.1.0`：它是 Pi-first 工作流模板和 bootstrap CLI，不是 `pi-coding-agent` runtime。当前 macOS 脚本会经 Homebrew 安装 Node、`pi-coding-agent` 与 Git，再 clone `pi-light-ce`；Pi App 首版只把它作为 Pi core 健康后可单独安装的 workflow profile，不把它作为 Pi core 的来源。
 
 ## 目标
 
 1. Pi App bundle 不携带 Node runtime、`@earendil-works/pi-coding-agent` 或私有 SDK 副本。
-2. 设置页能检测 Pi core，明确显示未安装、安装中、兼容、版本不兼容、损坏和诊断失败等状态。
+2. 设置页能检测 Pi core，明确显示未安装、安装中、运行正常、路径损坏和诊断失败等状态；`pi --version` 仅作为报告元数据，不作为准入限制。
 3. 未安装时，用户可以显式触发安装；界面提供真实下载进度或明确步骤进度、取消、日志、失败恢复和重试。
 4. Pi App 继续保持稳定的 workspace view model，不让业务 UI 直接依赖原始 Pi RPC event。
 5. Pi core、workflow profile、项目初始化和 project trust 保持分离；安装 Pi core 不得自动改写用户项目。
@@ -50,7 +50,7 @@
 - 概述：Pi App 检测并启动用户安装的 `pi --mode rpc`；新增 `PiCoreRpcClient` 与 Dart adapter，将 Pi RPC 规约成现有 workspace 所需的 session / run / message view model。
 - 优点：Pi App 不携带 Node、SDK 或额外 host；Pi core 是唯一 agent runtime；复用 Pi CLI 已发布的嵌入接口和 session/auth/config 语义。
 - 缺点：Dart adapter 需要维护 Pi RPC 兼容性；此前 host 隐藏的 SDK event 差异会转移到 adapter；工具启用与 runtime diagnostic 的兼容性需要持续验证。
-- 风险：用户或包管理器升级 Pi 后 RPC schema / 语义可能变化；必须维护支持的 Pi CLI 版本范围和真实 compatibility smoke test。
+- 风险：用户或包管理器升级 Pi 后 RPC schema / 语义可能变化；必须维护真实验证证据和 compatibility smoke test，但不能把版本号作为 runtime 启动 gate。
 
 ### 方案 2：安装独立的 `pi-app-host` companion
 
@@ -92,17 +92,17 @@ Pi App Flutter UI
   -> 用户显式为某个项目执行 pi-l-ce init
 ```
 
-`PiCoreRuntimeController` 只检查可执行文件绝对路径、`pi --version`、受限 RPC health、已声明的兼容版本范围和日志位置；不得读取 auth 内容、自动加载项目资源或授予 project trust。
+`PiCoreRuntimeController` 只检查可执行文件绝对路径、尽力采集 `pi --version`、受限 RPC health 和日志位置；可用性由 health 决定，不得读取 auth 内容、自动加载项目资源或授予 project trust。
 
 ## 安装 Contract
 
 Pi App 对用户展示“安装 Pi core”，首版只调用官方 `https://pi.dev/install.sh`，不将 `pi-light-ce` 混入该流程。该脚本会在缺少 Node 时读取 `/dev/tty` 选择 Homebrew、系统包管理器或 standalone Node 安装方式，因此不能作为普通无终端后台子进程静默执行。
 
-1. 设置页先检测 `pi` 的绝对路径、`pi --version` 与受限 RPC health；只有未安装、损坏或版本不兼容时才显示“安装 Pi core”。
+1. 设置页先检测 `pi` 的绝对路径、尽力采集 `pi --version` 与受限 RPC health；只有未安装、路径损坏或 health 失败时才显示“安装 Pi core”。
 2. 用户确认后，Pi App 从官方 URL 下载 installer 到临时目录，显示该脚本的真实 HTTP 下载字节、来源 URL 和本地日志位置；下载完成后再执行本地文件，以便用户看见实际来源和脚本路径。该步骤不提供独立的内容完整性校验，首版的信任根是用户确认的官方 HTTPS 来源，不能把它描述为比 `curl | sh` 更强的验真机制。
-3. 因官方 installer 可能需要 TTY 交互，macOS 首版在可见 Terminal 会话中执行下载后的脚本。Pi App 显示“等待官方安装完成”，轮询 `pi --version` 和无工具 RPC health；用户可停止等待并稍后重新检测，但不能把关闭等待误称为取消外部 installer。
+3. 因官方 installer 可能需要 TTY 交互，macOS 首版在可见 Terminal 会话中执行下载后的脚本。Pi App 显示“等待官方安装完成”，轮询 `pi --version` 元数据和无工具 RPC health；用户可停止等待并稍后重新检测，但不能把关闭等待误称为取消外部 installer。
 4. Homebrew、npm、apt、winget 或官方 script 内部下载无法提供可信的统一字节百分比时，Pi App 只显示确定的阶段和实时检测状态，不伪造进度。
-5. 检测成功的条件是：可执行文件可解析、Pi 版本在当前兼容范围内、可启动受限 `pi --mode rpc`，并能完成无副作用 state handshake。认证和项目 resources 不参与检测。
+5. 检测成功的条件是：可执行文件可解析、可启动受限 `pi --mode rpc`，并能完成无副作用 state handshake。认证、项目 resources 和版本号不参与准入；报告版本只用于诊断与验证记录。
 6. 安装前对用户披露官方来源、将由官方 script 安装的 Node / npm / Pi、可能的 PATH 或管理员权限变更，以及会打开 Terminal 的原因。安装与更新分离，默认不自动更新。
 7. `pi-light-ce` 安装另设 workflow profile 操作。第一版可在用户明确确认来源、可变脚本与影响后下载并运行其脚本，但不提供固定版本或内容完整性保证；它永远不能替代 Pi core 安装，也不能自动运行 `pi-l-ce init`。
 
@@ -119,7 +119,7 @@ Pi App 对用户展示“安装 Pi core”，首版只调用官方 `https://pi.d
 能力矩阵继续维护在 `docs/solutions/2026-07-27-pi-host-sdk-contract.md`。新 transport 落地后，应新增并记录：
 
 - Pi App build version
-- Pi core version range 与实际检测版本
+- Pi core 报告版本与已验证证据版本
 - RPC adapter version
 - Pi RPC compatibility schema / feature baseline
 - 官方 installer URL、下载后脚本的 SHA-256（用于诊断回溯，不表示已验证内容）与执行日志位置
