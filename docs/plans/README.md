@@ -26,6 +26,7 @@ P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好�
 
 | 文档 | 角色 | 使用方式 |
 | --- | --- | --- |
+| [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) | 草稿验收覆盖层 | 冻结当前基线，验收已声明能力并输出缺陷台账；不替代总看板的功能依赖与状态。 |
 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) | 唯一总看板 | 更新所有执行单元的状态、依赖、顺序与完成门槛。 |
 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) | runtime 子计划 | 细化 R1/R2/I1/P1/I2/W1/S1；不与总看板竞争状态权威。 |
 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) | 交付子计划 | 记录发布实现、首个 tag 验证与手动更新约束。 |
