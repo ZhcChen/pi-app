@@ -1,11 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'app_preferences.dart';
+
+enum PiAppStorageEnvironment { development, production }
+
+PiAppStorageEnvironment resolvePiAppStorageEnvironment({bool? isReleaseBuild}) {
+  return (isReleaseBuild ?? kReleaseMode)
+      ? PiAppStorageEnvironment.production
+      : PiAppStorageEnvironment.development;
+}
+
+String piAppDataDirectoryName({bool? isReleaseBuild}) {
+  return switch (resolvePiAppStorageEnvironment(
+    isReleaseBuild: isReleaseBuild,
+  )) {
+    PiAppStorageEnvironment.development => '.pi-app-dev',
+    PiAppStorageEnvironment.production => '.pi-app',
+  };
+}
 
 Directory resolvePiAppRootDirectory({
   Directory? rootDirectory,
   Map<String, String>? environment,
+  bool? isReleaseBuild,
 }) {
   if (rootDirectory != null) {
     return rootDirectory;
@@ -19,10 +39,11 @@ Directory resolvePiAppRootDirectory({
       : (userProfile != null && userProfile.isNotEmpty ? userProfile : null);
 
   if (basePath == null) {
-    throw StateError('Unable to resolve home directory for ~/.pi-app');
+    throw StateError('Unable to resolve the Pi App data directory.');
   }
 
-  return Directory('$basePath${Platform.pathSeparator}.pi-app');
+  final directoryName = piAppDataDirectoryName(isReleaseBuild: isReleaseBuild);
+  return Directory('$basePath${Platform.pathSeparator}$directoryName');
 }
 
 abstract class DesktopPreferencesStore {
@@ -35,16 +56,20 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
   FileDesktopPreferencesStore({
     Directory? rootDirectory,
     Map<String, String>? environment,
+    bool? isReleaseBuild,
   }) : _rootDirectory = rootDirectory,
-       _environment = environment;
+       _environment = environment,
+       _isReleaseBuild = isReleaseBuild;
 
   final Directory? _rootDirectory;
   final Map<String, String>? _environment;
+  final bool? _isReleaseBuild;
 
   Directory resolveRootDirectory() {
     return resolvePiAppRootDirectory(
       rootDirectory: _rootDirectory,
       environment: _environment,
+      isReleaseBuild: _isReleaseBuild,
     );
   }
 

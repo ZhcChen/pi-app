@@ -183,16 +183,20 @@ class FileProjectRegistryStore implements ProjectRegistryStore {
   FileProjectRegistryStore({
     Directory? rootDirectory,
     Map<String, String>? environment,
+    bool? isReleaseBuild,
   }) : _rootDirectory = rootDirectory,
-       _environment = environment;
+       _environment = environment,
+       _isReleaseBuild = isReleaseBuild;
 
   final Directory? _rootDirectory;
   final Map<String, String>? _environment;
+  final bool? _isReleaseBuild;
 
   Directory resolveRootDirectory() {
     return resolvePiAppRootDirectory(
       rootDirectory: _rootDirectory,
       environment: _environment,
+      isReleaseBuild: _isReleaseBuild,
     );
   }
 
