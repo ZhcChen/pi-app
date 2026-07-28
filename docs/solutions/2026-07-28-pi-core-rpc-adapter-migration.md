@@ -5,6 +5,7 @@
 - 日期：2026-07-28
 - Pi App 基线：`0.1.0+1`
 - RPC adapter 版本：`1`
+- 引入提交：`6c457ec`
 - Pi core 验证版本：`0.82.0`
 - 关联计划：
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
