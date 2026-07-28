@@ -38,6 +38,8 @@
 - Pi Core RPC adapter 说明：`docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`
 - Pi Core runtime 检测说明：`docs/solutions/2026-07-28-pi-core-runtime-detector.md`
 - 应用数据环境隔离说明：`docs/solutions/2026-07-28-app-data-environment-isolation.md`
+- macOS 开发应用身份与图标隔离计划：`docs/plans/2026-07-28-macos-development-app-identity.md`
+- macOS 开发应用身份与图标隔离说明：`docs/solutions/2026-07-28-macos-development-app-identity.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
@@ -96,6 +98,39 @@ Pi App 的自有持久化数据按构建环境隔离：默认 debug 的 `flutter
 
 `~/.pi/agent`、Pi 的认证、Pi 管理的 session 文件和项目内 `.pi` resources 属于用户安装的 Pi core，不是 Pi App 自有数据，因此不会被本隔离机制移动或改写。
 
+## macOS 开发与正式应用
+
+macOS 使用独立 app identity 区分开发环境与正式交付，二者可以同时保留和启动：
+
+| 构建方式 | app 名称 | Bundle ID | Dock / Finder 图标 | Pi App 数据根 |
+| --- | --- | --- | --- | --- |
+| `flutter run -d macos`、`flutter build macos --debug`、`flutter build macos --profile` | `Pi App Dev` | `dev.pi.piDesktop.dev` | `AppIconDev`，右下角橙色圆点 | `~/.pi-app-dev/` |
+| `flutter run --release`、正式 DMG | `Pi App` | `dev.pi.piDesktop` | `AppIcon` | `~/.pi-app/` |
+
+开发版图标的圆点是编译进完整 macOS asset catalog 的身份标记，不依赖 Dock 的通知徽标。日常开发使用：
+
+```bash
+cd desktop
+flutter run -d macos
+```
+
+如需生成可独立启动的开发 app bundle：
+
+```bash
+cd desktop
+flutter build macos --debug
+open "build/macos/Build/Products/Debug/Pi App Dev.app"
+```
+
+构建后可验证三个配置的 bundle identity：
+
+```bash
+cd desktop
+./scripts/verify-macos-app-identity.sh --configuration debug
+./scripts/verify-macos-app-identity.sh --configuration profile
+./scripts/verify-macos-app-identity.sh --configuration release
+```
+
 ## macOS Ad-hoc 发布
 
 Pi App 当前按直接分发模式构建 macOS release：使用 ad-hoc 签名，不使用 App Sandbox、Developer ID 或 notarization。移除 App Sandbox 是外置 Pi core、网络访问、下载更新和完整 coding tools 的必要条件；因此该 build 不能作为 Mac App Store sandbox 版本发布。
@@ -129,7 +164,7 @@ workflow 先校验 tag，再在 macOS 构建 universal ad-hoc DMG，最后创建
 
 打包后的 macOS release 可在“设置 -> 通用 -> 应用更新”手动检查 GitHub Release。发现更高的稳定版本后，Pi App 只下载本仓库发布的 universal DMG，并显示真实下载进度。
 
-ad-hoc 签名不能安全地进行应用内二进制替换：下载完成后应用会打开 DMG，用户点击“退出并安装”后手动把 Pi App 覆盖到 Applications。下载或打开失败不会退出当前应用。默认更新 client 仅在打包后的 macOS release 启用；debug、test 和非 macOS runtime 会返回不支持状态，不会联网或提供安装包。
+ad-hoc 签名不能安全地进行应用内二进制替换：下载完成后应用会打开 DMG，用户点击“退出并安装”后手动把 Pi App 覆盖到 Applications。下载或打开失败不会退出当前应用。默认更新 client 仅在 macOS 的 `kReleaseMode` runtime 启用；debug、profile、test 和非 macOS runtime 会返回不支持状态，不会联网或提供安装包。
 
 ## 备注
 

@@ -23,7 +23,8 @@
 
 ### 导出文件
 
-- macOS：`export/macos/AppIcon.appiconset/app_icon_<size>.png`
+- macOS 正式版：`export/macos/AppIcon.appiconset/app_icon_<size>.png`
+- macOS 开发版：`export/macos/AppIconDev.appiconset/app_icon_<size>.png`
 - Windows PNG：`export/windows/png/app_icon_<size>.png`
 - Windows ICO：`export/windows/ico/app_icon.ico`
 - Linux：`export/linux/hicolor/<size>x<size>/apps/pi-app.png`
@@ -48,12 +49,14 @@ swift assets/branding/scripts/generate_platform_icons.swift
 - 重新生成 macOS 图标导出集
 - 重新生成 Windows PNG 与 `.ico` 导出集
 - 重新生成 Linux hicolor PNG 导出集
-- 把 macOS 图标同步到 `desktop/macos/Runner/Assets.xcassets/AppIcon.appiconset/`
+- 把 macOS 正式图标同步到 `desktop/macos/Runner/Assets.xcassets/AppIcon.appiconset/`
+- 把 macOS 开发图标同步到 `desktop/macos/Runner/Assets.xcassets/AppIconDev.appiconset/`
 - 把 Windows `.ico` 同步到 `desktop/windows/runner/resources/app_icon.ico`
 - 把 Linux hicolor 图标和 `.desktop` 文件同步到 `desktop/linux/runner/resources/`
 
 ## 变更原则
 
 - 修改品牌造型时，优先更新 `source/` 与脚本中的平台导出模板，再统一重新导出
+- `AppIcon` 是正式 Release 图标；`AppIconDev` 仅供 macOS Debug/Profile 使用，右下角圆点是开发身份标记
 - 不直接手工改单个导出 PNG 或 `.ico` 作为长期维护方式
 - 平台导出规则新增时，继续放到 `export/<platform>/`，不要回到根层平铺

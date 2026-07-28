@@ -11,6 +11,8 @@
   - `docs/plans/README.md`（计划入口、状态约定与当前执行队列）
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
   - `docs/plans/2026-07-27-macos-ad-hoc-release-and-update.md`
+  - `docs/plans/2026-07-28-macos-development-app-identity.md`
+  - `docs/solutions/2026-07-28-macos-development-app-identity.md`
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
   - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`
   - `docs/solutions/2026-07-28-pi-core-runtime-detector.md`
@@ -39,6 +41,7 @@
 | 真实 prompt / 文本流 / abort / model / thinking 基线 | 已完成 | R1 / R2 的对照证据 |
 | 受限工具白名单和旧偏好安全降级 | 已完成 | P1 的迁移起点，不是最终默认策略 |
 | macOS ad-hoc DMG、GitHub Release workflow、手动更新 | 已完成 | 交付基础，仍需首个真实 tag 验证 |
+| macOS Debug/Profile 与 Release 应用身份、图标与数据根 | 已完成 | `Pi App Dev` / `Pi App` 可并存；证据见 `docs/solutions/2026-07-28-macos-development-app-identity.md` |
 | `PiCoreRpcClient`、runtime detector、官方 installer | R2、I1 已完成；I2 未完成 | direct production transport 已切换，已具备受管理 runtime 诊断 |
 | session 管理、完整 timeline、auth / trust / resource UI | 未完成 | 阶段 P3/P4 功能面 |
 | Windows、Linux production runtime / installer | 未开始 | 阶段 P5，必须后置到 macOS 验收 |
@@ -55,6 +58,7 @@
 6. **macOS 先行**：先证明 macOS direct RPC、检测、安装和工作流闭环，再设计 Windows / Linux 的进程与安装实现。
 7. **版本可追溯**：每项 runtime capability 记录 Pi App build、Pi core 报告版本与验证证据、RPC adapter version、引入 commit、验证命令和残余风险。release tag 必须等于 `v<desktop/pubspec.yaml build-name>`。
 8. **开发/发布数据隔离**：Pi App 自有的偏好、项目注册表与项目元数据在 debug/profile 中写入 `~/.pi-app-dev`，在正式 Release 中写入 `~/.pi-app`；不自动迁移或删除既有数据。Pi core 自己的 `~/.pi`、认证、session 与项目 resources 不属于该存储边界。
+9. **macOS 应用身份隔离**：Debug/Profile 必须使用 `Pi App Dev`、`dev.pi.piDesktop.dev` 与带右下角圆点的 `AppIconDev`；Release 必须保留 `Pi App`、`dev.pi.piDesktop` 与正式 `AppIcon`。`flutter run --release` 是正式身份，不得误归入开发环境。
 
 ## 范围
 

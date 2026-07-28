@@ -1,7 +1,7 @@
 # macOS 开发应用身份与图标隔离
 
 - 任务：让 Pi App 的 Debug/Profile 与正式 Release 在 macOS 上可辨认、可并存，并为开发图标提供右下角圆点标识
-- 状态：进行中
+- 状态：已完成
 - 负责人：Codex
 - 日期：2026-07-28
 
@@ -107,7 +107,13 @@ flutter build macos --release
 ./scripts/verify-macos-app-identity.sh --configuration debug
 ./scripts/verify-macos-app-identity.sh --configuration profile
 ./scripts/verify-macos-app-identity.sh --configuration release
+cd macos
+xcodebuild test -workspace Runner.xcworkspace -scheme Runner -configuration Debug -destination 'platform=macOS'
+cd ../..
+desktop/scripts/build-macos-release.sh --arch universal
 ```
+
+执行结果：`flutter analyze` 通过，完整 `flutter test` 共 77 项通过；Debug、Profile 和 Release bundle verifier 均通过；Debug XCTest 与 Release universal DMG 构建均通过。
 
 手工检查：将 `Pi App Dev.app` 与 `Pi App.app` 放到同一临时目录或 `/Applications`，同时启动并确认 Finder、Dock 和菜单栏图标，开发版右下角圆点可见。
 

@@ -6,7 +6,8 @@
 
 - `source/light/`：浅色主题源文件
 - `source/dark/`：深色主题源文件
-- `export/macos/AppIcon.appiconset/`：macOS 应用图标导出集
+- `export/macos/AppIcon.appiconset/`：macOS 正式应用图标导出集
+- `export/macos/AppIconDev.appiconset/`：macOS Debug/Profile 应用图标导出集，右下角带开发圆点
 - `export/windows/png/`：Windows 图标 PNG 导出集
 - `export/windows/ico/`：Windows `.ico` 导出集
 - `export/linux/hicolor/`：Linux hicolor 图标导出集
@@ -20,6 +21,7 @@
 - `source/dark/pi-mark.svg`
 - `source/dark/pi-logo.svg`
 - `export/macos/AppIcon.appiconset/Contents.json`
+- `export/macos/AppIconDev.appiconset/Contents.json`
 - `export/windows/ico/app_icon.ico`
 
 ## 生成方式
