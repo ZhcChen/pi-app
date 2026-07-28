@@ -25,6 +25,8 @@ void main() {
     );
     expect(productionRoot.path, '$homePath${Platform.pathSeparator}.pi-app');
     expect(developmentRoot.path, isNot(productionRoot.path));
+    expect(piAppDisplayName(isReleaseBuild: false), 'Pi App Dev');
+    expect(piAppDisplayName(isReleaseBuild: true), 'Pi App');
   });
 
   test(

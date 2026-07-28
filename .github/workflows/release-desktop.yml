@@ -57,6 +57,9 @@ jobs:
       - name: Build signed DMG
         run: ./desktop/scripts/build-macos-release.sh --arch universal
 
+      - name: Verify release app identity
+        run: ./desktop/scripts/verify-macos-app-identity.sh --configuration release
+
       - name: Upload macOS release asset
         uses: actions/upload-artifact@v4
         with:

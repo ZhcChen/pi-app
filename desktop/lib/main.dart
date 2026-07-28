@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'src/app_persistence.dart';
 import 'src/desktop_shell.dart';
 import 'src/pi_core_runtime.dart';
 
@@ -54,8 +55,8 @@ String? _defaultWorkspaceRootPath() {
 Future<void> _prepareDesktopWindow() async {
   await windowManager.ensureInitialized();
 
-  const options = WindowOptions(
-    title: 'Pi App',
+  final options = WindowOptions(
+    title: piAppDisplayName(),
     minimumSize: Size(1280, 820),
     backgroundColor: Colors.transparent,
   );

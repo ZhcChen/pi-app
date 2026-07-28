@@ -10,12 +10,18 @@ let repoRoot = brandingDir.deletingLastPathComponent().deletingLastPathComponent
 
 let exportDir = brandingDir.appendingPathComponent("export")
 let macosIconsetDir = exportDir.appendingPathComponent("macos/AppIcon.appiconset")
+let macosDevelopmentIconsetDir = exportDir.appendingPathComponent(
+  "macos/AppIconDev.appiconset"
+)
 let windowsPngDir = exportDir.appendingPathComponent("windows/png")
 let windowsIcoDir = exportDir.appendingPathComponent("windows/ico")
 let linuxHicolorDir = exportDir.appendingPathComponent("linux/hicolor")
 
 let desktopMacosIconsetDir = repoRoot.appendingPathComponent(
   "desktop/macos/Runner/Assets.xcassets/AppIcon.appiconset"
+)
+let desktopMacosDevelopmentIconsetDir = repoRoot.appendingPathComponent(
+  "desktop/macos/Runner/Assets.xcassets/AppIconDev.appiconset"
 )
 let desktopWindowsIconURL = repoRoot.appendingPathComponent(
   "desktop/windows/runner/resources/app_icon.ico"
@@ -148,7 +154,52 @@ func makePath(
   return path
 }
 
-func drawIcon(size: Int, style: IconStyle) throws -> Data {
+func drawDevelopmentBadge(size: CGFloat, inset: CGFloat) {
+  let outerRadius = max(2.0, size * 0.12)
+  let borderWidth = max(1.0, size * 0.016)
+  let center = CGPoint(
+    x: size - inset - size * 0.04 - outerRadius,
+    y: inset + size * 0.04 + outerRadius
+  )
+
+  NSColor.black.setFill()
+  NSBezierPath(
+    ovalIn: NSRect(
+      x: center.x - outerRadius,
+      y: center.y - outerRadius,
+      width: outerRadius * 2,
+      height: outerRadius * 2
+    )
+  ).fill()
+
+  let innerRadius = outerRadius - borderWidth
+  NSColor(calibratedRed: 1.0, green: 0.69, blue: 0.13, alpha: 1.0).setFill()
+  NSBezierPath(
+    ovalIn: NSRect(
+      x: center.x - innerRadius,
+      y: center.y - innerRadius,
+      width: innerRadius * 2,
+      height: innerRadius * 2
+    )
+  ).fill()
+
+  NSColor(calibratedRed: 1.0, green: 0.94, blue: 0.82, alpha: 0.3).setFill()
+  let highlightRadius = innerRadius * 0.62
+  NSBezierPath(
+    ovalIn: NSRect(
+      x: center.x - highlightRadius,
+      y: center.y - highlightRadius,
+      width: highlightRadius * 2,
+      height: highlightRadius * 2
+    )
+  ).fill()
+}
+
+func drawIcon(
+  size: Int,
+  style: IconStyle,
+  includesDevelopmentBadge: Bool = false
+) throws -> Data {
   let pixel = CGFloat(size)
   let inset = max(1.0, pixel * style.insetRatio)
   let corner = pixel * style.cornerRatio
@@ -199,6 +250,10 @@ func drawIcon(size: Int, style: IconStyle) throws -> Data {
   makePath(points: leftStem, size: pixel, style: style).fill()
   makePath(points: rightStem, size: pixel, style: style).fill()
 
+  if includesDevelopmentBadge {
+    drawDevelopmentBadge(size: pixel, inset: inset)
+  }
+
   NSGraphicsContext.restoreGraphicsState()
 
   guard let png = rep.representation(using: .png, properties: [:]) else {
@@ -248,12 +303,20 @@ func buildIco(entries: [(size: Int, data: Data)]) -> Data {
   return ico
 }
 
-func generateMacosIconset() throws {
-  try ensureDirectory(macosIconsetDir)
+func generateMacosIconset(
+  at iconsetDir: URL,
+  includesDevelopmentBadge: Bool
+) throws {
+  try removeIfExists(iconsetDir)
+  try ensureDirectory(iconsetDir)
 
   for size in macosSizes {
-    let data = try drawIcon(size: size, style: sharedStyle)
-    let fileURL = macosIconsetDir.appendingPathComponent("app_icon_\(size).png")
+    let data = try drawIcon(
+      size: size,
+      style: sharedStyle,
+      includesDevelopmentBadge: includesDevelopmentBadge
+    )
+    let fileURL = iconsetDir.appendingPathComponent("app_icon_\(size).png")
     try write(data, to: fileURL)
   }
 
@@ -329,7 +392,18 @@ func generateMacosIconset() throws {
 """
   try write(
     contentsJSON.data(using: .utf8)!,
-    to: macosIconsetDir.appendingPathComponent("Contents.json")
+    to: iconsetDir.appendingPathComponent("Contents.json")
+  )
+}
+
+func generateMacosIconsets() throws {
+  try generateMacosIconset(
+    at: macosIconsetDir,
+    includesDevelopmentBadge: false
+  )
+  try generateMacosIconset(
+    at: macosDevelopmentIconsetDir,
+    includesDevelopmentBadge: true
   )
 }
 
@@ -358,14 +432,14 @@ func generateLinuxExports() throws {
   }
 }
 
-func syncMacosIconsetToDesktop() throws {
-  try ensureDirectory(desktopMacosIconsetDir)
+func syncMacosIconsetToDesktop(source: URL, destination: URL) throws {
+  try removeIfExists(destination)
+  try ensureDirectory(destination)
   for item in try fileManager.contentsOfDirectory(
-    at: macosIconsetDir,
+    at: source,
     includingPropertiesForKeys: nil
   ) {
-    let target = desktopMacosIconsetDir.appendingPathComponent(item.lastPathComponent)
-    try removeIfExists(target)
+    let target = destination.appendingPathComponent(item.lastPathComponent)
     try fileManager.copyItem(at: item, to: target)
   }
 }
@@ -383,7 +457,7 @@ func syncLinuxExportsToDesktop() throws {
 
   let desktopFile = """
 [Desktop Entry]
-Name=Pi Desktop
+Name=Pi App
 Comment=GUI client for pi.dev agent
 Exec=pi_desktop
 Icon=dev.pi.pi_desktop
@@ -411,19 +485,28 @@ StartupNotify=true
   }
 }
 
-try generateMacosIconset()
+try generateMacosIconsets()
 try generateWindowsExports()
 try generateLinuxExports()
-try syncMacosIconsetToDesktop()
+try syncMacosIconsetToDesktop(
+  source: macosIconsetDir,
+  destination: desktopMacosIconsetDir
+)
+try syncMacosIconsetToDesktop(
+  source: macosDevelopmentIconsetDir,
+  destination: desktopMacosDevelopmentIconsetDir
+)
 try syncWindowsIconToDesktop()
 try syncLinuxExportsToDesktop()
 
 print("Generated branding exports:")
 print("- \(macosIconsetDir.path)")
+print("- \(macosDevelopmentIconsetDir.path)")
 print("- \(windowsPngDir.path)")
 print("- \(windowsIcoDir.path)")
 print("- \(linuxHicolorDir.path)")
 print("Synced desktop platform assets:")
 print("- \(desktopMacosIconsetDir.path)")
+print("- \(desktopMacosDevelopmentIconsetDir.path)")
 print("- \(desktopWindowsIconURL.path)")
 print("- \(desktopLinuxResourcesDir.path)")

@@ -22,6 +22,15 @@ String piAppDataDirectoryName({bool? isReleaseBuild}) {
   };
 }
 
+String piAppDisplayName({bool? isReleaseBuild}) {
+  return switch (resolvePiAppStorageEnvironment(
+    isReleaseBuild: isReleaseBuild,
+  )) {
+    PiAppStorageEnvironment.development => 'Pi App Dev',
+    PiAppStorageEnvironment.production => 'Pi App',
+  };
+}
+
 Directory resolvePiAppRootDirectory({
   Directory? rootDirectory,
   Map<String, String>? environment,

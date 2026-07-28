@@ -9,7 +9,8 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
   private var showInMenuBarEnabled = true
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
-    if let iconPath = Bundle.main.path(forResource: "AppIcon", ofType: "icns"),
+    if let iconName = Bundle.main.object(forInfoDictionaryKey: "CFBundleIconFile") as? String,
+       let iconPath = Bundle.main.path(forResource: iconName, ofType: "icns"),
        let icon = NSImage(contentsOfFile: iconPath) {
       NSApplication.shared.applicationIconImage = icon
     }
@@ -114,7 +115,7 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
       }
       button.target = self
       button.action = #selector(handleStatusItemPressed)
-      button.toolTip = "Pi App"
+      button.toolTip = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Pi App"
     }
 
     statusItem = item
