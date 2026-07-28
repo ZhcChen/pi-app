@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -40,6 +41,26 @@ class _MemoryAppUpdateClient implements AppUpdateClient {
       const AppUpdateDownloadProgress(transferredBytes: 4, totalBytes: 4),
     );
     return installer;
+  }
+}
+
+class _DelayedPreferencesStore implements DesktopPreferencesStore {
+  final Completer<AppPreferences> _loadCompleter = Completer<AppPreferences>();
+
+  AppPreferences? savedPreferences;
+
+  void completeLoad(AppPreferences preferences) {
+    if (!_loadCompleter.isCompleted) {
+      _loadCompleter.complete(preferences);
+    }
+  }
+
+  @override
+  Future<AppPreferences> loadPreferences() => _loadCompleter.future;
+
+  @override
+  Future<void> savePreferences(AppPreferences preferences) async {
+    savedPreferences = preferences;
   }
 }
 
@@ -133,6 +154,27 @@ void main() {
       expect(saved['toolPolicyVersion'], 1);
       expect(reloaded.defaultPermissions, true);
       expect(reloaded.fullAccess, true);
+    },
+  );
+
+  test(
+    'new preferences default to the complete coding tool allowlist',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'pi-preferences-default-',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+
+      final preferences = await FileDesktopPreferencesStore(
+        rootDirectory: root,
+      ).loadPreferences();
+
+      expect(preferences.defaultPermissions, true);
+      expect(preferences.fullAccess, true);
     },
   );
 
@@ -648,6 +690,44 @@ process.stdin.on('data', (chunk) => {
     expect(find.byKey(const Key('project-overview-title')), findsNothing);
   });
 
+  testWidgets(
+    'delayed persisted restrictions remain effective before the first composer task',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final preferencesStore = _DelayedPreferencesStore();
+      final piHostClient = MemoryPiHostClient();
+      final workspacePath = resolveRepoWorkspacePath();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: preferencesStore,
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: MemoryProjectRegistryStore(),
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Keep the delayed legacy policy restricted.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.createdSessions.single.tools, isEmpty);
+
+      preferencesStore.completeLoad(
+        const AppPreferences(defaultPermissions: false, fullAccess: false),
+      );
+      await settleUi(tester);
+    },
+  );
+
   testWidgets('renders settings views and switches language', (tester) async {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
@@ -710,10 +790,7 @@ process.stdin.on('data', (chunk) => {
       findsOneWidget,
     );
     expect(find.byKey(const Key('workspace-bottom-panel')), findsNothing);
-    expect(
-      find.text('VS Code · No built-in tools · Auto-review'),
-      findsOneWidget,
-    );
+    expect(find.text('VS Code · Coding tools · Auto-review'), findsOneWidget);
     expect(runtimeController.lastSyncedPreferences?.showInMenuBar, true);
     expect(runtimeController.lastSyncedPreferences?.preventSleep, false);
 
@@ -749,7 +826,7 @@ process.stdin.on('data', (chunk) => {
     expect(find.byKey(const Key('workspace-suggested-prompts')), findsNothing);
     expect(find.byKey(const Key('workspace-bottom-panel')), findsOneWidget);
     expect(
-      find.text('Terminal · Coding tools · Manual review'),
+      find.text('Terminal · No built-in tools · Manual review'),
       findsOneWidget,
     );
     expect(find.text('Open: Terminal'), findsOneWidget);
@@ -1001,7 +1078,7 @@ process.stdin.on('data', (chunk) => {
 
       await tester.tap(find.byKey(const Key('open-settings-button')));
       await settleUi(tester);
-      await tester.tap(find.byKey(const Key('default-permissions-switch')));
+      await tester.tap(find.byKey(const Key('full-access-switch')));
       await settleUi(tester);
       await tester.tap(find.byKey(const Key('back-to-app-button')));
       await settleUi(tester);
@@ -1089,7 +1166,15 @@ process.stdin.on('data', (chunk) => {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
       final firstSessionId = piHostClient.promptRequests.single.sessionId;
-      expect(piHostClient.createdSessions.single.tools, isEmpty);
+      expect(piHostClient.createdSessions.single.tools, <String>[
+        'read',
+        'grep',
+        'find',
+        'ls',
+        'bash',
+        'edit',
+        'write',
+      ]);
 
       piHostClient.emit(
         const PiHostEvent(

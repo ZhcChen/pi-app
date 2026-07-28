@@ -12,6 +12,7 @@ export 'src/app_update_service.dart';
 export 'src/desktop_design.dart';
 export 'src/desktop_primitives.dart';
 export 'src/pi_config_store.dart';
+export 'src/pi_core_rpc_client.dart';
 export 'src/pi_host_client.dart';
 export 'src/project_registry_store.dart';
 export 'src/workspace_feature.dart';

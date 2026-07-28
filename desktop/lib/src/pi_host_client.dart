@@ -21,6 +21,8 @@ enum PiHostEventType {
   runAborted,
   runFailed,
   runtimeDiagnostic,
+  queueUpdated,
+  extensionUiRequest,
 }
 
 class PiHostClientException implements Exception {

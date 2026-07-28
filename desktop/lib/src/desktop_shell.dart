@@ -12,6 +12,7 @@ import 'app_runtime.dart';
 import 'app_update_service.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
+import 'pi_core_rpc_client.dart';
 import 'pi_host_client.dart';
 import 'project_registry_store.dart';
 import 'settings_feature.dart';
@@ -53,21 +54,28 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
   late final PiConfigStore _piConfigStore =
       widget.piConfigStore ?? FilePiConfigStore();
   late final PiHostClient _piHostClient =
-      widget.piHostClient ?? LocalPiHostClient();
+      widget.piHostClient ?? PiCoreRpcClient();
   late final AppUpdateClient _appUpdateClient =
       widget.appUpdateClient ?? GitHubAppUpdateClient();
   late final ProjectRegistryStore _projectRegistryStore =
       widget.projectRegistryStore ?? FileProjectRegistryStore();
 
-  AppPreferences _preferences = const AppPreferences();
+  // 持久化设置异步加载；在解析出保存策略或新安装默认值前保持受限。
+  AppPreferences _preferences = const AppPreferences(
+    defaultPermissions: false,
+    fullAccess: false,
+  );
 
   @override
   void initState() {
     super.initState();
-    _syncRuntime(_preferences);
     if (widget.enablePersistence) {
+      _syncRuntime(_preferences);
       _loadPersistedPreferences();
+      return;
     }
+    _preferences = const AppPreferences();
+    _syncRuntime(_preferences);
   }
 
   Future<void> _syncRuntime(AppPreferences preferences) async {
@@ -586,17 +594,22 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
-  void _resetHostSessions(String message) {
+  void _resetHostSessions(String message, {String? sessionId}) {
     final affectedSessionCwds = _sessionsByCwd.entries
         .where(
           (entry) =>
-              entry.value.sessionId != null ||
-              entry.value.status == WorkspaceRunStatus.starting ||
-              entry.value.isRunning,
+              (sessionId == null || entry.value.sessionId == sessionId) &&
+              (entry.value.sessionId != null ||
+                  entry.value.status == WorkspaceRunStatus.starting ||
+                  entry.value.isRunning),
         )
         .map((entry) => entry.key)
         .toList(growable: false);
-    _sessionCwdById.clear();
+    if (sessionId == null) {
+      _sessionCwdById.clear();
+    } else {
+      _sessionCwdById.remove(sessionId);
+    }
     if (affectedSessionCwds.isEmpty) {
       return;
     }
@@ -621,7 +634,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
 
     if (event.type == PiHostEventType.hostError) {
-      _resetHostSessions(event.message ?? 'Pi host is unavailable.');
+      _resetHostSessions(
+        event.message ?? 'Pi host is unavailable.',
+        sessionId: event.sessionId,
+      );
       return;
     }
 

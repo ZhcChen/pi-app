@@ -42,7 +42,7 @@ npm run verify:rpc-contract -- --pi /opt/homebrew/bin/pi
 
 命令默认把原始 request / event JSONL 和摘要写到系统临时目录 `$TMPDIR/pi-app-rpc-contract-*`，其中可能包含测试 prompt、模型文本和本地路径。不要把这些录制文件提交到仓库或附加到公开 issue。可用 `--output <仓库外目录>` 保留指定证据目录，用 `--timeout-ms <毫秒>` 调整单个等待上限。
 
-该验证只为 R1 生成兼容性证据，不改变 Flutter 的生产 transport；在 R2 完成前，`LocalPiHostClient` 仍是现有应用的生产路径。验证脚本使用 direct `bash` 仅为观测 RPC 行为；未来 Dart adapter 不得向 Flutter 暴露 raw `bash` / `abort_bash` command。
+该验证为 R1 / R2 兼容性证据；production transport 已由 `PiCoreRpcClient` 直接启动官方 Pi。验证脚本使用 direct `bash` 仅为观测 RPC 行为；Dart adapter 不得向 Flutter 暴露 raw `bash` / `abort_bash` command。
 
 启动 host 后，可通过标准输入发送一行一个 JSON 对象：
 
@@ -79,9 +79,9 @@ node dist/src/index.js
 
 `run.settled` 映射 Pi SDK 的 `agent_settled`，表示重试、压缩和队列均已完成；不能把 `agent_end` 当作最终完成事件。若 extension command 或 input handler 在本地处理了 prompt 而未启动 agent，host 也会发出 `run.settled`，并附带 `handledWithoutRun: true`，避免 UI 停在运行中状态。
 
-## Flutter 开发期接线
+## 历史 Flutter 接线
 
-先构建 host，再从 `desktop/` 启动 Flutter：
+以下命令仅用于维护历史 SDK host 回归，不是 production 启动方式：
 
 ```bash
 cd host && npm run build
@@ -96,4 +96,4 @@ PI_HOST_ENTRYPOINT=/absolute/path/to/host/dist/src/index.js \
 flutter run -d macos
 ```
 
-当前 macOS/Windows/Linux bundle 不包含 Node runtime 与 host 依赖。`LocalPiHostClient` 仍会从当前开发目录定位 `host/dist/src/index.js`，但这只服务历史回归；direct RPC 完成迁移后，production bundle 不得查找或启动 sidecar。
+`LocalPiHostClient` 会从当前开发目录定位 `host/dist/src/index.js`。它只能通过显式依赖注入用于历史回归，production bundle 和默认 `PiDesktopApp` 都不得查找或启动 sidecar。

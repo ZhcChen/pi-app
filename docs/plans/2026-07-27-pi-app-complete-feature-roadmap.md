@@ -1,11 +1,11 @@
 # Pi App 完整功能主路线图
 
 - 任务：将 Pi App 从“具备历史 SDK host 回归链路的桌面工作台”建设为可日常使用的官方 Pi core 桌面 coding client
-- 状态：进行中（R1 已完成，R2 可开始）
+- 状态：进行中（R1、R2 已完成；I1、P1、C1 可开始）
 - 负责人：Pi
 - 日期：2026-07-27
 - 当前版本基线：`0.1.0+1`
-- 当前执行入口：`docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 R1
+- 当前执行入口：`docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 I1、P1 和 C1（优先完成 I1）
 - 关联文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
@@ -37,7 +37,7 @@
 | 真实 prompt / 文本流 / abort / model / thinking 基线 | 已完成 | R1 / R2 的对照证据 |
 | 受限工具白名单和旧偏好安全降级 | 已完成 | P1 的迁移起点，不是最终默认策略 |
 | macOS ad-hoc DMG、GitHub Release workflow、手动更新 | 已完成 | 交付基础，仍需首个真实 tag 验证 |
-| `PiCoreRpcClient`、runtime detector、官方 installer | 未开始 | 阶段 P0-P2，阻塞后续产品正式运行时 |
+| `PiCoreRpcClient`、runtime detector、官方 installer | R2 已完成；I1、I2 未完成 | direct production transport 已切换，后续补受管理 runtime |
 | session 管理、完整 timeline、auth / trust / resource UI | 未完成 | 阶段 P3/P4 功能面 |
 | Windows、Linux production runtime / installer | 未开始 | 阶段 P5，必须后置到 macOS 验收 |
 
@@ -91,11 +91,11 @@
 | ID | 状态 | 依赖 | 可交付结果 | 完成门槛 |
 | --- | --- | --- | --- | --- |
 | R1 | 已完成 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
-| R2 | 可开始 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback |
+| R2 | 已完成 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback；证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md` |
 | I1 | 可开始 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分 |
 | I2 | 待前置 | I1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
-| P1 | 待前置 | R1、R2 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
-| C1 | 待前置 | R2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
+| P1 | 可开始 | R1、R2 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
+| C1 | 可开始 | R2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
 | C2 | 待前置 | C1 | steer / follow-up / abort / retry 状态机 | 崩溃、迟到 event、恢复可解释 |
 | O1 | 待前置 | R2、P1 | 受限工具 timeline、失败诊断 | 大输出不进入 widget state，敏感信息不泄露 |
 | O2 | 待前置 | O1 | 文件变更摘要、overview / Git 刷新 | 不自动修改 Git 或覆盖外部编辑器 |
@@ -108,9 +108,9 @@
 | D1 | 待前置 | Q1、阶段 P0-P3 | 干净 macOS 验收、首个 Release 证据 | 真实 tag / DMG / direct RPC smoke test 通过 |
 | D2 | 待排期 | D1、平台调研 | Windows / Linux parity | 各平台各自 installer / process / CI 证据 |
 
-### R1 当前任务包
+### R1 与 R2 当前状态
 
-R1 已完成并形成 direct RPC 证据。R2 是建议的下一执行单元；I1 也已满足技术前置，但当前不与 R2 并行改动同一工作区。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
+R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。I1、P1 和 C1 已满足技术前置，但应继续按 runtime 检测、旧偏好授权和 session catalog 的顺序拆分执行；任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
 
 - [x] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
 - [x] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
@@ -119,7 +119,7 @@ R1 已完成并形成 direct RPC 证据。R2 是建议的下一执行单元；I1
 - [x] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
 - [x] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
 
-R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`。下一执行单元为 R2；不得将本次验证结果误解为 production transport 已切换。
+R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。当前下一执行单元优先为 I1、P1 和 C1；不得将本次 transport 切换误解为 runtime 管理、session catalog 或完整 timeline 已完成。
 
 ## 阶段拆分
 
@@ -173,6 +173,7 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`。下�
 ### R2：PiCoreRpcClient 与 Workspace 迁移
 
 - 所属阶段：P1。
+- 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。
 - 目标：新增 direct RPC JSONL transport、request correlation、adapter、process ownership、generation isolation 和 memory fake，并让 composer 生产路径使用它。
 - 涉及文件 / 模块：`desktop/lib/src/pi_host_client.dart` 的替换边界、新增 RPC client / protocol adapter、`desktop_shell.dart`、workspace state、Dart / widget tests。
 - 前置依赖：R1。

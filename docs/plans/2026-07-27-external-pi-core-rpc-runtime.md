@@ -1,7 +1,7 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1 已完成，R2 待执行）
+- 状态：进行中（R1、R2 已完成；I1、P1 可开始）
 - 负责人：Pi
 - 日期：2026-07-27
 - 依赖文档：
@@ -10,6 +10,7 @@
   - `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`（完整产品上层路线图）
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
   - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`（R1 真实 Pi RPC 证据）
+  - `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`（R2 adapter 与真实 smoke 证据）
 
 ## 目标
 
@@ -119,11 +120,12 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### R2：PiCoreRpcClient
 
 - 所属阶段：阶段 2。
+- 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。
 - 目标：实现 session process lifecycle、请求关联、LF framing、1 MiB 限制、event mapping、崩溃恢复和 Memory fake。
 - 涉及文件 / 模块：runtime client abstraction、RPC client、desktop shell、workspace feature、测试。
 - 前置依赖：R1 矩阵和 `--no-approve` 未信任项目基线通过。
-- 验证方式：Dart 单元 / widget tests、真实 Pi session 的 prompt / stream / abort、旧 process 退出竞态回归。
-- 完成标准：生产默认 transport 为 direct RPC，默认启动参数包含经 R1 验证的 `--no-approve`；workspace 不读取原始 RPC schema；旧 host 不作为静默 fallback；Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
+- 验证方式：Dart 单元 / widget tests、真实 Pi session 的 state / model / thinking / prompt / stream / abort、跨 session process exit 隔离回归。
+- 完成结果：生产默认 transport 已为 direct RPC；每 session 独占 process；LF、CRLF 兼容、1 MiB、malformed JSON、request correlation、extension 本地完成、dialog 降级和 process exit 均有回归；旧 host 无静默 fallback，产品接口不暴露 raw `bash` / `abort_bash`。
 
 ### I1：Pi Core Detector
 
@@ -146,6 +148,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### P1：完整工具默认与迁移授权
 
 - 所属阶段：阶段 5。
+- 状态：可开始；R2 已将新配置默认切为完整 builtin tools，旧无版本或显式受限策略仍保持受限。未授权 / 失能 modal 和恢复路径仍待实现。
 - 目标：将新偏好切换为完整 builtin tool 默认，修改 legacy migration，并加入未授权 / 失能 modal。
 - 涉及文件 / 模块：`app_preferences.dart`、`app_persistence.dart`、desktop shell、settings copy / view、RPC launch arguments、测试。
 - 前置依赖：R2，以及 R1 的 `--no-approve` trust baseline。
