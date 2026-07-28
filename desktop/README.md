@@ -7,7 +7,7 @@
 - 目标平台：`windows`、`macos`、`linux`
 - 当前范围：以用户安装的官方 `pi --mode rpc` 按项目 cwd 创建 Pi session、发送 prompt、接收文本流并 abort 的桌面工作台
 - 历史回归：`LocalPiHostClient -> Node host -> Pi SDK` 仅保留给开发/测试，不是生产 fallback
-- 后续接入：runtime 检测/安装、session 列表/恢复、完整工具 timeline、trust/approval UI
+- 后续接入：官方 installer、session 列表/恢复、完整工具 timeline、trust/approval UI
 
 ## 目录说明
 
@@ -36,6 +36,7 @@
 - workspace project overview 说明：`docs/solutions/2026-07-26-desktop-project-overview.md`
 - pi 集成形态说明：`docs/solutions/2026-07-26-pi-integration-modes.md`
 - Pi Core RPC adapter 说明：`docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`
+- Pi Core runtime 检测说明：`docs/solutions/2026-07-28-pi-core-runtime-detector.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
@@ -48,6 +49,7 @@
 - `app_preferences.dart`、`app_persistence.dart`、`app_runtime.dart` 这类公开、跨层、低 UI 耦合的 core 模块优先使用 `import/export`
 - `pi_config_store.dart` 负责 `pi` 全局配置根识别、模型配置读写与 prompt 文件编辑
 - `pi_core_rpc_client.dart` 负责生产 direct `pi --mode rpc` transport、JSONL framing、process lifecycle 和稳定事件映射
+- `pi_core_runtime.dart` 负责 Pi core 发现、精确版本判定、受限 RPC health、路径选择和 runtime gate
 - `pi_host_client.dart` 负责稳定产品接口、历史 `LocalPiHostClient` 回归实现与 `MemoryPiHostClient` 测试 fake
 - `project_registry_store.dart` 负责 `~/.pi-app/projects/index.json` 项目注册表、`projects/<project-id>/project.json` 项目元数据、旧项目路径迁移与项目别名/固定/最近访问/移除操作
 - `pi_config_view.dart` 承接 settings 内部的 `Pi Models` / `Pi Prompts` 页面实现
@@ -69,13 +71,20 @@ flutter test
 flutter run -d macos
 ```
 
-开发或运行 composer 前，系统需要可从 `PATH` 找到官方 `pi`；测试可显式设置 `PI_CORE_EXECUTABLE=/absolute/path/to/pi`。R2 当前没有 runtime detector，I1 会补充版本兼容性和设置页诊断。
+开发或运行 composer 前，系统需要可从 `PATH` 找到官方 `pi`，或在设置页选择绝对可执行路径；测试可显式设置 `PI_CORE_EXECUTABLE=/absolute/path/to/pi`。I1 已提供精确 `0.82.0` 版本兼容性、受限 RPC health 和设置页诊断；I2 将补充官方 installer launcher。
 
 真实 Pi adapter smoke 不属于默认 `flutter test`，因为它会发送真实 prompt：
 
 ```bash
 cd ../desktop
 dart run tool/verify_pi_core_rpc.dart --pi /absolute/path/to/pi
+```
+
+I1 的 runtime health smoke 不发送模型 prompt，只验证 `--version` 和受限 `get_state`：
+
+```bash
+cd ../desktop
+dart run tool/verify_pi_core_runtime.dart --pi /absolute/path/to/pi
 ```
 
 在 Windows 或 Linux 上运行时，将最后一条命令替换为对应设备，例如 `flutter run -d windows` 或 `flutter run -d linux`。
@@ -119,4 +128,4 @@ ad-hoc 签名不能安全地进行应用内二进制替换：下载完成后应�
 
 当前模块已接入用户安装的官方 `pi --mode rpc` runtime：composer 会按选中项目的 `sessionCwd` 创建独立 Pi process、发送 prompt、展示文本流并支持 abort。新安装默认请求 `read`、`grep`、`find`、`ls`、`bash`、`edit`、`write`，同时固定传递 `--no-approve`；已有无版本或显式受限偏好保持受限，不会被静默扩大。这不是 sandbox，也尚未实现逐工具 approval 或 project trust UI。
 
-adapter 以 LF JSONL 独占 Pi process 的 stdin/stdout，单条记录限制为 1 MiB。一个 process 退出只会失效所属 Pi session，下一次提交会创建新 session；Pi 管理的 session JSONL 不会被 Flutter 直接编辑。production app 不需要 Node、Pi SDK 或 `host/dist`；runtime 检测和安装 UI 属于后续 I1/I2。
+adapter 以 LF JSONL 独占 Pi process 的 stdin/stdout，单条记录限制为 1 MiB。一个 process 退出只会失效所属 Pi session，下一次提交会创建新 session；Pi 管理的 session JSONL 不会被 Flutter 直接编辑。production app 不需要 Node、Pi SDK 或 `host/dist`；I1 已提供 runtime 检测与诊断，官方 installer UI 仍属于 I2。

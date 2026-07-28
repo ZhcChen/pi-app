@@ -1,7 +1,7 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1、R2 已完成；I1 为当前下一单元；P1 部分完成；I2 待前置）
+- 状态：进行中（R1、R2、I1 已完成；P1 为当前下一单元；I2 待前置）
 - 负责人：Pi
 - 日期：2026-07-27
 - 上层总看板：`docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
@@ -13,6 +13,7 @@
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
   - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`（R1 真实 Pi RPC 证据）
   - `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`（R2 adapter 与真实 smoke 证据）
+  - `docs/solutions/2026-07-28-pi-core-runtime-detector.md`（I1 检测与诊断证据）
 
 ## 目标
 
@@ -132,12 +133,12 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### I1：Pi Core Detector
 
 - 所属阶段：阶段 3。
-- 状态：可开始；当前下一执行单元。
+- 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
 - 目标：实现 `PiCoreRuntimeController` 和设置页 runtime card。
 - 涉及文件 / 模块：app preferences / persistence、settings feature / view、process abstraction、测试 fake。
 - 前置依赖：R1 的兼容版本规则。
-- 验证方式：模拟 `pi` 缺失、错误版本、不可执行、RPC handshake 失败、兼容 Pi；widget 状态测试。
-- 完成标准：设置页准确显示状态、绝对路径、版本、诊断入口与下一步操作；不读取 auth 内容。
+- 验证方式：模拟 `pi` 缺失、错误版本、不可执行、RPC handshake 失败、兼容 Pi；widget 状态测试；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
+- 完成结果：以 `PI_CORE_EXECUTABLE`、用户已选路径和 `PATH` 发现 Pi，精确接受 `0.82.0`，以临时空目录运行 `--no-approve --no-tools` 的 `get_state` health；状态卡支持刷新、选择和清除路径，新 session 经 runtime gate 启动。
 
 ### I2：官方 Installer Launcher
 
@@ -179,15 +180,14 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 
 ## 当前执行顺序
 
-本子计划的技术实现顺序服从总看板：`I1 -> P1 -> I2`。I1 建立 runtime 状态来源；P1 使用该状态完成授权/修复路径；I2 最后复用 detector 完成安装后的重新检测。C1 由总看板在 I2 之后安排，不在本文件重复维护。
+I1 已完成。当前子计划的执行顺序服从总看板：`P1 -> I2`。P1 使用已交付的 runtime 状态完成授权/修复路径；I2 最后复用 detector 完成安装后的重新检测。C1 由总看板在 I2 之后安排，不在本文件重复维护。
 
 ## `/goal` 建议作用域
 
-1. `/goal I1`：仅 runtime detector 和设置状态卡。
-2. `/goal P1`：仅授权/修复 modal、runtime 工具失能路径与迁移回归；不重做已交付的完整 tools 默认。
-3. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
-4. `/goal W1`：仅可选 workflow profile 入口。
-5. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
+1. `/goal P1`：仅授权/修复 modal、runtime 工具失能路径与迁移回归；不重做已交付的完整 tools 默认。
+2. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
+3. `/goal W1`：仅可选 workflow profile 入口。
+4. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
 
 不应把整个迁移作为单个 `/goal`。
 
@@ -196,6 +196,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 - 命令：`cd desktop && flutter analyze`。
 - 命令：`cd desktop && flutter test`。
 - 命令：`cd desktop && flutter build macos --debug`。
+- 命令：`cd desktop && dart run tool/verify_pi_core_runtime.dart --pi /absolute/path/to/pi`。
 - 命令：对已安装官方 Pi 执行 `pi --version`，并通过 `pi --mode rpc` 完成受限 state handshake。
 - 手工检查：无 Node / 无 Pi 的 macOS 环境中，设置页下载官方 script、在 Terminal 完成官方安装、Pi App 自动重新检测并创建 session。
 - 手工检查：首次新偏好启动时默认完整工具可用；旧无工具偏好先出现授权对话；R1 已验证的 `--no-approve` 参数下，项目未信任时 project-local executable resources 不自动执行。

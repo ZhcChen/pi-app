@@ -14,13 +14,13 @@
 
 | 顺序 | 单元 | 当前状态 | 进入条件 | 细化计划 |
 | --- | --- | --- | --- | --- |
-| 1 | I1：Pi Core Detector 与诊断卡 | 可开始，当前下一单元 | R1、R2 已完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 2 | P1：完整工具授权与旧偏好修复 UI | 进行中 | I1 提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 3 | I2：官方 Pi Core Installer Launcher | 待前置 | I1、P1 完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 4 | C1：Session Catalog、New、Resume 与 Fork | 可开始，排在 I2 后 | R2 已完成；先完成受管理 runtime 与权限路径 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) |
-| 5 | D1：macOS Production Acceptance 与首个正式 Release | 待前置 | Q1 和 P0-P3 工作流闭环 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) |
+| 已完成 | I1：Pi Core Detector 与诊断卡 | 已完成 | R1、R2 已完成；证据见 [I1 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中，当前下一单元 | I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 2 | I2：官方 Pi Core Installer Launcher | 待前置 | P1 完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 3 | C1：Session Catalog、New、Resume 与 Fork | 可开始，排在 I2 后 | R2 已完成；先完成受管理 runtime 与权限路径 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) |
+| 4 | D1：macOS Production Acceptance 与首个正式 Release | 待前置 | Q1 和 P0-P3 工作流闭环 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) |
 
-P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。它剩余的范围是授权/修复 modal、runtime 工具失能路径和相应回归，不能被重新当作“从零开始”的任务。
+P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。I1 已提供 runtime diagnostic 状态；P1 因此成为当前下一执行单元，剩余范围是授权/修复 modal、runtime 工具失能路径和相应回归，不能被重新当作“从零开始”的任务。
 
 ## 活跃计划与证据
 
@@ -31,6 +31,7 @@ P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好�
 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) | 交付子计划 | 记录发布实现、首个 tag 验证与手动更新约束。 |
 | [Pi Core RPC R1 能力矩阵](../solutions/2026-07-28-pi-core-rpc-capability-matrix.md) | 兼容性证据 | 约束 Pi CLI 版本、RPC 语义、tools/trust 边界。 |
 | [Pi Core RPC Adapter 迁移](../solutions/2026-07-28-pi-core-rpc-adapter-migration.md) | R2 交付证据 | 记录 direct RPC adapter、真实 smoke、引入提交和当前限制。 |
+| [Pi Core 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | I1 交付证据 | 记录路径发现、精确版本、受限 health、设置卡、验证和限制。 |
 
 ## 状态约定
 

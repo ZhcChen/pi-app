@@ -11,7 +11,7 @@
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`（含能力与版本基线）
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`（外置 Pi core 架构修订）
 
-> **文档状态，2026-07-28：** 本文件记录已完成的 SDK host 主链及其历史规划，整份文档中的 bundle、`pi-host`、SDK adapter、工具审批和旧 `/goal` 描述均不可执行。完整产品上层路线图为 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`，计划入口为 `docs/plans/README.md`；当前下一执行单元为 I1，生产方向为已安装官方 Pi core 的 `pi --mode rpc`。
+> **文档状态，2026-07-28：** 本文件记录已完成的 SDK host 主链及其历史规划，整份文档中的 bundle、`pi-host`、SDK adapter、工具审批和旧 `/goal` 描述均不可执行。完整产品上层路线图为 `docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`，计划入口为 `docs/plans/README.md`；当前下一执行单元为 P1，生产方向为已安装官方 Pi core 的 `pi --mode rpc`。
 
 ## 已完成的首条主链（历史基线）
 

@@ -96,5 +96,5 @@ R2 可以将 current composer 主链迁移至 direct RPC，但实现必须同时
 ## 后续维护
 
 1. 每次升级 Pi core 都重新运行 `npm run verify:rpc-contract`，在本矩阵新增版本行或更新验证记录。
-2. R2 已完成，adapter 事件映射、真实 prompt / abort 和 process isolation 结果见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`；后续 I1、P1、C1 改动仍须保持本矩阵约束。
+2. R2 已完成，adapter 事件映射、真实 prompt / abort 和 process isolation 结果见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`；I1 已完成，后续 P1、C1 改动仍须保持本矩阵约束。
 3. 任何改变 `--no-approve`、tools allowlist、session persistence 或 extension completion 判定的实现，都必须重新运行 trust fixture 和 live agent 场景。

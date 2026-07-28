@@ -1,11 +1,11 @@
 # Pi App 完整功能主路线图
 
 - 任务：将 Pi App 从“具备历史 SDK host 回归链路的桌面工作台”建设为可日常使用的官方 Pi core 桌面 coding client
-- 状态：进行中（R1、R2 已完成；I1 为当前下一单元；P1 部分完成）
+- 状态：进行中（R1、R2、I1 已完成；P1 为当前下一单元）
 - 负责人：Pi
 - 日期：2026-07-27
 - 当前版本基线：`0.1.0+1`
-- 当前执行入口：`docs/plans/README.md`；当前下一执行单元是 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 I1
+- 当前执行入口：`docs/plans/README.md`；当前下一执行单元是 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 P1
 - 关联文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/README.md`（计划入口、状态约定与当前执行队列）
@@ -13,6 +13,7 @@
   - `docs/plans/2026-07-27-macos-ad-hoc-release-and-update.md`
   - `docs/solutions/2026-07-27-pi-host-sdk-contract.md`
   - `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`
+  - `docs/solutions/2026-07-28-pi-core-runtime-detector.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`（已废弃的历史基线）
 
 ## 产品完成定义
@@ -38,7 +39,7 @@
 | 真实 prompt / 文本流 / abort / model / thinking 基线 | 已完成 | R1 / R2 的对照证据 |
 | 受限工具白名单和旧偏好安全降级 | 已完成 | P1 的迁移起点，不是最终默认策略 |
 | macOS ad-hoc DMG、GitHub Release workflow、手动更新 | 已完成 | 交付基础，仍需首个真实 tag 验证 |
-| `PiCoreRpcClient`、runtime detector、官方 installer | R2 已完成；I1、I2 未完成 | direct production transport 已切换，后续补受管理 runtime |
+| `PiCoreRpcClient`、runtime detector、官方 installer | R2、I1 已完成；I2 未完成 | direct production transport 已切换，已具备受管理 runtime 诊断 |
 | session 管理、完整 timeline、auth / trust / resource UI | 未完成 | 阶段 P3/P4 功能面 |
 | Windows、Linux production runtime / installer | 未开始 | 阶段 P5，必须后置到 macOS 验收 |
 
@@ -89,9 +90,9 @@
 
 总看板的当前顺序固定为 `I1 -> P1 -> I2 -> C1`：先让 runtime 可发现和可诊断，再完成旧权限的显式授权/修复，再提供官方安装入口，最后扩展连续 session 工作流。单个 `/goal` 只能覆盖其中一个连续执行单元。
 
-- I1：可开始，当前下一单元。
-- P1：进行中；完整工具默认、legacy migration 与受限 bootstrap 已完成，授权/修复 UI 待实现。
-- I2：待 I1 与 P1 完成后开始，避免 installer 在缺少诊断或权限恢复路径时独立落地。
+- I1：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
+- P1：进行中，当前下一单元；完整工具默认、legacy migration 与受限 bootstrap 已完成，授权/修复 UI 待实现。
+- I2：待 P1 完成后开始，复用 I1 detector 完成安装后的重新检测。
 - C1：R2 技术前置已满足，但排在 I2 后，避免把短生命周期 runtime 直接扩展为可恢复 catalog。
 
 ## 任务看板
@@ -102,7 +103,7 @@
 | --- | --- | --- | --- | --- |
 | R1 | 已完成 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
 | R2 | 已完成 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback；证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md` |
-| I1 | 可开始（当前下一单元） | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分 |
+| I1 | 已完成 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md` |
 | I2 | 待前置 | I1、P1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
 | P1 | 进行中 | R1、R2；runtime 修复路径依赖 I1 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
 | C1 | 可开始（排在 I2 后） | R2；执行顺序依赖 I2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
@@ -120,7 +121,7 @@
 
 ### R1 与 R2 当前状态
 
-R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。当前执行队列固定为 I1、P1、I2、C1；I1 是下一执行单元，P1 已完成策略迁移但仍需授权/修复 UI，I2 与 C1 不得抢跑。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
+R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，I1 已完成 Pi core 检测、精确版本 gate、受限 health 与设置诊断，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。当前执行队列固定为 I1、P1、I2、C1；P1 是下一执行单元，I2 与 C1 不得抢跑。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
 
 - [x] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
 - [x] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
@@ -129,7 +130,7 @@ R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 
 - [x] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
 - [x] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
 
-R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`。当前下一执行单元为 I1；完成后继续 P1、I2、C1。不得将 transport 切换误解为 runtime 管理、session catalog 或完整 timeline 已完成。
+R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`，I1 证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。当前下一执行单元为 P1；完成后继续 I2、C1。不得将 runtime detector 误解为 installer、session catalog 或完整 timeline 已完成。
 
 ## 阶段拆分
 
@@ -188,17 +189,17 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 - 涉及文件 / 模块：`desktop/lib/src/pi_host_client.dart` 的替换边界、新增 RPC client / protocol adapter、`desktop_shell.dart`、workspace state、Dart / widget tests。
 - 前置依赖：R1。
 - 验证方式：单元测试 LF framing、1 MiB 上限、迟到 event、进程替换和 malformed input；真实多项目 prompt / stream / abort smoke test。
-- 完成标准：production 仅启动通过显式 runtime override 或 `PATH` 解析的 direct `pi --mode rpc`；I1 后续负责将可执行路径、版本兼容性与 health 变成用户可见诊断。workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具，Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
+- 完成标准：production 仅启动通过显式 runtime override 或 `PATH` 解析的 direct `pi --mode rpc`；I1 已将可执行路径、版本兼容性与 health 变成用户可见诊断。workspace 不读取原始 RPC schema，旧 host 只可作为明确开发回归工具，Dart product client 不向 UI 暴露 raw `bash` / `abort_bash` user command。
 
 ### I1：Pi Core Detector 与诊断卡
 
 - 所属阶段：P2。
-- 状态：可开始；当前下一执行单元。
-- 目标：实现 `PiCoreRuntimeController`，检测用户选择路径与 `PATH` 中的 `pi`，运行 `pi --version` 和受限 RPC health。
+- 状态：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
+- 目标：实现 `PiCoreRuntimeController`，检测用户选择路径、`PI_CORE_EXECUTABLE` 与 `PATH` 中的 `pi`，运行精确版本判定和受限 RPC health。
 - 涉及文件 / 模块：runtime abstraction、preferences / persistence、settings feature / view / copy、process fake、测试。
 - 前置依赖：R1 的兼容版本规则。
-- 验证方式：模拟缺失、不可执行、路径错误、版本不兼容、RPC handshake 失败和兼容 Pi；widget 状态回归。
-- 完成标准：设置页展示绝对路径、版本、状态、诊断和下一步；不读取 auth，不加载项目 resources。
+- 验证方式：模拟缺失、不可执行、路径错误、版本不兼容、RPC handshake 失败和兼容 Pi；widget 状态回归；`dart run tool/verify_pi_core_runtime.dart --pi /opt/homebrew/bin/pi`。
+- 完成结果：设置页展示绝对路径、来源、版本、状态、诊断和刷新/选择/清除操作；默认 client 对新 session 执行 runtime gate，既有 session process 不受路径切换影响；不读取 auth，不加载项目 resources。
 
 ### I2：官方 Pi Core Installer Launcher
 
@@ -330,19 +331,18 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 
 ## `/goal` 建议作用域
 
-R1、R2 已完成，不应重新创建对应 `/goal`。禁止把整份路线图作为单个 `/goal`；当前和后续目标按以下依赖顺序创建：
+R1、R2、I1 已完成，不应重新创建对应 `/goal`。禁止把整份路线图作为单个 `/goal`；当前和后续目标按以下依赖顺序创建：
 
-1. `/goal I1`：只完成 runtime detector、状态卡和诊断。
-2. `/goal P1`：只完成授权/修复 dialog、runtime 工具失能路径与迁移回归；不重做已交付的工具默认策略。
-3. `/goal I2`：只完成官方 installer launcher、Terminal 启动和重新检测。
-4. `/goal C1`：只完成 session catalog、new / resume / fork 与持久化索引。
-5. `/goal C2`：只完成运行控制、steer / follow-up 与进程恢复状态。
-6. `/goal O1`：只完成受限工具 timeline 与失败诊断。
-7. `/goal O2`：只完成文件变更摘要和项目 overview 联动。
-8. `/goal M1`、`/goal S1`、`/goal M2`、`/goal W1`、`/goal E1`：按前置依赖分别执行。
-9. `/goal Q1`：只完成可靠性、日志和故障恢复矩阵。
-10. `/goal D1`：只完成真实 macOS release 验收与首个 GitHub Release。
-11. `/goal D2`：按 Windows、Linux 分开执行，不共享一个跨平台大目标。
+1. `/goal P1`：只完成授权/修复 dialog、runtime 工具失能路径与迁移回归；不重做已交付的工具默认策略。
+2. `/goal I2`：只完成官方 installer launcher、Terminal 启动和重新检测。
+3. `/goal C1`：只完成 session catalog、new / resume / fork 与持久化索引。
+4. `/goal C2`：只完成运行控制、steer / follow-up 与进程恢复状态。
+5. `/goal O1`：只完成受限工具 timeline 与失败诊断。
+6. `/goal O2`：只完成文件变更摘要和项目 overview 联动。
+7. `/goal M1`、`/goal S1`、`/goal M2`、`/goal W1`、`/goal E1`：按前置依赖分别执行。
+8. `/goal Q1`：只完成可靠性、日志和故障恢复矩阵。
+9. `/goal D1`：只完成真实 macOS release 验收与首个 GitHub Release。
+10. `/goal D2`：按 Windows、Linux 分开执行，不共享一个跨平台大目标。
 
 ## 验证矩阵
 
