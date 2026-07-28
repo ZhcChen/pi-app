@@ -53,7 +53,8 @@
 4. **工具与 trust 分离**：builtin tool allowlist 不是项目 trust、OS sandbox、路径 sandbox、网络隔离或逐工具审批。项目级 `.pi` 可执行资源只能在已验证的 trust contract 下加载。
 5. **安全迁移**：旧 `toolPolicyVersion`、用户关闭工具或 runtime diagnostic 失能时，不能静默扩大权限；必须给出授权、保持受限或取消的明确选择。
 6. **macOS 先行**：先证明 macOS direct RPC、检测、安装和工作流闭环，再设计 Windows / Linux 的进程与安装实现。
-7. **版本可追溯**：每项 runtime capability 记录 Pi App build、Pi core 版本范围、RPC adapter version、引入 commit、验证命令和残余风险。release tag 必须等于 `v<desktop/pubspec.yaml build-name>`。
+7. **版本可追溯**：每项 runtime capability 记录 Pi App build、Pi core 报告版本与验证证据、RPC adapter version、引入 commit、验证命令和残余风险。release tag 必须等于 `v<desktop/pubspec.yaml build-name>`。
+8. **开发/发布数据隔离**：Pi App 自有的偏好、项目注册表与项目元数据在 debug/profile 中写入 `~/.pi-app-dev`，在正式 Release 中写入 `~/.pi-app`；不自动迁移或删除既有数据。Pi core 自己的 `~/.pi`、认证、session 与项目 resources 不属于该存储边界。
 
 ## 范围
 

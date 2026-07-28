@@ -37,6 +37,7 @@
 - pi 集成形态说明：`docs/solutions/2026-07-26-pi-integration-modes.md`
 - Pi Core RPC adapter 说明：`docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`
 - Pi Core runtime 检测说明：`docs/solutions/2026-07-28-pi-core-runtime-detector.md`
+- 应用数据环境隔离说明：`docs/solutions/2026-07-28-app-data-environment-isolation.md`
 - import 边界说明：`docs/solutions/2026-07-26-desktop-import-modules.md`
 
 当前 `desktop/lib/` 采用 hybrid 结构：
@@ -51,7 +52,7 @@
 - `pi_core_rpc_client.dart` 负责生产 direct `pi --mode rpc` transport、JSONL framing、process lifecycle 和稳定事件映射
 - `pi_core_runtime.dart` 负责 Pi core 发现、版本信息采集、受限 RPC health、路径选择和 runtime gate
 - `pi_host_client.dart` 负责稳定产品接口、历史 `LocalPiHostClient` 回归实现与 `MemoryPiHostClient` 测试 fake
-- `project_registry_store.dart` 负责 `~/.pi-app/projects/index.json` 项目注册表、`projects/<project-id>/project.json` 项目元数据、旧项目路径迁移与项目别名/固定/最近访问/移除操作
+- `project_registry_store.dart` 负责应用项目注册表与项目元数据：debug/profile 写入 `~/.pi-app-dev/projects/`，Release 写入 `~/.pi-app/projects/`；两种构建不会混用项目列表、别名或后续项目级数据
 - `pi_config_view.dart` 承接 settings 内部的 `Pi Models` / `Pi Prompts` 页面实现
 - `desktop_app.dart` 当前仅保留 `PiDesktopApp` 的兼容导出 shim，避免旧路径瞬时失效；`workspace_feature.dart` 与 `settings_feature.dart` 仍在各自 feature 内部使用 `part`
 
@@ -88,6 +89,12 @@ dart run tool/verify_pi_core_runtime.dart --pi /absolute/path/to/pi
 ```
 
 在 Windows 或 Linux 上运行时，将最后一条命令替换为对应设备，例如 `flutter run -d windows` 或 `flutter run -d linux`。
+
+## 应用数据隔离
+
+Pi App 的自有持久化数据按构建环境隔离：默认 debug 的 `flutter run`、debug build 与 profile build 使用 `~/.pi-app-dev/`，正式 Release / DMG 以及 `flutter run --release` 使用 `~/.pi-app/`。偏好 `settings.json`、项目注册表和项目元数据都在各自目录下保存；历史 `~/.pi-app/` 不会自动迁移、复制或删除。
+
+`~/.pi/agent`、Pi 的认证、Pi 管理的 session 文件和项目内 `.pi` resources 属于用户安装的 Pi core，不是 Pi App 自有数据，因此不会被本隔离机制移动或改写。
 
 ## macOS Ad-hoc 发布
 

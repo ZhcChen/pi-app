@@ -17,7 +17,7 @@
 
 新增 `desktop/lib/src/pi_core_runtime.dart`，由 `PiCoreRuntimeController` 规约四个稳定状态：`missing`、`invalidExecutable`、`healthCheckFailed` 和 `ready`；`checking` 仅作为短暂 UI 状态。
 
-探测优先级固定为 `PI_CORE_EXECUTABLE`、保存的用户绝对路径、`PATH` 中的 `pi`。设置页的 Pi Core 卡展示来源、绝对路径、Pi 报告的版本和安全诊断，并提供刷新、选择可执行文件和清除已选路径操作。选择路径保存到 `~/.pi-app/settings.json` 的 `piCoreExecutablePath` 字段。
+探测优先级固定为 `PI_CORE_EXECUTABLE`、保存的用户绝对路径、`PATH` 中的 `pi`。设置页的 Pi Core 卡展示来源、绝对路径、Pi 报告的版本和安全诊断，并提供刷新、选择可执行文件和清除已选路径操作。选择路径保存到 Pi App 自有数据目录的 `settings.json`：debug/profile 为 `~/.pi-app-dev/settings.json`，正式 Release 为 `~/.pi-app/settings.json`。
 
 `PiCoreRpcClient` 新增动态 executable resolver 与 runtime gate。路径变更只影响后续新建 session；既有 session 继续拥有原有 Pi process，不会被重新配置或串流。health cache 以 executable 为键，切换路径后会重新检测该 runtime。
 

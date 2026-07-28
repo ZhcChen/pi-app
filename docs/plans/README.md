@@ -32,6 +32,7 @@ P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好�
 | [Pi Core RPC R1 能力矩阵](../solutions/2026-07-28-pi-core-rpc-capability-matrix.md) | 兼容性证据 | 记录 Pi CLI 实测版本、RPC 语义、tools/trust 边界；不作为 runtime 版本 gate。 |
 | [Pi Core RPC Adapter 迁移](../solutions/2026-07-28-pi-core-rpc-adapter-migration.md) | R2 交付证据 | 记录 direct RPC adapter、真实 smoke、引入提交和当前限制。 |
 | [Pi Core 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | I1 交付证据 | 记录路径发现、版本信息、受限 health、设置卡、验证和限制。 |
+| [开发与正式包应用数据隔离](../solutions/2026-07-28-app-data-environment-isolation.md) | 持久化边界证据 | 记录 debug/profile 与 Release 的 Pi App 自有数据根目录和迁移策略。 |
 
 ## 状态约定
 
