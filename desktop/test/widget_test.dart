@@ -1060,6 +1060,69 @@ process.stdin.on('data', (chunk) => {
     );
   });
 
+  testWidgets('projects section can collapse and expand its project list', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        workspaceRootPath: resolveRepoWorkspacePath(),
+      ),
+    );
+    await settleUi(tester);
+
+    final toggleButton = find.byKey(
+      const Key('toggle-projects-section-button'),
+    );
+    final toggleIcon = find.byKey(const Key('projects-section-toggle-icon'));
+    final label = find.byKey(const Key('projects-section-label'));
+
+    expect(
+      tester.getCenter(toggleButton).dx,
+      greaterThan(tester.getRect(label).right),
+    );
+    expect(tester.getSemantics(toggleButton).flagsCollection.isButton, isTrue);
+    expect(
+      tester.getSemantics(toggleButton).flagsCollection.isExpanded,
+      Tristate.isTrue,
+    );
+    expect(
+      find.byKey(const Key('projects-section-project-list')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('sidebar-project-tile-0')), findsOneWidget);
+    expect(tester.widget<Icon>(toggleIcon).icon, Icons.expand_more_rounded);
+
+    await tester.tap(toggleButton);
+    await settleUi(tester);
+
+    expect(
+      find.byKey(const Key('projects-section-project-list')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('sidebar-project-tile-0')), findsNothing);
+    expect(tester.widget<Icon>(toggleIcon).icon, Icons.chevron_right_rounded);
+    expect(
+      tester.getSemantics(toggleButton).flagsCollection.isExpanded,
+      Tristate.isFalse,
+    );
+
+    await tester.tap(toggleButton);
+    await settleUi(tester);
+
+    expect(
+      find.byKey(const Key('projects-section-project-list')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('sidebar-project-tile-0')), findsOneWidget);
+    expect(tester.widget<Icon>(toggleIcon).icon, Icons.expand_more_rounded);
+    semantics.dispose();
+  });
+
   testWidgets('projects header adds and manages a registry project', (
     tester,
   ) async {
@@ -1100,6 +1163,13 @@ process.stdin.on('data', (chunk) => {
       0,
     );
 
+    await tester.tap(find.byKey(const Key('toggle-projects-section-button')));
+    await settleUi(tester);
+    expect(
+      find.byKey(const Key('projects-section-project-list')),
+      findsNothing,
+    );
+
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
     await mouse.addPointer(location: Offset.zero);
@@ -1121,6 +1191,10 @@ process.stdin.on('data', (chunk) => {
     await tester.tap(find.byKey(const Key('add-project-button')));
     await settleUi(tester);
 
+    expect(
+      find.byKey(const Key('projects-section-project-list')),
+      findsOneWidget,
+    );
     expect(find.text(addedProject.path), findsWidgets);
     expect(
       find.text(

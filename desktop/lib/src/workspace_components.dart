@@ -932,6 +932,7 @@ class _ProjectTile extends StatefulWidget {
     required this.onRename,
     required this.onTogglePinned,
     required this.onRemove,
+    super.key,
   });
 
   final WorkspaceCopy copy;
@@ -1200,11 +1201,19 @@ class _ProjectRenameDialogState extends State<_ProjectRenameDialog> {
 class _ProjectSectionHeader extends StatefulWidget {
   const _ProjectSectionHeader({
     required this.label,
+    required this.expandTooltip,
+    required this.collapseTooltip,
+    required this.isExpanded,
+    required this.onToggle,
     required this.addTooltip,
     required this.onAddProject,
   });
 
   final String label;
+  final String expandTooltip;
+  final String collapseTooltip;
+  final bool isExpanded;
+  final VoidCallback onToggle;
   final String addTooltip;
   final Future<void> Function() onAddProject;
 
@@ -1242,12 +1251,34 @@ class _ProjectSectionHeaderState extends State<_ProjectSectionHeader> {
           child: Row(
             children: [
               Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _SidebarSectionLabel(
+                child: Tooltip(
+                  message: widget.isExpanded
+                      ? widget.collapseTooltip
+                      : widget.expandTooltip,
+                  child: Semantics(
+                    button: true,
+                    expanded: widget.isExpanded,
                     label: widget.label,
-                    icon: Icons.expand_more_rounded,
-                    labelKey: const Key('projects-section-label'),
+                    child: InkWell(
+                      key: const Key('toggle-projects-section-button'),
+                      onTap: widget.onToggle,
+                      borderRadius: BorderRadius.circular(4),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 24,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _SidebarSectionLabel(
+                            label: widget.label,
+                            icon: widget.isExpanded
+                                ? Icons.expand_more_rounded
+                                : Icons.chevron_right_rounded,
+                            labelKey: const Key('projects-section-label'),
+                            iconKey: const Key('projects-section-toggle-icon'),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1290,11 +1321,13 @@ class _SidebarSectionLabel extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.labelKey,
+    this.iconKey,
   });
 
   final String label;
   final IconData icon;
   final Key labelKey;
+  final Key? iconKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1319,7 +1352,12 @@ class _SidebarSectionLabel extends StatelessWidget {
             width: 16,
             height: 16,
             child: Center(
-              child: Icon(icon, size: 16, color: palette.textMuted),
+              child: Icon(
+                icon,
+                key: iconKey,
+                size: 16,
+                color: palette.textMuted,
+              ),
             ),
           ),
         ],

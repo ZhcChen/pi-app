@@ -11,6 +11,8 @@ part 'workspace_components.dart';
 abstract interface class WorkspaceCopy {
   String get searchTooltip;
   String get projectsLabel;
+  String get expandProjectsTooltip;
+  String get collapseProjectsTooltip;
   String get addProjectTooltip;
   String get tasksLabel;
   String get settingsLabel;

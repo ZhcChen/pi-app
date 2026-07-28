@@ -15,6 +15,9 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
 
   String get searchTooltip => isChinese ? '搜索' : 'Search';
   String get projectsLabel => isChinese ? '项目' : 'Projects';
+  String get expandProjectsTooltip => isChinese ? '展开项目' : 'Expand projects';
+  String get collapseProjectsTooltip =>
+      isChinese ? '收起项目' : 'Collapse projects';
   String get addProjectTooltip => isChinese ? '添加项目' : 'Add project';
   String get tasksLabel => isChinese ? '任务' : 'Tasks';
   String get settingsLabel => isChinese ? '设置' : 'Settings';

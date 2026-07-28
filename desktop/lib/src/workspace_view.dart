@@ -1,6 +1,6 @@
 part of 'workspace_feature.dart';
 
-class WorkspaceSidebar extends StatelessWidget {
+class WorkspaceSidebar extends StatefulWidget {
   const WorkspaceSidebar({
     required this.copy,
     required this.actions,
@@ -36,9 +36,25 @@ class WorkspaceSidebar extends StatelessWidget {
   final VoidCallback onOpenSettings;
 
   @override
+  State<WorkspaceSidebar> createState() => _WorkspaceSidebarState();
+}
+
+class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
+  bool _projectsExpanded = true;
+
+  Future<void> _addProject() async {
+    if (!_projectsExpanded) {
+      setState(() {
+        _projectsExpanded = true;
+      });
+    }
+    await widget.onAddProject();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
-    final density = preferences.interfaceDensity;
+    final density = widget.preferences.interfaceDensity;
 
     return Container(
       color: palette.sidebar,
@@ -70,7 +86,7 @@ class WorkspaceSidebar extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: copy.searchTooltip,
+                message: widget.copy.searchTooltip,
                 child: IconButton(
                   onPressed: () {},
                   icon: const Icon(Icons.search_rounded),
@@ -84,57 +100,79 @@ class WorkspaceSidebar extends StatelessWidget {
           SizedBox(
             height: desktopDensityValue(density, compact: 12, comfortable: 14),
           ),
-          for (var i = 0; i < actions.length; i++)
+          for (var i = 0; i < widget.actions.length; i++)
             _SidebarActionTile(
-              action: actions[i],
+              action: widget.actions[i],
               interfaceDensity: density,
-              selected: i == selectedActionIndex,
-              onTap: () => onActionSelected(i),
+              selected: i == widget.selectedActionIndex,
+              onTap: () => widget.onActionSelected(i),
             ),
           SizedBox(
             height: desktopDensityValue(density, compact: 14, comfortable: 18),
           ),
           _ProjectSectionHeader(
-            label: copy.projectsLabel,
-            addTooltip: copy.addProjectTooltip,
-            onAddProject: onAddProject,
+            label: widget.copy.projectsLabel,
+            expandTooltip: widget.copy.expandProjectsTooltip,
+            collapseTooltip: widget.copy.collapseProjectsTooltip,
+            isExpanded: _projectsExpanded,
+            onToggle: () {
+              setState(() {
+                _projectsExpanded = !_projectsExpanded;
+              });
+            },
+            addTooltip: widget.copy.addProjectTooltip,
+            onAddProject: _addProject,
           ),
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                if (projects.isNotEmpty)
-                  for (var i = 0; i < projects.length; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: desktopDensityValue(
-                          density,
-                          compact: 3,
-                          comfortable: 4,
-                        ),
-                      ),
-                      child: _ProjectTile(
-                        copy: copy,
-                        project: projects[i],
-                        interfaceDensity: density,
-                        openDestination: preferences.openDestination,
-                        selected: i == selectedProjectIndex,
-                        isManaged: projects[i].registryId != null,
-                        isPinned: projects[i].isPinned,
-                        onTap: () {
-                          onProjectSelected(i);
-                        },
-                        onOpenProject: () => onOpenProject(projects[i]),
-                        onRename: (alias) =>
-                            onRenameProject(projects[i], alias),
-                        onTogglePinned: () =>
-                            onToggleProjectPinned(projects[i]),
-                        onRemove: () => onRemoveProject(projects[i]),
-                      ),
+                if (_projectsExpanded && widget.projects.isNotEmpty)
+                  KeyedSubtree(
+                    key: const Key('projects-section-project-list'),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < widget.projects.length; i++)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              bottom: desktopDensityValue(
+                                density,
+                                compact: 3,
+                                comfortable: 4,
+                              ),
+                            ),
+                            child: _ProjectTile(
+                              key: Key('sidebar-project-tile-$i'),
+                              copy: widget.copy,
+                              project: widget.projects[i],
+                              interfaceDensity: density,
+                              openDestination:
+                                  widget.preferences.openDestination,
+                              selected: i == widget.selectedProjectIndex,
+                              isManaged: widget.projects[i].registryId != null,
+                              isPinned: widget.projects[i].isPinned,
+                              onTap: () {
+                                widget.onProjectSelected(i);
+                              },
+                              onOpenProject: () =>
+                                  widget.onOpenProject(widget.projects[i]),
+                              onRename: (alias) => widget.onRenameProject(
+                                widget.projects[i],
+                                alias,
+                              ),
+                              onTogglePinned: () => widget
+                                  .onToggleProjectPinned(widget.projects[i]),
+                              onRemove: () =>
+                                  widget.onRemoveProject(widget.projects[i]),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
                 const SizedBox(height: 12),
-                _CollapsedSectionRow(label: copy.tasksLabel),
+                _CollapsedSectionRow(label: widget.copy.tasksLabel),
               ],
             ),
           ),
@@ -148,9 +186,9 @@ class WorkspaceSidebar extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: DesktopTextActionButton(
                     buttonKey: const Key('open-settings-button'),
-                    onPressed: onOpenSettings,
+                    onPressed: widget.onOpenSettings,
                     icon: const Icon(Icons.settings_outlined, size: 18),
-                    label: copy.settingsLabel,
+                    label: widget.copy.settingsLabel,
                     alignment: Alignment.centerLeft,
                     padding: EdgeInsets.symmetric(
                       horizontal: 10,
@@ -167,7 +205,7 @@ class WorkspaceSidebar extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 2),
                 child: DesktopIconActionButton(
                   onPressed: () {},
-                  tooltip: copy.downloadRuntimeTooltip,
+                  tooltip: widget.copy.downloadRuntimeTooltip,
                   icon: const Icon(Icons.download_rounded, size: 18),
                   foregroundColor: const Color(0xFF98C4FF),
                   backgroundColor: const Color(0xFF2C5E9B),
