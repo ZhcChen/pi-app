@@ -19,6 +19,10 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
   String get collapseProjectsTooltip =>
       isChinese ? '收起项目' : 'Collapse projects';
   String get addProjectTooltip => isChinese ? '添加项目' : 'Add project';
+  String get sessionsLabel => isChinese ? '会话' : 'Sessions';
+  String get currentSessionLabel => isChinese ? '当前会话' : 'Current session';
+  String get noActiveSessionLabel =>
+      isChinese ? '当前没有活动会话' : 'No active session';
   String get tasksLabel => isChinese ? '任务' : 'Tasks';
   String get settingsLabel => isChinese ? '设置' : 'Settings';
   String get downloadRuntimeTooltip => isChinese ? '下载运行时' : 'Download runtime';
@@ -332,6 +336,7 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
     return switch (status) {
       WorkspaceRunStatus.idle => isChinese ? '会话就绪' : 'Session ready',
       WorkspaceRunStatus.starting => isChinese ? '正在启动 Pi' : 'Starting Pi',
+      WorkspaceRunStatus.waiting => isChinese ? '等待 Pi 响应' : 'Waiting for Pi',
       WorkspaceRunStatus.running => isChinese ? 'Pi 正在执行' : 'Pi is running',
       WorkspaceRunStatus.settled => isChinese ? '任务已完成' : 'Task completed',
       WorkspaceRunStatus.aborted => isChinese ? '任务已中止' : 'Task aborted',

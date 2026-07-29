@@ -320,6 +320,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   bool _isPreparingPiCoreInstaller = false;
   bool _isWaitingForPiCoreInstaller = false;
   int _piCoreInstallerWaitGeneration = 0;
+  int _sessionViewGeneration = 0;
   AppUpdateCheck? _appUpdateCheck;
   AppUpdateDownloadProgress? _appUpdateDownloadProgress;
   File? _downloadedUpdateInstaller;
@@ -417,14 +418,29 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     });
   }
 
+  void _discardProjectSessionRecords() {
+    _sessionViewGeneration += 1;
+    _sessionsByCwd.clear();
+    _sessionCwdById.clear();
+  }
+
+  bool _isCurrentSessionView(int generation) {
+    return mounted && generation == _sessionViewGeneration;
+  }
+
   Future<void> _selectProject(int index) async {
     if (index < 0 || index >= _projects.length) {
       return;
     }
 
+    final previousSessionCwd = _selectedProject?.sessionCwd;
     final project = _projects[index];
+    final nextSessionCwd = project.sessionCwd;
     setState(() {
       _selectedProjectIndex = index;
+      if (previousSessionCwd != nextSessionCwd) {
+        _discardProjectSessionRecords();
+      }
     });
     await _markProjectOpened(project);
   }
@@ -554,6 +570,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     ProjectRegistrySnapshot snapshot, {
     String? preferredSelectedPath,
   }) {
+    final previousSessionCwd = _selectedProject?.sessionCwd;
     final projects = buildDesktopProjects(
       widget.workspaceRootPath,
       registeredProjects: snapshot.orderedEntries,
@@ -564,6 +581,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       _projects = projects;
       if (_projects.isEmpty) {
         _selectedProjectIndex = 0;
+        _discardProjectSessionRecords();
         return;
       }
 
@@ -573,12 +591,21 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         );
         if (matchedIndex >= 0) {
           _selectedProjectIndex = matchedIndex;
+          final nextSessionCwd = _projects[_selectedProjectIndex].sessionCwd;
+          if (previousSessionCwd != nextSessionCwd) {
+            _discardProjectSessionRecords();
+          }
           return;
         }
       }
 
       if (_selectedProjectIndex >= _projects.length) {
         _selectedProjectIndex = _projects.length - 1;
+      }
+
+      final nextSessionCwd = _projects[_selectedProjectIndex].sessionCwd;
+      if (previousSessionCwd != nextSessionCwd) {
+        _discardProjectSessionRecords();
       }
     });
   }
@@ -1125,6 +1152,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
 
     final existingSessionId = initialState.sessionId;
+    final sessionViewGeneration = _sessionViewGeneration;
     var sessionPreferences = widget.preferences;
     if (existingSessionId == null || existingSessionId.isEmpty) {
       final resolvedPreferences = await _resolvePreferencesForNewSession();
@@ -1142,12 +1170,17 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
     _setSessionState(
       sessionCwd,
-      initialState.copyWith(
-        status: WorkspaceRunStatus.starting,
-        clearError: true,
-        clearActiveTool: true,
-      ),
+      initialState
+          .withUserPrompt(prompt)
+          .copyWith(
+            status: existingSessionId == null || existingSessionId.isEmpty
+                ? WorkspaceRunStatus.starting
+                : WorkspaceRunStatus.waiting,
+            clearError: true,
+            clearActiveTool: true,
+          ),
     );
+    _composerController.clear();
 
     try {
       PiHostSession session;
@@ -1156,7 +1189,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
           cwd: sessionCwd,
           tools: _hostToolsForPreferences(sessionPreferences),
         );
-        if (!mounted) {
+        if (!_isCurrentSessionView(sessionViewGeneration)) {
           return;
         }
         _applyHostSession(session, projectSessionCwd: sessionCwd);
@@ -1164,17 +1197,28 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         session = await widget.piHostClient.getSessionState(
           sessionId: existingSessionId,
         );
-        if (!mounted) {
+        if (!_isCurrentSessionView(sessionViewGeneration)) {
           return;
         }
         _applyHostSession(session);
+      }
+
+      final currentBeforePrompt = _sessionStateForCwd(sessionCwd);
+      if (currentBeforePrompt.status == WorkspaceRunStatus.starting) {
+        _setSessionState(
+          sessionCwd,
+          currentBeforePrompt.copyWith(
+            status: WorkspaceRunStatus.waiting,
+            clearError: true,
+          ),
+        );
       }
 
       final accepted = await widget.piHostClient.prompt(
         sessionId: session.id,
         text: prompt,
       );
-      if (!mounted) {
+      if (!_isCurrentSessionView(sessionViewGeneration)) {
         return;
       }
       if (!accepted) {
@@ -1189,15 +1233,19 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         return;
       }
 
-      _setSessionState(
-        sessionCwd,
-        _sessionStateForCwd(
+      final current = _sessionStateForCwd(sessionCwd);
+      if (current.status == WorkspaceRunStatus.starting ||
+          current.status == WorkspaceRunStatus.waiting) {
+        _setSessionState(
           sessionCwd,
-        ).withUserPrompt(prompt).copyWith(clearError: true),
-      );
-      _composerController.clear();
+          current.copyWith(
+            status: WorkspaceRunStatus.waiting,
+            clearError: true,
+          ),
+        );
+      }
     } catch (error) {
-      if (!mounted) {
+      if (!_isCurrentSessionView(sessionViewGeneration)) {
         return;
       }
       final message = error.toString();
@@ -1328,6 +1376,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
+                selectedProjectSession: _visibleSession,
                 onActionSelected: (index) {
                   setState(() {
                     _selectedActionIndex = index;

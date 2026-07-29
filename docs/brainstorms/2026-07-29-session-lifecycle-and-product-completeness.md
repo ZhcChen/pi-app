@@ -16,7 +16,7 @@
 
 用户已确认核心原则：Pi CLI / Pi Core 是 session 的唯一真相源，Pi App 只能增强官方 workflow，不能成为第二个 session manager 或改变 Pi 的 session 所有权。C1 的实施计划据此固定为 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
 
-代码审查确认，当前 workspace 不是多会话工作区：它以项目 `sessionCwd` 为键，在 `desktop/lib/src/desktop_shell.dart` 的 `_sessionsByCwd` 中只保留一个 `WorkspaceSessionState`。首次提交创建 session，之后只复用该内存 session；应用重启、进程失败或项目切换不会形成可选择的 session catalog。`sessionFile` 虽被读取，但没有用于索引、恢复或切换。
+代码审查确认，当前 workspace 不是多会话工作区：它以项目 `sessionCwd` 为键，在 `desktop/lib/src/desktop_shell.dart` 的 `_sessionsByCwd` 中最多维护当前 attach 的临时 `WorkspaceSessionState`。首次提交创建 session，之后只在当前选中项目内复用该内存 session；一旦切换到其他项目，就主动丢弃本地 transcript 与 session 绑定，不形成可恢复的项目级会话记录。`sessionFile` 虽被读取，但没有用于索引、恢复或切换。
 
 因此，C1 不是“后续可选增强”，而是产品完成定义中连续 coding workflow 的必要能力。它仍是路线图中明确未交付的单元，不应混入当前已交付功能的回归统计；但必须在验收前被显式盘点、设计和排期。
 

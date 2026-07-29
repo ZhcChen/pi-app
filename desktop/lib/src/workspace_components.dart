@@ -552,6 +552,7 @@ IconData _statusIcon(WorkspaceRunStatus status) {
   return switch (status) {
     WorkspaceRunStatus.idle => Icons.pause_circle_outline_rounded,
     WorkspaceRunStatus.starting => Icons.hourglass_top_rounded,
+    WorkspaceRunStatus.waiting => Icons.schedule_send_rounded,
     WorkspaceRunStatus.running => Icons.auto_awesome_rounded,
     WorkspaceRunStatus.settled => Icons.check_circle_outline_rounded,
     WorkspaceRunStatus.aborted => Icons.cancel_outlined,
@@ -563,7 +564,9 @@ Color _sessionStatusColor(BuildContext context, WorkspaceRunStatus status) {
   final palette = context.desktopPalette;
 
   return switch (status) {
-    WorkspaceRunStatus.starting || WorkspaceRunStatus.running => palette.accent,
+    WorkspaceRunStatus.starting ||
+    WorkspaceRunStatus.waiting ||
+    WorkspaceRunStatus.running => palette.accent,
     WorkspaceRunStatus.failed => Theme.of(context).colorScheme.error,
     WorkspaceRunStatus.settled => palette.textSecondary,
     WorkspaceRunStatus.idle || WorkspaceRunStatus.aborted => palette.textMuted,
@@ -571,7 +574,7 @@ Color _sessionStatusColor(BuildContext context, WorkspaceRunStatus status) {
 }
 
 /// Primary task composer shown at the bottom of the workspace.
-class _Composer extends StatelessWidget {
+class _Composer extends StatefulWidget {
   const _Composer({
     required this.copy,
     required this.preferences,
@@ -591,10 +594,77 @@ class _Composer extends StatelessWidget {
   final VoidCallback? onAbort;
 
   @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(
+      debugLabel: 'workspace-composer-input',
+      onKeyEvent: _handleKeyEvent,
+    );
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (widget.session?.isRunning == true || event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final logicalKey = event.logicalKey;
+    if (logicalKey != LogicalKeyboardKey.enter &&
+        logicalKey != LogicalKeyboardKey.numpadEnter) {
+      return KeyEventResult.ignored;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed ||
+        keyboard.isControlPressed ||
+        keyboard.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+
+    final value = widget.controller.value;
+    if (value.composing.isValid && !value.composing.isCollapsed) {
+      return KeyEventResult.ignored;
+    }
+
+    if (keyboard.isShiftPressed) {
+      final selection = value.selection.isValid
+          ? value.selection
+          : TextSelection.collapsed(offset: value.text.length);
+      final nextText = value.text.replaceRange(
+        selection.start,
+        selection.end,
+        '\n',
+      );
+      final nextOffset = selection.start + 1;
+      widget.controller.value = value.copyWith(
+        text: nextText,
+        selection: TextSelection.collapsed(offset: nextOffset),
+        composing: TextRange.empty,
+      );
+      return KeyEventResult.handled;
+    }
+
+    widget.onSubmit();
+    return KeyEventResult.handled;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
-    final density = preferences.interfaceDensity;
-    final isRunning = session?.isRunning == true;
+    final density = widget.preferences.interfaceDensity;
+    final isRunning = widget.session?.isRunning == true;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 836),
@@ -630,22 +700,24 @@ class _Composer extends StatelessWidget {
                   children: [
                     _ComposerTag(
                       icon: Icons.folder_outlined,
-                      label: project?.name ?? copy.noProjectsTitle,
+                      label:
+                          widget.project?.name ?? widget.copy.noProjectsTitle,
                     ),
                     _ComposerTag(
                       icon: Icons.computer_outlined,
-                      label: copy.localLabel,
+                      label: widget.copy.localLabel,
                     ),
-                    if (project?.branch != null && project!.branch!.isNotEmpty)
+                    if (widget.project?.branch != null &&
+                        widget.project!.branch!.isNotEmpty)
                       _ComposerTag(
                         icon: Icons.merge_type_outlined,
-                        label: project!.branch!,
+                        label: widget.project!.branch!,
                       ),
-                    if (session?.modelLabel != null)
+                    if (widget.session?.modelLabel != null)
                       _ComposerTag(
                         icon: Icons.memory_rounded,
                         label:
-                            '${session!.modelLabel} · ${session!.thinkingLevel}',
+                            '${widget.session!.modelLabel} · ${widget.session!.thinkingLevel}',
                       ),
                   ],
                 ),
@@ -672,21 +744,24 @@ class _Composer extends StatelessWidget {
                   children: [
                     TextField(
                       key: const Key('workspace-composer-input'),
-                      controller: controller,
+                      controller: widget.controller,
+                      focusNode: _focusNode,
                       enabled: !isRunning,
                       minLines: 3,
                       maxLines: 3,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => widget.onSubmit(),
                       style: desktopWithCodeFont(
                         DesktopTypography.composerInput(palette),
-                        preferences.codeFont,
+                        widget.preferences.codeFont,
                       ),
                       decoration: InputDecoration(
                         isCollapsed: true,
                         border: InputBorder.none,
-                        hintText: copy.composerHint,
+                        hintText: widget.copy.composerHint,
                         hintStyle: desktopWithCodeFont(
                           DesktopTypography.composerHint(palette),
-                          preferences.codeFont,
+                          widget.preferences.codeFont,
                         ),
                       ),
                     ),
@@ -701,7 +776,8 @@ class _Composer extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            project?.sessionCwd ?? copy.composerNoProjectNotice,
+                            widget.project?.sessionCwd ??
+                                widget.copy.composerNoProjectNotice,
                             key: const Key('composer-session-cwd'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -715,13 +791,17 @@ class _Composer extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            session?.activeToolName != null
-                                ? copy.sessionToolStatusLabel(
-                                    session!.activeToolName!,
+                            widget.session?.activeToolName != null
+                                ? widget.copy.sessionToolStatusLabel(
+                                    widget.session!.activeToolName!,
                                   )
-                                : session == null
-                                ? copy.composerExecutionSummary(preferences)
-                                : copy.sessionStatusLabel(session!.status),
+                                : widget.session == null
+                                ? widget.copy.composerExecutionSummary(
+                                    widget.preferences,
+                                  )
+                                : widget.copy.sessionStatusLabel(
+                                    widget.session!.status,
+                                  ),
                             key: const Key('composer-execution-summary'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -730,11 +810,11 @@ class _Composer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        if (isRunning && onAbort != null)
+                        if (isRunning && widget.onAbort != null)
                           DesktopIconActionButton(
                             key: const Key('abort-composer-task-button'),
-                            onPressed: onAbort!,
-                            tooltip: copy.abortTaskTooltip,
+                            onPressed: widget.onAbort!,
+                            tooltip: widget.copy.abortTaskTooltip,
                             icon: const Icon(Icons.stop_rounded),
                             backgroundColor: const Color(0xFF8D3B3B),
                             buttonSize: const Size(40, 40),
@@ -742,8 +822,8 @@ class _Composer extends StatelessWidget {
                         else
                           DesktopIconActionButton(
                             key: const Key('submit-composer-task-button'),
-                            onPressed: onSubmit,
-                            tooltip: copy.submitTaskTooltip,
+                            onPressed: widget.onSubmit,
+                            tooltip: widget.copy.submitTaskTooltip,
                             icon: const Icon(Icons.arrow_upward_rounded),
                             backgroundColor: const Color(0xFF767676),
                             buttonSize: const Size(40, 40),
@@ -1366,23 +1446,104 @@ class _SidebarSectionLabel extends StatelessWidget {
   }
 }
 
-class _CollapsedSectionRow extends StatelessWidget {
-  const _CollapsedSectionRow({required this.label});
+class _SelectedProjectSessionList extends StatelessWidget {
+  const _SelectedProjectSessionList({
+    required this.copy,
+    required this.interfaceDensity,
+    required this.session,
+  });
 
-  final String label;
+  final WorkspaceCopy copy;
+  final AppInterfaceDensity interfaceDensity;
+  final WorkspaceSessionState? session;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: _SidebarSectionLabel(
-          label: label,
-          icon: Icons.chevron_right_rounded,
-          labelKey: const Key('tasks-section-label'),
+    final palette = context.desktopPalette;
+    final activeSession = session;
+    final status = activeSession?.status ?? WorkspaceRunStatus.idle;
+    final statusLabel = activeSession == null
+        ? null
+        : copy.sessionStatusLabel(activeSession.status);
+    final detailParts = <String>[
+      ?statusLabel,
+      ?activeSession?.modelLabel,
+    ];
+
+    return Column(
+      key: const Key('sidebar-project-session-list'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SidebarSectionLabel(
+          label: copy.sessionsLabel,
+          icon: Icons.chat_bubble_outline_rounded,
+          labelKey: const Key('sessions-section-label'),
         ),
-      ),
+        const SizedBox(height: 6),
+        DesktopSelectionTile(
+          selected: activeSession != null,
+          radius: _WorkspaceComponentSpec.projectTileRadius,
+          animated: false,
+          child: Container(
+            key: activeSession == null
+                ? const Key('sidebar-project-session-empty')
+                : const Key('sidebar-project-session-tile'),
+            constraints: BoxConstraints(
+              minHeight: desktopDensityValue(
+                interfaceDensity,
+                compact: 34,
+                comfortable: 38,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Icon(
+                    activeSession == null
+                        ? Icons.remove_circle_outline_rounded
+                        : _statusIcon(status),
+                    size: 15,
+                    color: activeSession == null
+                        ? palette.textMuted
+                        : _sessionStatusColor(context, status),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        activeSession == null
+                            ? copy.noActiveSessionLabel
+                            : copy.currentSessionLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: DesktopTypography.sidebarItem(palette),
+                      ),
+                      if (detailParts.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          detailParts.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: DesktopTypography.controlLabel(
+                            palette,
+                          ).copyWith(color: palette.textMuted),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

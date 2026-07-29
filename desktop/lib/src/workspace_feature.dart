@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'app_preferences.dart';
@@ -14,6 +15,9 @@ abstract interface class WorkspaceCopy {
   String get expandProjectsTooltip;
   String get collapseProjectsTooltip;
   String get addProjectTooltip;
+  String get sessionsLabel;
+  String get currentSessionLabel;
+  String get noActiveSessionLabel;
   String get tasksLabel;
   String get settingsLabel;
   String get downloadRuntimeTooltip;
@@ -135,7 +139,15 @@ class WorkspacePromptCard {
   final Color color;
 }
 
-enum WorkspaceRunStatus { idle, starting, running, settled, aborted, failed }
+enum WorkspaceRunStatus {
+  idle,
+  starting,
+  waiting,
+  running,
+  settled,
+  aborted,
+  failed,
+}
 
 enum WorkspaceConversationRole { user, assistant }
 
@@ -192,6 +204,7 @@ class WorkspaceSessionState {
 
   bool get isRunning =>
       status == WorkspaceRunStatus.starting ||
+      status == WorkspaceRunStatus.waiting ||
       status == WorkspaceRunStatus.running;
 
   bool get hasActivity =>

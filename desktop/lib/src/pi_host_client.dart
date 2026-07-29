@@ -674,12 +674,14 @@ class MemoryPiHostClient implements PiHostClient {
     this.promptAccepted = true,
     this.emitRunStartedOnPrompt = true,
     this.settleWithoutRunOnPrompt = false,
+    this.promptResponseCompleter,
   });
 
   final PiHostHealth health;
   bool promptAccepted;
   bool emitRunStartedOnPrompt;
   bool settleWithoutRunOnPrompt;
+  Completer<bool>? promptResponseCompleter;
   final StreamController<PiHostEvent> _events =
       StreamController<PiHostEvent>.broadcast();
   final Map<String, PiHostSession> _sessions = <String, PiHostSession>{};
@@ -756,6 +758,10 @@ class MemoryPiHostClient implements PiHostClient {
       );
     } else if (emitRunStartedOnPrompt) {
       emit(PiHostEvent(type: PiHostEventType.runStarted, sessionId: sessionId));
+    }
+    final responseCompleter = promptResponseCompleter;
+    if (responseCompleter != null) {
+      return responseCompleter.future;
     }
     return promptAccepted;
   }

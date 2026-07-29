@@ -8,6 +8,7 @@ class WorkspaceSidebar extends StatefulWidget {
     required this.preferences,
     required this.selectedActionIndex,
     required this.selectedProjectIndex,
+    required this.selectedProjectSession,
     required this.onActionSelected,
     required this.onProjectSelected,
     required this.onRenameProject,
@@ -26,6 +27,7 @@ class WorkspaceSidebar extends StatefulWidget {
   final AppPreferences preferences;
   final int selectedActionIndex;
   final int selectedProjectIndex;
+  final WorkspaceSessionState? selectedProjectSession;
   final ValueChanged<int> onActionSelected;
   final Future<void> Function(int) onProjectSelected;
   final Future<void> Function(WorkspaceProjectGroup project, String alias)
@@ -136,7 +138,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (var i = 0; i < widget.projects.length; i++)
+                        for (var i = 0; i < widget.projects.length; i++) ...[
                           Padding(
                             padding: EdgeInsets.only(
                               bottom: desktopDensityValue(
@@ -170,11 +172,28 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                                   widget.onRemoveProject(widget.projects[i]),
                             ),
                           ),
+                          if (i == widget.selectedProjectIndex)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                left: 30,
+                                right: 4,
+                                bottom: desktopDensityValue(
+                                  density,
+                                  compact: 8,
+                                  comfortable: 10,
+                                ),
+                              ),
+                              child: _SelectedProjectSessionList(
+                                copy: widget.copy,
+                                interfaceDensity: density,
+                                session: widget.selectedProjectSession,
+                              ),
+                            ),
+                        ],
                       ],
                     ),
                   ),
                 const SizedBox(height: 12),
-                _CollapsedSectionRow(label: widget.copy.tasksLabel),
               ],
             ),
           ),

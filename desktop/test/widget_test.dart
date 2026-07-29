@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:pi_desktop/main.dart';
@@ -1800,7 +1801,12 @@ process.stdin.on('data', (chunk) => {
     configureWindow(tester);
     addTearDown(() => resetWindow(tester));
 
-    await tester.pumpWidget(const PiDesktopApp(enablePersistence: false));
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        workspaceRootPath: resolveRepoWorkspacePath(),
+      ),
+    );
     await settleUi(tester);
 
     void expectCenteredLabel({
@@ -1811,7 +1817,7 @@ process.stdin.on('data', (chunk) => {
       final labelFinder = find.byKey(key);
       final labelCenter = tester.getCenter(labelFinder);
       final textCenter = tester.getCenter(find.text(text).first);
-      final iconCenter = tester.getCenter(find.byIcon(icon));
+      final iconCenter = tester.getCenter(find.byIcon(icon).first);
 
       expect(tester.getSize(labelFinder).height, 24);
       expect(textCenter.dy, closeTo(labelCenter.dy, 0.5));
@@ -1824,16 +1830,54 @@ process.stdin.on('data', (chunk) => {
       icon: Icons.expand_more_rounded,
     );
     expectCenteredLabel(
-      key: const Key('tasks-section-label'),
-      text: 'Tasks',
-      icon: Icons.chevron_right_rounded,
+      key: const Key('sessions-section-label'),
+      text: 'Sessions',
+      icon: Icons.chat_bubble_outline_rounded,
     );
-
-    expect(
-      tester.getRect(find.byKey(const Key('projects-section-label'))).left,
-      tester.getRect(find.byKey(const Key('tasks-section-label'))).left,
-    );
+    expect(find.byKey(const Key('tasks-section-label')), findsNothing);
   });
+
+  testWidgets(
+    'selected project shows the current session region in the sidebar',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final piHostClient = MemoryPiHostClient(settleWithoutRunOnPrompt: true);
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: resolveRepoWorkspacePath(),
+          piHostClient: piHostClient,
+        ),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('sidebar-project-session-list')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('sidebar-project-session-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('No active session'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Start a session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('sidebar-project-session-tile')),
+        findsOneWidget,
+      );
+      expect(find.text('Current session'), findsOneWidget);
+      expect(find.text('Task completed'), findsWidgets);
+    },
+  );
 
   testWidgets('projects section can collapse and expand its project list', (
     tester,
@@ -2024,7 +2068,7 @@ process.stdin.on('data', (chunk) => {
   });
 
   testWidgets(
-    'project sessions stay scoped when switching between selected projects',
+    'switching projects discards local session echo instead of restoring it later',
     (tester) async {
       configureWindow(tester);
       addTearDown(() => resetWindow(tester));
@@ -2067,6 +2111,7 @@ process.stdin.on('data', (chunk) => {
       );
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
+      final firstSessionId = piHostClient.promptRequests.single.sessionId;
 
       expect(
         find.byKey(const Key('workspace-session-transcript')),
@@ -2089,9 +2134,23 @@ process.stdin.on('data', (chunk) => {
 
       expect(
         find.byKey(const Key('workspace-session-transcript')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Keep this session with project A.'), findsOneWidget);
+      expect(find.text('Keep this session with project A.'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Start a fresh session for project A.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.promptRequests, hasLength(2));
+      expect(piHostClient.promptRequests.last.sessionId, isNot(firstSessionId));
+      expect(
+        piHostClient.promptRequests.last.text,
+        'Start a fresh session for project A.',
+      );
     },
   );
 
@@ -2123,6 +2182,120 @@ process.stdin.on('data', (chunk) => {
       expect(find.text(workspacePath), findsWidgets);
     },
   );
+
+  testWidgets(
+    'composer echoes the prompt immediately while waiting for Pi acceptance',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final promptResponseCompleter = Completer<bool>();
+      final piHostClient = MemoryPiHostClient(
+        emitRunStartedOnPrompt: false,
+        promptResponseCompleter: promptResponseCompleter,
+      );
+      addTearDown(() {
+        if (!promptResponseCompleter.isCompleted) {
+          promptResponseCompleter.complete(true);
+        }
+      });
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: workspacePath,
+          piHostClient: piHostClient,
+        ),
+      );
+      await settleUi(tester);
+
+      final composerFinder = find.byKey(const Key('workspace-composer-input'));
+      await tester.enterText(composerFinder, 'Render this immediately.');
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await tester.pump();
+
+      expect(find.text('Render this immediately.'), findsOneWidget);
+      expect(find.byKey(const Key('workspace-user-message')), findsOneWidget);
+      expect(
+        tester.widget<TextField>(composerFinder).controller?.text,
+        isEmpty,
+      );
+      expect(find.text('Waiting for Pi'), findsWidgets);
+      expect(piHostClient.promptRequests, hasLength(1));
+
+      promptResponseCompleter.complete(true);
+      await settleUi(tester);
+    },
+  );
+
+  testWidgets('composer submits the prompt on Enter', (tester) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final workspacePath = resolveRepoWorkspacePath();
+    final piHostClient = MemoryPiHostClient();
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        workspaceRootPath: workspacePath,
+        piHostClient: piHostClient,
+      ),
+    );
+    await settleUi(tester);
+
+    final composerFinder = find.byKey(const Key('workspace-composer-input'));
+    await tester.tap(composerFinder);
+    await tester.pump();
+    await tester.enterText(
+      composerFinder,
+      'Summarize the current workspace state.',
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await settleUi(tester);
+
+    expect(piHostClient.promptRequests, hasLength(1));
+    expect(
+      piHostClient.promptRequests.single.text,
+      'Summarize the current workspace state.',
+    );
+    expect(find.byKey(const Key('abort-composer-task-button')), findsOneWidget);
+    expect(tester.widget<TextField>(composerFinder).controller?.text, isEmpty);
+  });
+
+  testWidgets('composer inserts a newline on Shift+Enter', (tester) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+    final workspacePath = resolveRepoWorkspacePath();
+    final piHostClient = MemoryPiHostClient();
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        workspaceRootPath: workspacePath,
+        piHostClient: piHostClient,
+      ),
+    );
+    await settleUi(tester);
+
+    final composerFinder = find.byKey(const Key('workspace-composer-input'));
+    await tester.tap(composerFinder);
+    await tester.pump();
+    await tester.enterText(composerFinder, 'Line 1');
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+
+    expect(piHostClient.promptRequests, isEmpty);
+    expect(
+      tester.widget<TextField>(composerFinder).controller?.text,
+      'Line 1\n',
+    );
+  });
 
   testWidgets(
     'composer sends the selected project cwd to Pi host and renders stream events',
