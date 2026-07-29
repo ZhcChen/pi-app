@@ -9,6 +9,7 @@
 - 关联文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`
+  - `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`
   - `docs/plans/README.md`（计划入口、状态约定与当前执行队列）
   - `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md`
   - `docs/plans/2026-07-27-macos-ad-hoc-release-and-update.md`
@@ -27,7 +28,7 @@
 
 1. Pi App 不携带 Node、`@earendil-works/pi-coding-agent`、`host/dist` 或 `pi-app-host` companion；生产 agent runtime 仅是用户安装的官方 `pi`。
 2. 用户可检测、安装、诊断官方 Pi core，并通过 `pi --mode rpc` 建立 session、发送 prompt、接收流、abort、steer、切换 model / thinking。
-3. 用户可管理项目和 session：新建、恢复、fork、切换、归档，并能在应用重启、Pi 进程退出或模型运行失败后得到可操作恢复路径。
+3. 用户可在 Pi CLI / Pi Core 为唯一真相源的前提下管理项目会话：新建、打开 Pi App 已知会话、fork、clone、切换、Pi 原生重命名和恢复；未索引历史会话及删除回退 Pi CLI 原生流程，本地隐藏不伪装为原生归档；应用重启、Pi 进程退出或模型运行失败时有可操作恢复路径。
 4. 用户可看见受大小限制且不泄露敏感信息的工具 timeline、文件变更摘要、失败原因和运行状态；agent 不再是黑盒。
 5. 默认 builtin coding tools、旧偏好迁移、项目 trust 与可执行项目资源之间的边界清晰且可验证；不把工具 allowlist 错称为 OS sandbox 或逐工具审批。
 6. 主要 Pi 配置、模型、thinking、认证状态、prompts / skills / commands 和可选 workflow profile 有可理解的桌面入口；复杂 extension UI 至少能明确降级和诊断。
@@ -100,7 +101,7 @@
 - ACC-0：进行中，当前执行单元；只审查产品完整性、Pi 原生 contract、死控件和 session lifecycle，不改产品代码。
 - P1：进行中，等待 ACC-0 关闭后继续；完整工具默认、legacy migration 与受限 bootstrap 已完成，授权/修复 UI 待实现。
 - I2：待 P1 完成后开始，复用 I1 detector 完成安装后的重新检测。
-- C1：R2 技术前置已满足，但排在 I2 后，避免把短生命周期 runtime 直接扩展为可恢复 catalog；delete 门槛还等待 ACC-0 的产品决策收敛。
+- C1：待 P1、I2 后开始；C1.0 真实 capability spike 还必须满足 ACC-A 环境隔离硬门和独立测试认证，再按 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 实现 Pi CLI 权威的已知会话快捷方式与多 Tab 工作区。
 
 ## 任务看板
 
@@ -113,7 +114,7 @@
 | I1 | 已完成 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md` |
 | I2 | 待前置 | I1、P1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
 | P1 | 进行中，等待 ACC-0 质量门 | R1、R2；新实现前须关闭 ACC-0；runtime 修复路径依赖 I1 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆 |
-| C1 | 可开始（排在 I2 后） | R2；执行顺序依赖 I2 | session catalog、new / resume / fork | 多项目与重启恢复不串流 |
+| C1 | 待前置（排在 I2 后） | R2；执行顺序依赖 P1、I2；C1.0 真实 probe 须满足 ACC-A 环境隔离硬门和独立测试认证 | Pi CLI 权威的已知会话快捷方式、new / open / fork / clone / rename 与多 Tab | 不触碰 Pi session JSONL；未索引历史与删除回退 Pi CLI；多项目与重启恢复不串流 |
 | C2 | 待前置 | C1 | steer / follow-up / abort / retry 状态机 | 崩溃、迟到 event、恢复可解释 |
 | O1 | 待前置 | R2、P1 | 受限工具 timeline、失败诊断 | 大输出不进入 widget state，敏感信息不泄露 |
 | O2 | 待前置 | O1 | 文件变更摘要、overview / Git 刷新 | 不自动修改 Git 或覆盖外部编辑器 |
@@ -137,7 +138,7 @@ R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 
 - [x] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
 - [x] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
 
-R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`，I1 证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。当前执行单元为 ACC-0；关闭后继续 P1、I2、C1。不得将 runtime detector 误解为 installer、session catalog 或完整 timeline 已完成。
+R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`，I1 证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。当前执行单元为 ACC-0；关闭后继续 P1、I2、C1。不得将 runtime detector 误解为 installer、Pi App 已知会话快捷方式或完整 timeline 已完成。
 
 ## 阶段拆分
 
@@ -150,7 +151,7 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 ### 阶段 P1：Production Direct RPC Workspace
 
 - 目标：以 `PiCoreRpcClient` 替代生产 `LocalPiHostClient`，保持现有 workspace view model 和 JSONL 容量边界。
-- 边界：只覆盖现有主链；session catalog、fork、完整 timeline 和 installer 后置。
+- 边界：只覆盖现有主链；Pi App 已知会话快捷方式、fork、完整 timeline 和 installer 后置。
 - 验收重点：多项目不串流、prompt stream / abort 可用、进程代际隔离、崩溃恢复可解释；旧 host 不作为生产 fallback。
 
 ### 阶段 P2：Pi Core 管理与安全工具迁移
@@ -221,21 +222,22 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 ### P1：完整 Builtin Tools 与旧偏好迁移
 
 - 所属阶段：P2。
-- 状态：进行中；新配置完整 tools 默认、旧偏好安全迁移和受限 bootstrap 已完成，授权/修复 dialog 与 runtime 工具失能路径待实现。
+- 状态：进行中；等待 ACC-0 关闭后继续。新配置完整 tools 默认、旧偏好安全迁移和受限 bootstrap 已完成，授权/修复 dialog 与 runtime 工具失能路径待实现。
 - 目标：完成旧受限策略及 runtime diagnostic 的授权 / 修复对话，并保留已交付的完整 builtin tools 默认与安全迁移。
 - 涉及文件 / 模块：`app_preferences.dart`、`app_persistence.dart`、RPC launch arguments、settings / workspace dialog、测试。
 - 前置依赖：R1 的 `--no-approve` 基线；R2 的 production transport；剩余 runtime diagnostic 修复路径依赖 I1。
 - 验证方式：新安装、`toolPolicyVersion: 1`、授权、拒绝、取消和 runtime 工具失能状态的 client / widget tests。
 - 完成标准：拒绝后不扩大权限；所有 UI 明确说明 allowlist 不是 sandbox；project trust 不因 tools 默认启用而改变。
 
-### C1：Session Catalog、New、Resume 与 Fork
+### C1：Pi CLI 权威的 Session 增强
 
 - 所属阶段：P3。
-- 目标：围绕 Pi 管理的 session 文件实现项目内 session list、创建、恢复、fork、重命名、归档 / 删除入口和最近使用索引。
-- 涉及文件 / 模块：RPC adapter、project metadata / registry、workspace session switcher、测试 fake 和迁移。
-- 前置依赖：R2。
-- 验证方式：真实项目的跨重启恢复、多项目隔离、fork 后上下文差异、归档后不影响原始 session。
-- 完成标准：Flutter 不直接修改 session JSONL；用户能可靠地回到最近工作上下文，不会把不同项目 transcript 混在一起。
+- 状态：待前置；细化计划见 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
+- 目标：以 Pi CLI / Pi Core 为唯一 session 真相源，为项目提供多个 Pi App 已知会话快捷方式、独立 Tab/process、new、打开已知 session、fork、clone、Pi 原生重命名与 Pi CLI 管理回退。
+- 涉及文件 / 模块：RPC adapter、Pi App project/session reference persistence、workspace session switcher / tabs、macOS Terminal handoff、测试 fake 和迁移。
+- 前置依赖：R2；执行顺序依赖 P1、I2；C1.0 的真实 capability spike 必须先通过 ACC-A 环境隔离硬门并具备独立测试认证。
+- 验证方式：真实隔离项目的跨重启打开、多项目/多 Tab 隔离、fork/clone 原生上下文语义、Pi CLI 中的 rename 一致性、Pi CLI 外部删除后的失效引用和 Pi CLI handoff。
+- 完成标准：Flutter 不直接读取或修改 session JSONL；本地只保存 Pi App 已知会话快捷方式而非全量 Pi catalog；未索引历史和删除回退 Pi CLI 原生流程；本地隐藏不影响 Pi CLI；不同项目/Tab 的 transcript、工具事件和 process exit 不串流。
 
 ### C2：运行控制、Steer 与恢复
 
@@ -343,7 +345,7 @@ R1、R2、I1 已完成，不应重新创建对应 `/goal`。禁止把整份路�
 1. `/goal ACC-0`：只完成产品完整性、Pi 原生 session contract、死控件与小型交互审查；不实现 P1 或 C1，关闭后才继续 P1。
 2. `/goal P1`：只完成授权/修复 dialog、runtime 工具失能路径与迁移回归；不重做已交付的工具默认策略。
 3. `/goal I2`：只完成官方 installer launcher、Terminal 启动和重新检测。
-4. `/goal C1`：只完成 session catalog、new / resume / fork 与持久化索引；delete 语义须先关闭 ACC-0 中的待决策项。
+4. `/goal C1.0`：在 P1、I2 完成且 ACC-A 环境隔离硬门、独立测试认证满足后，只完成 Pi CLI 原生 lifecycle capability spike 与证据，不改 production UI；通过后按 C1.1 至 C1.4 的独立 `/goal` 实现 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
 5. `/goal C2`：只完成运行控制、steer / follow-up 与进程恢复状态。
 6. `/goal O1`：只完成受限工具 timeline 与失败诊断。
 7. `/goal O2`：只完成文件变更摘要和项目 overview 联动。

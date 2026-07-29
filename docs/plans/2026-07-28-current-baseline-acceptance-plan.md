@@ -15,12 +15,12 @@
 
 在 ACC-A 之前，必须执行 ACC-0 产品完整性与 Pi 原生 contract 审查。它不验收未实现路线图能力是否“通过”，而是枚举真实用户路径、可见空操作控件、明确未交付能力与需要产品决策的语义；其中项目多 session、session lifecycle、archive/delete、键盘与小型披露交互必须单列。
 
-本轮不是对“完整日常 coding workflow”做发布签字。当前路线图中 P1 的授权/修复 UI、I2 installer、C1 session catalog、C2 运行恢复、O1/O2 timeline 与变更摘要，以及 P4/P5 功能尚未交付；它们必须作为产品缺口单列，不得被混入已交付能力的回归缺陷统计。
+本轮不是对“完整日常 coding workflow”做发布签字。当前路线图中 P1 的授权/修复 UI、I2 installer、C1 Pi CLI 权威的已知会话快捷方式、C2 运行恢复、O1/O2 timeline 与变更摘要，以及 P4/P5 功能尚未交付；它们必须作为产品缺口单列，不得被混入已交付能力的回归缺陷统计。
 
 ## 范围
 
 - 验收 R1、R2、I1 已声明完成的 production direct RPC、Pi runtime 发现/诊断、协议边界和工具策略安全基线。
-- 先执行产品完整性审查，覆盖同项目多 session、Pi 原生 session contract、死控件、导航占位、披露控件、键盘/读屏和最小窗口；审查结论见 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`。
+- 先执行产品完整性审查，覆盖同项目多 session、Pi 原生 session contract、死控件、导航占位、披露控件、键盘/读屏和最小窗口；审查证据见 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`，C1 的实施边界见 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
 - 验收当前可见的项目管理、侧栏、composer、单项目会话展示、设置与偏好、错误反馈和中英文/主题等已实现桌面行为。
 - 验收 Pi App 自有数据的 Debug/Profile 与 Release 隔离、macOS 应用身份、Debug/Release 构建产物和已实现的更新客户端状态机。
 - 使用受控 fake runtime 覆盖确定性故障路径；仅在一次性 macOS 测试用户或已验证会向所有子进程注入隔离环境的测试启动器中，使用官方 Pi core 覆盖真实 RPC 主链。
@@ -29,7 +29,7 @@
 ## 非目标
 
 - 不在本计划中实现尚未交付的 P1/I2/C1/C2/O1/O2/M1/M2/S1/W1/E1/Q1/D1/D2 功能。
-- 不把缺少 session catalog、resume、fork、官方安装器、完整工具 timeline 或首个 GitHub Release 标为“已交付回归”。它们应在报告中标为路线图缺口及其所属执行单元。
+- 不把缺少 Pi App 已知会话快捷方式、打开/恢复、fork、官方安装器、完整工具 timeline 或首个 GitHub Release 标为“已交付回归”。它们应在报告中标为路线图缺口及其所属执行单元。
 - 不在用户真实项目、真实 Pi session 或认证目录上进行具有副作用的 `bash`、`edit`、`write` 验证；真实 Pi 测试只使用临时项目和无敏感内容 prompt。
 - 不使用继承自日常用户环境的 `HOME`、`PI_CODING_AGENT_DIR`、Pi 认证或 Pi session 执行真实 Pi smoke；不复制日常认证到测试目录。没有独立测试认证时，真实认证 smoke 必须标为外部条件阻塞。
 - 不在未完成 P0-P3 与 Q1 前创建正式 tag、发布 GitHub Release 或声称可以完成 D1 发布验收。
@@ -87,7 +87,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 | ID | 域 | 场景与操作 | 通过条件 | 证据类型 |
 | --- | --- | --- | --- | --- |
-| ACC-0 | 产品完整性与原生 contract | 对照当前代码、路线图、官方 Pi RPC/TUI/SDK 文档，盘点多 session、生命周期、死控件、小型交互、可访问性和未交付功能；逐项检查 Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 的鼠标、Tab/Enter/Space、Semantics 与窄窗口行为。 | 每项归为已交付回归、明确未交付、死控件/误导表面、外部协议缺口或待产品决策；C1 的 catalog、archive/delete 语义明确且不违反 Pi session ownership；固定输出 `C1 = 明确未交付（不计回归）` 与 `产品完整性/发布资格 = 未通过`。 | 只读审查 + 隔离 capability probe + 独立复核 |
+| ACC-0 | 产品完整性与原生 contract | 对照当前代码、路线图、官方 Pi RPC/TUI/SDK 文档，盘点多 session、生命周期、死控件、小型交互、可访问性和未交付功能；逐项检查 Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 的鼠标、Tab/Enter/Space、Semantics 与窄窗口行为。 | 每项归为已交付回归、明确未交付、死控件/误导表面、外部协议缺口或待产品决策；C1 必须遵守 Pi CLI 唯一 session 真相源、仅保存 Pi App 已知会话快捷方式、全量历史/删除回退 Pi CLI 的已确认边界；固定输出 `C1 = 明确未交付（不计回归）` 与 `产品完整性/发布资格 = 未通过`。 | 只读审查 + 隔离 capability probe + 独立复核 |
 | ACC-RT-01 | 冷启动诊断 | 在默认路径、已保存路径和 `PI_CORE_EXECUTABLE` 三种情况下启动应用并打开设置。 | runtime 自动从 `Checking` 转为 `ready`、`missing`、`invalidExecutable` 或 `healthCheckFailed`；不要求用户先手动刷新。 | widget + fake runtime + macOS 手工 |
 | ACC-RT-02 | runtime 修复 | 分别提供不存在路径、不可执行文件、RPC health 失败文件和健康 fake。 | 状态、来源、绝对路径、诊断文案和刷新/选择/清除操作准确且可恢复。 | client/widget + fake runtime |
 | ACC-RT-03 | 路径优先级 | 同时设置环境 override、保存路径和 PATH；切换路径时保持一个既有会话运行。 | 优先级为环境 override、保存绝对路径、PATH；只影响后续 session，不中断或串流既有会话。 | fake runtime + 手工 |
@@ -123,7 +123,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 - P1 剩余：授权完整工具/保持受限/取消 modal，以及 runtime 工具失能的修复路径。
 - I2：官方 Pi core installer launcher 与可见 Terminal 流程。
-- C1/C2：session catalog、new/resume/fork、steer/follow-up/retry 和重启恢复。
+- C1/C2：Pi CLI 权威的已知会话快捷方式、new/open/fork/clone/rename、steer/follow-up/retry 和重启恢复。
 - O1/O2：完整工具 timeline、文件变更摘要和 Git 联动。
 - M1/M2/S1/W1/E1：完整 model/thinking/auth、resources、trust、workflow profile 与 extension UI bridge。
 - Q1/D1/D2：故障矩阵、首个真实 release、Windows/Linux parity。
@@ -134,7 +134,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 - 目标：在任何基线通过结论之前，先盘点真实用户期待的工作流、现有死控件和 Pi 原生 session 能力边界，特别是一个项目多个 session 的 lifecycle。
 - 边界：不实现 C1，不将 SDK/TUI-only 行为伪装成 RPC，不解析或修改 Pi session JSONL；未决语义必须形成明确问题，不能通过视觉占位跳过。
-- 验收重点：`new_session`、`switch_session`、`fork`、`clone`、`set_session_name`、list/delete/archive 缺口及其产品语义都已记录；Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 都有鼠标、Tab/Enter/Space、Semantics、窄窗口和功能/禁用/移除结论；固定声明 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`。
+- 验收重点：`new_session`、`switch_session`、`fork`、`clone`、`set_session_name`、list/delete/archive 缺口及其产品语义都已记录；C1 明确以 Pi CLI 为唯一 session 真相源，只实现 Pi App 已知会话快捷方式，未索引历史与删除回退 Pi CLI；Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 都有鼠标、Tab/Enter/Space、Semantics、窄窗口和功能/禁用/移除结论；固定声明 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`。
 
 ### 阶段 A：基线与可复现环境
 
@@ -183,7 +183,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 ### ACC-0：完成产品完整性与原生 session contract 审查
 
 - 所属阶段：0。
-- 目标：完成 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md` 中的代码、文档和隔离 capability probe 审查，并收敛 session catalog、archive/delete 与死控件的产品语义。
+- 目标：完成 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md` 中的代码、文档和隔离 capability probe 审查，确认 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 的 Pi CLI 权威边界，并收敛剩余死控件的产品语义。
 - 涉及模块：`desktop/lib/src/desktop_shell.dart`、`workspace_*.dart`、`pi_host_client.dart`、`pi_core_rpc_client.dart`、`desktop/test/`、官方 Pi RPC 文档。
 - 前置依赖：无；真实 prompt session 验证需要通过环境隔离硬门和独立测试认证。
 - 验证方式：只读代码审查、官方协议/实现比对、无认证隔离 probe、对真实 authenticated session 的单独 capability spike 计划。
@@ -281,7 +281,7 @@ Release DMG、真实 tag、GitHub Actions 和更新闭环属于 D1 以后；除�
 3. Finder/Dock 图标可能缓存旧 bundle；原生身份验收需要使用新路径或清理缓存后的可见桌面，并记录该条件。
 4. 当前官方 Pi 实测证据基于 `0.82.0`。上游升级后应将协议差异作为兼容性风险，重新运行 R1/R2 的真实 smoke，不应因版本文本本身拒绝运行。
 5. `ACC-RT-01` 已有静态审阅证据，必须在 ACC-0、ACC-A 后作为 A1 强制门先复现；确认 S1 时先修复并回归，避免在核心诊断失效的状态下扩大验收范围。
-6. C1 的原生 contract 尚有产品决策：公开 RPC 没有全量 session list、delete 或 archive；在用户确认 catalog 范围和 delete/归档语义前，不能把这些缺口用 JSONL 直改或假控件“补齐”。
+6. C1 的公开 contract 固定为 Pi CLI 唯一 session 真相源：Pi App 仅保存已知会话快捷方式，公开 RPC 未提供的全量 list、delete 和 native archive 不得通过 JSONL、SDK 或 TUI 解析补齐；具体实施边界见 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
 
 ## 沉淀跟进
 
