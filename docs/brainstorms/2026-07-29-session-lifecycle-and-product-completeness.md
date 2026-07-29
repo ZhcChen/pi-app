@@ -1,7 +1,7 @@
 # Session 生命周期与产品完整性审查
 
 - 主题：在基线验收前，盘点 Pi App 的产品完整性缺口，并收敛“同一项目多会话”和原生 Pi session 生命周期的实现边界。
-- 状态：已收敛；C1 实施以 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 为准。
+- 状态：已完成；ACC-0 审查结果见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，C1 实施以 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 为准。
 - 负责人：Pi
 - 日期：2026-07-29
 - 关联计划：
@@ -139,7 +139,7 @@ Pi session 是带 `id`/`parentId` 的 append-only JSONL tree，其中还包含 c
 
 ## 下一步
 
-1. 将本审查和 C1 细化计划作为 ACC-0 的已确认 session 设计依据，继续完成死控件、键盘、Semantics 和窄窗口的审查结论。
-2. 按总路线图先完成 P1、I2；随后以 `/goal C1.0` 执行真实 Pi lifecycle capability spike，不直接进入生产 UI 改动。
+1. 将本审查和 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md` 作为 ACC-0 的最终结果，后续验收直接从 `ACC-A` / `ACC-A1` 继续。
+2. 按总路线图恢复 P1 为下一功能实现单元；若 `ACC-A1` 证实冷启动 runtime 为 S1，则先建立最小修复单元并暂停 P1 新实现。
 3. C1.0 通过后，按 C1.1 至 C1.4 分别实现本地快捷方式模型、多 controller adapter、session workspace/Pi CLI handoff 和一致性验收。
 4. C1 实现前不得重新引入 direct JSONL 操作、SDK session catalog、TUI 输出解析、Pi App 内删除或伪造原生 archive。

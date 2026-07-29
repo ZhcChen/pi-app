@@ -1,7 +1,7 @@
 # 当前交付基线验收计划
 
 - 任务：对当前 Pi App 已声明交付的能力做分层验收，建立可复现缺陷清单与修复优先级；ACC-0 是继续 P1 新实现前的当前质量门，后续 ACC-A 至 ACC-E 是持续执行的基线验证活动。
-- 状态：草稿；必须先完成 ACC-0 产品完整性与 Pi 原生 contract 审查，再进入后续验收执行。
+- 状态：进行中；ACC-0 已完成，后续按 ACC-A 至 ACC-E 继续执行。
 - 负责人：Pi
 - 日期：2026-07-28
 - 验收基线：`995da58 feat: 支持项目列表展开收起`
@@ -20,7 +20,7 @@
 ## 范围
 
 - 验收 R1、R2、I1 已声明完成的 production direct RPC、Pi runtime 发现/诊断、协议边界和工具策略安全基线。
-- 先执行产品完整性审查，覆盖同项目多 session、Pi 原生 session contract、死控件、导航占位、披露控件、键盘/读屏和最小窗口；审查证据见 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`，C1 的实施边界见 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
+- 先执行产品完整性审查，覆盖同项目多 session、Pi 原生 session contract、死控件、导航占位、披露控件、键盘/读屏和最小窗口；审查证据见 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`，ACC-0 最终结果见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，C1 的实施边界见 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md`。
 - 验收当前可见的项目管理、侧栏、composer、单项目会话展示、设置与偏好、错误反馈和中英文/主题等已实现桌面行为。
 - 验收 Pi App 自有数据的 Debug/Profile 与 Release 隔离、macOS 应用身份、Debug/Release 构建产物和已实现的更新客户端状态机。
 - 使用受控 fake runtime 覆盖确定性故障路径；仅在一次性 macOS 测试用户或已验证会向所有子进程注入隔离环境的测试启动器中，使用官方 Pi core 覆盖真实 RPC 主链。
@@ -182,6 +182,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 ### ACC-0：完成产品完整性与原生 session contract 审查
 
+- 状态：已完成；结果见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`。
 - 所属阶段：0。
 - 目标：完成 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md` 中的代码、文档和隔离 capability probe 审查，确认 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 的 Pi CLI 权威边界，并收敛剩余死控件的产品语义。
 - 涉及模块：`desktop/lib/src/desktop_shell.dart`、`workspace_*.dart`、`pi_host_client.dart`、`pi_core_rpc_client.dart`、`desktop/test/`、官方 Pi RPC 文档。

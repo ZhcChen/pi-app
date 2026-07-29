@@ -15,20 +15,21 @@
 | 顺序 | 单元 | 当前状态 | 进入条件 | 细化计划 |
 | --- | --- | --- | --- | --- |
 | 已完成 | I1：Pi Core Detector 与诊断卡 | 已完成 | R1、R2 已完成；证据见 [I1 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 0 | ACC-0：产品完整性与 Pi 原生 contract 审查 | 进行中，当前执行单元 | 用户要求先完成多 session、死控件、小型交互和原生 session 语义审查；不实现产品代码 | [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) |
-| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中，等待 ACC-0 质量门 | ACC-0 关闭；I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 0 | ACC-0：产品完整性与 Pi 原生 contract 审查 | 已完成 | 用户要求先完成多 session、死控件、小型交互和原生 session 语义审查；不实现产品代码 | [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) |
+| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中 | ACC-0 已完成；I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
 | 2 | I2：官方 Pi Core Installer Launcher | 待前置 | P1 完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
 | 3 | C1：Pi CLI 权威的 Session 增强 | 待前置，排在 I2 后 | P1、I2 完成；C1.0 真实 probe 还须满足 ACC-A 环境隔离硬门和独立测试认证 | [Pi CLI 权威的 Session 增强执行计划](2026-07-29-pi-cli-authoritative-session-enhancement.md) |
 | 4 | D1：macOS Production Acceptance 与首个正式 Release | 待前置 | Q1 和 P0-P3 工作流闭环 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) |
 
-P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。I1 已提供 runtime diagnostic 状态；P1 仍是 ACC-0 关闭后的下一功能实现单元，剩余范围是授权/修复 modal、runtime 工具失能路径和相应回归，不能被重新当作“从零开始”的任务，也不能绕过 ACC-0 直接开始新实现。
+P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。ACC-0 已完成，结果见 [ACC-0 产品完整性审查结果](../solutions/2026-07-29-acc-0-product-integrity-audit.md)。P1 重新成为下一功能实现单元；与此同时，`ACC-A` / `ACC-A1` 继续作为验收覆盖层推进，其中 `ACC-A1` 若确认 S1 仍会重新阻断 P1 新实现。
 
 ## 活跃计划与证据
 
 | 文档 | 角色 | 使用方式 |
 | --- | --- | --- |
 | [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) | 草稿验收覆盖层 | 先完成 ACC-0 产品完整性与 Pi 原生 contract 审查，再冻结当前基线、验收已声明能力并输出缺陷台账；不替代总看板的功能依赖与状态。 |
-| [Session 生命周期与产品完整性审查](../brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md) | 已收敛 brainstorm | 记录审查证据与 Pi CLI 权威原则；C1 的实际实施范围以细化计划为准。 |
+| [Session 生命周期与产品完整性审查](../brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md) | 已完成 brainstorm | 记录 session ownership、Pi CLI 权威原则和 C1 设计收敛；ACC-0 的最终输出以 solution 文档为准。 |
+| [ACC-0 产品完整性审查结果](../solutions/2026-07-29-acc-0-product-integrity-audit.md) | ACC-0 结果证据 | 固化 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`，并逐项记录关键控件的归类、严重度、owner 与后续执行单元。 |
 | [Pi CLI 权威的 Session 增强执行计划](2026-07-29-pi-cli-authoritative-session-enhancement.md) | C1 细化执行计划 | 将 Pi CLI 设为唯一 session 真相源；仅实现已知会话快捷方式与官方 RPC lifecycle，未索引历史和删除回退 Pi CLI。 |
 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) | 唯一总看板 | 更新所有执行单元的状态、依赖、顺序与完成门槛。 |
 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) | runtime 子计划 | 细化 R1/R2/I1/P1/I2/W1/S1；不与总看板竞争状态权威。 |
