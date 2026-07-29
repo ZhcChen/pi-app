@@ -105,6 +105,35 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
       isChinese ? '选择 Pi 可执行文件' : 'Choose Pi executable';
   String get piCoreRuntimeClearTooltip =>
       isChinese ? '清除已选路径' : 'Clear selected path';
+  String get piCoreInstallerTitle => isChinese ? '官方安装器' : 'Official installer';
+  String get piCoreInstallerSourceLabel => isChinese ? '来源 URL' : 'Source URL';
+  String get piCoreInstallerScriptLabel => isChinese ? '脚本路径' : 'Script path';
+  String get piCoreInstallerLogLabel => isChinese ? '日志路径' : 'Log path';
+  String get piCoreInstallerInstallActionLabel =>
+      isChinese ? '安装 Pi Core' : 'Install Pi Core';
+  String get piCoreInstallerStopWaitingActionLabel =>
+      isChinese ? '停止等待' : 'Stop waiting';
+  String get piCoreInstallerResumeWaitingActionLabel =>
+      isChinese ? '继续等待' : 'Resume waiting';
+  String get piCoreInstallerOpenLogActionLabel =>
+      isChinese ? '打开日志' : 'Open log';
+  String get piCoreInstallerIdleDescription => isChinese
+      ? '从官方 https://pi.dev/install.sh 下载脚本，并在可见 Terminal 中运行。Pi App 只显示下载字节进度和后续检测结果，不把本地下载表述为内容校验。'
+      : 'Download the official https://pi.dev/install.sh script and run it in a visible Terminal window. Pi App only shows byte progress and later detection results; it does not present the local download as content verification.';
+  String piCoreInstallerPreparingDescription(String progress) => isChinese
+      ? '正在下载官方安装脚本：$progress'
+      : 'Downloading the official installer script: $progress';
+  String get piCoreInstallerWaitingDescription => isChinese
+      ? '安装器已在 Terminal 中启动。Pi App 正在重新检测 Pi Core；停止等待不会取消外部安装器。'
+      : 'The installer is running in Terminal. Pi App is checking for Pi Core again; stopping the wait does not cancel the external installer.';
+  String get piCoreInstallerPausedDescription => isChinese
+      ? '安装器仍在 Terminal 中继续。Pi App 已停止轮询；你可以继续等待，或稍后手动重新检测。'
+      : 'The installer is still running in Terminal. Pi App stopped polling; resume waiting or refresh detection later.';
+  String get piCoreInstallerReadyDescription => isChinese
+      ? 'Pi Core 已变为可用。安装日志仍保留在下面的路径中。'
+      : 'Pi Core is now ready. The installer log remains available at the path below.';
+  String piCoreInstallerFailedDescription(String reason) =>
+      isChinese ? '安装器失败：$reason' : 'Installer failed: $reason';
   String get toolPolicyUpgradeTitle =>
       isChinese ? '启用默认编码工具？' : 'Enable default coding tools?';
   String get toolPolicyUpgradeDescription => isChinese

@@ -40,6 +40,8 @@ typedef DesktopRuntimeLauncher =
     Future<DesktopOpenResult> Function(DesktopOpenRequest request);
 typedef DesktopSystemFileLauncher =
     Future<DesktopOpenResult> Function(String targetPath);
+typedef DesktopTerminalScriptLauncher =
+    Future<DesktopOpenResult> Function(String scriptPath);
 typedef DesktopRuntimeQuitter = Future<void> Function();
 
 abstract class DesktopRuntimeController {
@@ -51,6 +53,8 @@ abstract class DesktopRuntimeController {
 
   Future<DesktopOpenResult> openSystemFile(String targetPath);
 
+  Future<DesktopOpenResult> runScriptInTerminal(String scriptPath);
+
   Future<void> quitApplication();
 }
 
@@ -61,6 +65,7 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
     DesktopRuntimeToggle? setShowInMenuBar,
     DesktopRuntimeLauncher? openTarget,
     DesktopSystemFileLauncher? openSystemFile,
+    DesktopTerminalScriptLauncher? runScriptInTerminal,
     DesktopRuntimeQuitter? quitApplication,
   }) : capabilities =
            capabilities ??
@@ -69,6 +74,7 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
        _setShowInMenuBar = setShowInMenuBar ?? _toggleShowInMenuBar,
        _openTarget = openTarget ?? _launchOpenTarget,
        _openSystemFile = openSystemFile ?? _launchSystemFile,
+       _runScriptInTerminal = runScriptInTerminal ?? _launchTerminalScript,
        _quitApplication = quitApplication ?? _quitPlatformApplication;
 
   static const MethodChannel _runtimeChannel = MethodChannel(
@@ -82,6 +88,7 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
   final DesktopRuntimeToggle _setShowInMenuBar;
   final DesktopRuntimeLauncher _openTarget;
   final DesktopSystemFileLauncher _openSystemFile;
+  final DesktopTerminalScriptLauncher _runScriptInTerminal;
   final DesktopRuntimeQuitter _quitApplication;
 
   bool? _lastPreventSleep;
@@ -101,6 +108,11 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
   @override
   Future<DesktopOpenResult> openSystemFile(String targetPath) {
     return _openSystemFile(targetPath);
+  }
+
+  @override
+  Future<DesktopOpenResult> runScriptInTerminal(String scriptPath) {
+    return _runScriptInTerminal(scriptPath);
   }
 
   @override
@@ -167,6 +179,24 @@ class PlatformDesktopRuntimeController implements DesktopRuntimeController {
     return _launchCandidates([
       _LaunchCommand('xdg-open', [targetPath]),
     ], failureMessage: 'Could not open $targetPath.');
+  }
+
+  static Future<DesktopOpenResult> _launchTerminalScript(
+    String scriptPath,
+  ) async {
+    if (FileSystemEntity.typeSync(scriptPath) != FileSystemEntityType.file) {
+      return DesktopOpenResult.failure('Path not found: $scriptPath');
+    }
+
+    if (!Platform.isMacOS) {
+      return const DesktopOpenResult.failure(
+        'Running the Pi installer in Terminal is currently supported only on macOS.',
+      );
+    }
+
+    return _launchCandidates([
+      _LaunchCommand('open', ['-a', 'Terminal', scriptPath]),
+    ], failureMessage: 'Could not open Terminal for $scriptPath.');
   }
 
   static Future<void> _quitPlatformApplication() async {
@@ -322,6 +352,7 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
     DesktopRuntimeCapabilities? capabilities,
     this.openResult = const DesktopOpenResult.success(),
     this.systemFileOpenResult = const DesktopOpenResult.success(),
+    this.terminalScriptOpenResult = const DesktopOpenResult.success(),
   }) : capabilities =
            capabilities ??
            const DesktopRuntimeCapabilities(supportsShowInMenuBar: true);
@@ -331,13 +362,16 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
 
   final DesktopOpenResult openResult;
   final DesktopOpenResult systemFileOpenResult;
+  final DesktopOpenResult terminalScriptOpenResult;
 
   AppPreferences? lastSyncedPreferences;
   DesktopOpenRequest? lastOpenRequest;
   String? lastSystemFilePath;
+  String? lastTerminalScriptPath;
   int syncCount = 0;
   int openCount = 0;
   int systemFileOpenCount = 0;
+  int terminalScriptOpenCount = 0;
   int quitCount = 0;
 
   @override
@@ -358,6 +392,13 @@ class MemoryDesktopRuntimeController implements DesktopRuntimeController {
     lastSystemFilePath = targetPath;
     systemFileOpenCount += 1;
     return systemFileOpenResult;
+  }
+
+  @override
+  Future<DesktopOpenResult> runScriptInTerminal(String scriptPath) async {
+    lastTerminalScriptPath = scriptPath;
+    terminalScriptOpenCount += 1;
+    return terminalScriptOpenResult;
   }
 
   @override

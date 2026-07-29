@@ -73,7 +73,7 @@ npm run verify:rpc-contract -- --pi /opt/homebrew/bin/pi
 
 ## 当前限制
 
-- I1 已提供 `PiCoreRuntimeController`、用户路径持久化、报告版本采集、受限 RPC health 和设置页诊断卡，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。版本是验证与排障元数据，不是启动 gate；R2 client 的默认 resolver 现在会服从该 controller。I2 官方 installer launcher 仍未实现。
+- I1 已提供 `PiCoreRuntimeController`、用户路径持久化、报告版本采集、受限 RPC health 和设置页诊断卡，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。版本是验证与排障元数据，不是启动 gate；R2 client 的默认 resolver 现在会服从该 controller。I2 的 installer launcher 代码现已实现，证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`，但真实外部安装流仍待验收。
 - C1 尚未建立 session catalog 或跨应用 resume。process 崩溃后，当前项目状态会失效，下一次提交创建新 session；Pi 管理的 session JSONL 不会被 Flutter 直接编辑。
 - P1 已完成旧受限用户的三选一授权 dialog 和 runtime 修复路径，证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`。新安装默认完整 tools，已有受限偏好需要显式确认后才会升级为完整工具。
 - E1 尚未实现交互式 extension UI；本阶段只保证可恢复的拒绝和诊断。

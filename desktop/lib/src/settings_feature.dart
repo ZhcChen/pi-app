@@ -111,6 +111,10 @@ abstract interface class SettingsCopy {
   String get piCoreRuntimeRefreshTooltip;
   String get piCoreRuntimeChooseTooltip;
   String get piCoreRuntimeClearTooltip;
+  String get piCoreInstallerTitle;
+  String get piCoreInstallerSourceLabel;
+  String get piCoreInstallerScriptLabel;
+  String get piCoreInstallerLogLabel;
   String get permissionsSectionTitle;
   String get generalSectionTitle;
   String get appearanceTitle;

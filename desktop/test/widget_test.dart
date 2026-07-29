@@ -44,6 +44,40 @@ class _MemoryAppUpdateClient implements AppUpdateClient {
   }
 }
 
+class _MemoryPiCoreInstallerClient implements PiCoreInstallerClient {
+  _MemoryPiCoreInstallerClient({required this.bundle, this.prepareError});
+
+  final PiCoreInstallerBundle bundle;
+  final Object? prepareError;
+  int prepareCount = 0;
+  int discardCount = 0;
+  final List<PiCoreInstallerDownloadProgress> progressUpdates =
+      <PiCoreInstallerDownloadProgress>[];
+
+  @override
+  Future<PiCoreInstallerBundle> prepareInstaller({
+    PiCoreInstallerProgressListener? onProgress,
+  }) async {
+    prepareCount += 1;
+    final error = prepareError;
+    if (error != null) {
+      throw error;
+    }
+    const progress = PiCoreInstallerDownloadProgress(
+      transferredBytes: 4,
+      totalBytes: 4,
+    );
+    progressUpdates.add(progress);
+    onProgress?.call(progress);
+    return bundle;
+  }
+
+  @override
+  Future<void> discardInstaller(PiCoreInstallerBundle bundle) async {
+    discardCount += 1;
+  }
+}
+
 class _DelayedPreferencesStore implements DesktopPreferencesStore {
   final Completer<AppPreferences> _loadCompleter = Completer<AppPreferences>();
 
@@ -546,13 +580,18 @@ process.stdin.on('data', (chunk) => {
   });
 
   test(
-    'platform runtime controller delegates system file and quit actions',
+    'platform runtime controller delegates system file, terminal script, and quit actions',
     () async {
       String? openedPath;
+      String? terminalScriptPath;
       var quitCount = 0;
       final controller = PlatformDesktopRuntimeController(
         openSystemFile: (targetPath) async {
           openedPath = targetPath;
+          return const DesktopOpenResult.success();
+        },
+        runScriptInTerminal: (scriptPath) async {
+          terminalScriptPath = scriptPath;
           return const DesktopOpenResult.success();
         },
         quitApplication: () async {
@@ -560,11 +599,18 @@ process.stdin.on('data', (chunk) => {
         },
       );
 
-      final result = await controller.openSystemFile('/tmp/Pi App.dmg');
+      final systemFileResult = await controller.openSystemFile(
+        '/tmp/Pi App.dmg',
+      );
+      final terminalResult = await controller.runScriptInTerminal(
+        '/tmp/run-pi-core-installer.command',
+      );
       await controller.quitApplication();
 
-      expect(result.launched, true);
+      expect(systemFileResult.launched, true);
+      expect(terminalResult.launched, true);
       expect(openedPath, '/tmp/Pi App.dmg');
+      expect(terminalScriptPath, '/tmp/run-pi-core-installer.command');
       expect(quitCount, 1);
     },
   );
@@ -682,6 +728,320 @@ process.stdin.on('data', (chunk) => {
     expect(find.text('Update failed: DMG open failed.'), findsOneWidget);
     expect(runtimeController.quitCount, 0);
     expect(updateClient.discardCount, 1);
+  });
+
+  testWidgets(
+    'settings launches the Pi Core installer in Terminal and waits for runtime readiness',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final runtimeController = MemoryDesktopRuntimeController();
+      final installerBundle = PiCoreInstallerBundle(
+        sourceUri: OfficialPiCoreInstallerClient.sourceUri,
+        rootDirectory: Directory('/tmp/pi-core-installer'),
+        scriptFile: File('/tmp/pi-core-installer/install.sh'),
+        launcherFile: File(
+          '/tmp/pi-core-installer/run-pi-core-installer.command',
+        ),
+        logFile: File('/tmp/pi-core-installer/pi-core-installer.log'),
+      );
+      final installerClient = _MemoryPiCoreInstallerClient(
+        bundle: installerBundle,
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          runtimeController: runtimeController,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piCoreInstallerClient: installerClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await settleUi(tester);
+
+      expect(installerClient.prepareCount, 1);
+      expect(
+        runtimeController.lastTerminalScriptPath,
+        installerBundle.launcherFile.path,
+      );
+      expect(find.text('Stop waiting'), findsOneWidget);
+
+      detector.setSnapshot(
+        const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.ready,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          version: '0.82.0',
+        ),
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('pi-core-runtime-status')), findsOneWidget);
+      expect(find.text('Ready'), findsWidgets);
+      expect(
+        find.text(
+          'Pi Core is now ready. The installer log remains available at the path below.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Open log'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'settings can stop waiting for the Pi Core installer and open the log',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final runtimeController = MemoryDesktopRuntimeController();
+      final installerBundle = PiCoreInstallerBundle(
+        sourceUri: OfficialPiCoreInstallerClient.sourceUri,
+        rootDirectory: Directory('/tmp/pi-core-installer'),
+        scriptFile: File('/tmp/pi-core-installer/install.sh'),
+        launcherFile: File(
+          '/tmp/pi-core-installer/run-pi-core-installer.command',
+        ),
+        logFile: File('/tmp/pi-core-installer/pi-core-installer.log'),
+      );
+      final installerClient = _MemoryPiCoreInstallerClient(
+        bundle: installerBundle,
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          runtimeController: runtimeController,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piCoreInstallerClient: installerClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await settleUi(tester);
+      await tester.ensureVisible(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await settleUi(tester);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Resume waiting'), findsOneWidget);
+      expect(find.text('Open log'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-secondary-action-button')),
+      );
+      await settleUi(tester);
+
+      expect(
+        runtimeController.lastSystemFilePath,
+        installerBundle.logFile.path,
+      );
+      expect(
+        runtimeController.lastTerminalScriptPath,
+        installerBundle.launcherFile.path,
+      );
+    },
+  );
+
+  testWidgets(
+    'settings surfaces Pi Core installer preparation failures without entering the wait state',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final runtimeController = MemoryDesktopRuntimeController();
+      final installerBundle = PiCoreInstallerBundle(
+        sourceUri: OfficialPiCoreInstallerClient.sourceUri,
+        rootDirectory: Directory('/tmp/pi-core-installer'),
+        scriptFile: File('/tmp/pi-core-installer/install.sh'),
+        launcherFile: File(
+          '/tmp/pi-core-installer/run-pi-core-installer.command',
+        ),
+        logFile: File('/tmp/pi-core-installer/pi-core-installer.log'),
+      );
+      final installerClient = _MemoryPiCoreInstallerClient(
+        bundle: installerBundle,
+        prepareError: const PiCoreInstallerException(
+          'Could not download the official Pi installer.',
+        ),
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          runtimeController: runtimeController,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piCoreInstallerClient: installerClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.text(
+          'Installer failed: Could not download the official Pi installer.',
+        ),
+        findsOneWidget,
+      );
+      expect(runtimeController.lastTerminalScriptPath, isNull);
+      expect(find.text('Stop waiting'), findsNothing);
+      expect(find.text('Install Pi Core'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'settings surfaces Pi Core installer launch failures and discards the prepared bundle',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final runtimeController = MemoryDesktopRuntimeController(
+        terminalScriptOpenResult: const DesktopOpenResult.failure(
+          'Terminal launch failed.',
+        ),
+      );
+      final installerBundle = PiCoreInstallerBundle(
+        sourceUri: OfficialPiCoreInstallerClient.sourceUri,
+        rootDirectory: Directory('/tmp/pi-core-installer'),
+        scriptFile: File('/tmp/pi-core-installer/install.sh'),
+        launcherFile: File(
+          '/tmp/pi-core-installer/run-pi-core-installer.command',
+        ),
+        logFile: File('/tmp/pi-core-installer/pi-core-installer.log'),
+      );
+      final installerClient = _MemoryPiCoreInstallerClient(
+        bundle: installerBundle,
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          runtimeController: runtimeController,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piCoreInstallerClient: installerClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-settings-button')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-installer-action-button')),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.text('Installer failed: Terminal launch failed.'),
+        findsOneWidget,
+      );
+      expect(installerClient.discardCount, 1);
+      expect(find.text('Install Pi Core'), findsOneWidget);
+    },
+  );
+
+  testWidgets('sidebar download runtime shortcut opens the settings page', (
+    tester,
+  ) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+
+    await tester.pumpWidget(const PiDesktopApp(enablePersistence: false));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('download-runtime-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings-page-title')), findsOneWidget);
+    expect(find.text('Pi Core runtime'), findsOneWidget);
   });
 
   testWidgets('app starts without an implicit project root', (tester) async {
@@ -1191,6 +1551,7 @@ process.stdin.on('data', (chunk) => {
     expect(find.text('Language'), findsOneWidget);
     expect(find.text('Default file open destination'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('language-dropdown')));
     await tester.tap(find.byKey(const Key('language-dropdown')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('简体中文').last);
@@ -1248,6 +1609,9 @@ process.stdin.on('data', (chunk) => {
     await tester.tap(find.byKey(const Key('open-settings-button')));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(
+      find.byKey(const Key('open-destination-dropdown')),
+    );
     await tester.tap(find.byKey(const Key('open-destination-dropdown')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Terminal').last);
@@ -1405,6 +1769,9 @@ process.stdin.on('data', (chunk) => {
 
     await tester.tap(find.byKey(const Key('open-settings-button')));
     await settleUi(tester);
+    await tester.ensureVisible(
+      find.byKey(const Key('open-destination-dropdown')),
+    );
     await tester.tap(find.byKey(const Key('open-destination-dropdown')));
     await settleUi(tester);
     await tester.tap(find.text('Terminal').last);

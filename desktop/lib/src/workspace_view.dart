@@ -16,6 +16,7 @@ class WorkspaceSidebar extends StatefulWidget {
     required this.onAddProject,
     required this.onOpenProject,
     required this.onOpenSettings,
+    required this.onDownloadRuntime,
     super.key,
   });
 
@@ -34,6 +35,7 @@ class WorkspaceSidebar extends StatefulWidget {
   final Future<void> Function() onAddProject;
   final ValueChanged<WorkspaceProjectGroup> onOpenProject;
   final VoidCallback onOpenSettings;
+  final VoidCallback onDownloadRuntime;
 
   @override
   State<WorkspaceSidebar> createState() => _WorkspaceSidebarState();
@@ -204,7 +206,8 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
               Padding(
                 padding: const EdgeInsets.only(right: 2),
                 child: DesktopIconActionButton(
-                  onPressed: () {},
+                  key: const Key('download-runtime-button'),
+                  onPressed: widget.onDownloadRuntime,
                   tooltip: widget.copy.downloadRuntimeTooltip,
                   icon: const Icon(Icons.download_rounded, size: 18),
                   foregroundColor: const Color(0xFF98C4FF),

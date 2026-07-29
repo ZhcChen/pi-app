@@ -15,7 +15,7 @@
 
 在 ACC-A 之前，必须执行 ACC-0 产品完整性与 Pi 原生 contract 审查。它不验收未实现路线图能力是否“通过”，而是枚举真实用户路径、可见空操作控件、明确未交付能力与需要产品决策的语义；其中项目多 session、session lifecycle、archive/delete、键盘与小型披露交互必须单列。
 
-本轮不是对“完整日常 coding workflow”做发布签字。当前路线图中 I2 installer、C1 Pi CLI 权威的已知会话快捷方式、C2 运行恢复、O1/O2 timeline 与变更摘要，以及 P4/P5 功能尚未交付；它们必须作为产品缺口单列，不得被混入已交付能力的回归缺陷统计。
+本轮不是对“完整日常 coding workflow”做发布签字。当前路线图中 I2 installer 的真实干净环境验收与外部 smoke、C1 Pi CLI 权威的已知会话快捷方式、C2 运行恢复、O1/O2 timeline 与变更摘要，以及 P4/P5 功能尚未交付或尚未验收；它们必须作为产品缺口单列，不得被混入已交付能力的回归缺陷统计。
 
 ## 范围
 
@@ -28,7 +28,7 @@
 
 ## 非目标
 
-- 不在本计划中实现尚未交付的 I2/C1/C2/O1/O2/M1/M2/S1/W1/E1/Q1/D1/D2 功能。
+- 不在本计划中实现尚未交付的 C1/C2/O1/O2/M1/M2/S1/W1/E1/Q1/D1/D2 功能，也不在未满足 ACC-A 硬门时宣称 I2 真实外部安装流已通过。
 - 不把缺少 Pi App 已知会话快捷方式、打开/恢复、fork、官方安装器、完整工具 timeline 或首个 GitHub Release 标为“已交付回归”。它们应在报告中标为路线图缺口及其所属执行单元。
 - 不在用户真实项目、真实 Pi session 或认证目录上进行具有副作用的 `bash`、`edit`、`write` 验证；真实 Pi 测试只使用临时项目和无敏感内容 prompt。
 - 不使用继承自日常用户环境的 `HOME`、`PI_CODING_AGENT_DIR`、Pi 认证或 Pi session 执行真实 Pi smoke；不复制日常认证到测试目录。没有独立测试认证时，真实认证 smoke 必须标为外部条件阻塞。
@@ -121,7 +121,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 下列能力必须出现在最终报告的“路线图缺口”章节，而非缺陷台账：
 
-- I2：官方 Pi core installer launcher 与可见 Terminal 流程。
+- I2：官方 Pi core installer launcher 的真实干净环境验收、外部 `install.sh` smoke 与可见 Terminal 证据。
 - C1/C2：Pi CLI 权威的已知会话快捷方式、new/open/fork/clone/rename、steer/follow-up/retry 和重启恢复。
 - O1/O2：完整工具 timeline、文件变更摘要和 Git 联动。
 - M1/M2/S1/W1/E1：完整 model/thinking/auth、resources、trust、workflow profile 与 extension UI bridge。

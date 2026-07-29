@@ -84,5 +84,5 @@ flutter build macos --debug
 ## 残余风险
 
 - `ACC-A1` 的冷启动 runtime `Checking` 候选 S1 仍未关闭；本次只补了“提交时的修复路径”，没有把 I1 的冷启动自动检测问题当作已修复。
-- I2 仍未实现官方 installer launcher；runtime 修复对话当前只能重新检测或跳到设置页，不能直接在应用内安装 Pi Core。
+- I2 的 installer launcher 代码现已实现，证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`；但 runtime 修复对话当前仍只提供重新检测或跳到设置页，不会直接绕过设置卡静默启动外部安装器。真实外部 `install.sh` smoke 仍待执行。
 - 旧 session 的工具 allowlist 仍由其创建时决定；P1 只影响新建 session，不会在已有 Pi process 上静默改写工具能力。

@@ -1,11 +1,11 @@
 # Pi App 完整功能主路线图
 
 - 任务：将 Pi App 从“具备历史 SDK host 回归链路的桌面工作台”建设为可日常使用的官方 Pi core 桌面 coding client
-- 状态：进行中（R1、R2、I1、P1、ACC-0 已完成；I2 是下一功能实现单元）
+- 状态：进行中（R1、R2、I1、P1、ACC-0 已完成；I2 已实现，待验收）
 - 负责人：Pi
 - 日期：2026-07-27
 - 当前版本基线：`0.1.0+1`
-- 当前执行入口：`docs/plans/README.md`；`ACC-0` 与 `P1` 已完成，下一功能实现单元是 `docs/plans/2026-07-27-external-pi-core-rpc-runtime.md` 的 I2；验收覆盖层继续从 `docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 `ACC-A` / `ACC-A1` 推进
+- 当前执行入口：`docs/plans/README.md`；`ACC-0` 与 `P1` 已完成，I2 已实现，待验收；验收覆盖层继续从 `docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 `ACC-A` / `ACC-A1` 推进
 - 关联文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`
@@ -44,7 +44,7 @@
 | 受限工具白名单和旧偏好安全降级 | 已完成 | P1 的迁移起点，不是最终默认策略 |
 | macOS ad-hoc DMG、GitHub Release workflow、手动更新 | 已完成 | 交付基础，仍需首个真实 tag 验证 |
 | macOS Debug/Profile 与 Release 应用身份、图标与数据根 | 已完成 | `Pi App Dev` / `Pi App` 可并存；证据见 `docs/solutions/2026-07-28-macos-development-app-identity.md` |
-| `PiCoreRpcClient`、runtime detector、官方 installer | R2、I1 已完成；I2 未完成 | direct production transport 已切换，已具备受管理 runtime 诊断 |
+| `PiCoreRpcClient`、runtime detector、官方 installer | R2、I1 已完成；I2 已实现，待真实 macOS 验收 | direct production transport 已切换，已具备受管理 runtime 诊断与官方安装入口 |
 | session 管理、完整 timeline、auth / trust / resource UI | 未完成 | 阶段 P3/P4 功能面 |
 | Windows、Linux production runtime / installer | 未开始 | 阶段 P5，必须后置到 macOS 验收 |
 
@@ -100,8 +100,8 @@
 - I1：已完成；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。
 - ACC-0：已完成；结果见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，固定输出为 `C1 = 明确未交付（不计回归）` 与 `产品完整性/发布资格 = 未通过`。
 - P1：已完成；证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`。完整工具默认、legacy migration、旧偏好三选一授权对话与 runtime 修复入口均已交付。
-- I2：重新成为下一功能实现单元；复用 I1 detector 完成官方 installer launcher 与安装后的重新检测。
-- C1：待 P1、I2 后开始；C1.0 真实 capability spike 还必须满足 ACC-A 环境隔离硬门和独立测试认证，再按 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 实现 Pi CLI 权威的已知会话快捷方式与多 Tab 工作区。
+- I2：I2 已实现，待验收；证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`。当前仍待真实干净环境的官方 `install.sh` smoke test 与验收记录。
+- C1：待 I2 完成后开始；C1.0 真实 capability spike 还必须满足 ACC-A 环境隔离硬门和独立测试认证，再按 `docs/plans/2026-07-29-pi-cli-authoritative-session-enhancement.md` 实现 Pi CLI 权威的已知会话快捷方式与多 Tab 工作区。
 
 ## 任务看板
 
@@ -112,7 +112,7 @@
 | R1 | 已完成 | 本机官方 Pi core 与测试认证 | RPC harness、fixture、兼容矩阵 | `--no-approve` 未信任基线和所有关键事件有证据 |
 | R2 | 已完成 | R1 | `PiCoreRpcClient`、adapter、workspace 迁移 | 生产路径 direct RPC；无旧 host 静默 fallback；证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md` |
 | I1 | 已完成 | R1 | Pi core detector、诊断卡、测试 fake | 五类 runtime 状态可区分；证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md` |
-| I2 | 可开始 | I1、P1 | 官方 installer launcher、Terminal / 日志流程 | 真实下载、可见 Terminal、重新检测闭环 |
+| I2 | 待验收 | I1、P1 | 官方 installer launcher、Terminal / 日志流程 | 自动化与 debug build 已通过；待真实下载、可见 Terminal、重新检测闭环 |
 | P1 | 已完成 | R1、R2；ACC-0 已关闭；runtime 修复路径依赖 I1 | 完整 builtin tools、迁移授权 / 修复 dialog | 拒绝后仍受限，tools / trust 不混淆；证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md` |
 | C1 | 待前置（排在 I2 后） | R2；执行顺序依赖 P1、I2；C1.0 真实 probe 须满足 ACC-A 环境隔离硬门和独立测试认证 | Pi CLI 权威的已知会话快捷方式、new / open / fork / clone / rename 与多 Tab | 不触碰 Pi session JSONL；未索引历史与删除回退 Pi CLI；多项目与重启恢复不串流 |
 | C2 | 待前置 | C1 | steer / follow-up / abort / retry 状态机 | 崩溃、迟到 event、恢复可解释 |
@@ -129,7 +129,7 @@
 
 ### R1 与 R2 当前状态
 
-R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，I1 已完成 Pi core 检测、版本信息采集、受限 health 与设置诊断，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。ACC-0 已完成并输出 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，P1 已完成并输出 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`；下一功能实现进入 I2，后续验收覆盖层继续执行 ACC-A 至 ACC-E。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
+R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 切换，I1 已完成 Pi core 检测、版本信息采集、受限 health 与设置诊断，证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`。ACC-0 已完成并输出 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，P1 已完成并输出 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`，I2 已实现并输出 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`；但真实外部 installer smoke 仍待执行，因此 I2 当前状态为待验收。后续验收覆盖层继续执行 ACC-A 至 ACC-E。任何后续单元发现 RPC 语义不满足时，应先更新证据与计划。
 
 - [x] R1.1：建立独立 `pi --mode rpc` harness，固定 LF JSONL framing、超时、1 MiB 保护、原始 request / event 录制和测试项目临时目录。
 - [x] R1.2：验证无副作用 state、Pi 版本、create / resume session、model 与 thinking request / response，并形成 host contract 对照表。
@@ -138,7 +138,7 @@ R1 已完成 direct RPC 兼容性证据，R2 已完成生产 composer transport 
 - [x] R1.5：构建含 project-local extension / prompt / skill 的 fixture，验证完整 builtin allowlist 加 `--no-approve` 的未信任行为。
 - [x] R1.6：将结果写入 capability matrix，列出支持范围、版本、启动参数、残余风险和 R2 的明确 go / no-go 结论。
 
-R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`，I1 证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`，ACC-0 证据见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，P1 证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`。当前下一功能实现单元为 I2；验收覆盖层继续执行 ACC-A / ACC-A1。不得将 runtime detector 误解为 installer、Pi App 已知会话快捷方式或完整 timeline 已完成。
+R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 证据见 `docs/solutions/2026-07-28-pi-core-rpc-adapter-migration.md`，I1 证据见 `docs/solutions/2026-07-28-pi-core-runtime-detector.md`，ACC-0 证据见 `docs/solutions/2026-07-29-acc-0-product-integrity-audit.md`，P1 证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`，I2 证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`。当前执行重点仍是 I2 的真实验收与 ACC-A / ACC-A1；不得将 runtime detector 误解为 installer、Pi App 已知会话快捷方式或完整 timeline 已完成。
 
 ## 阶段拆分
 
@@ -212,7 +212,7 @@ R1 证据见 `docs/solutions/2026-07-28-pi-core-rpc-capability-matrix.md`，R2 �
 ### I2：官方 Pi Core Installer Launcher
 
 - 所属阶段：P2。
-- 状态：可开始；I1 与 P1 已完成。
+- 状态：I2 已实现，待验收；证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`。
 - 目标：下载官方 `https://pi.dev/install.sh`，显示真实脚本下载字节、来源、日志路径，在 macOS 可见 Terminal 启动，并轮询 I1 检测。
 - 涉及文件 / 模块：installer service、runtime bridge、settings UI、HTTP / process fake、macOS bridge、测试。
 - 前置依赖：I1、P1。

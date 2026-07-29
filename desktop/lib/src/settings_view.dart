@@ -12,6 +12,16 @@ class SettingsView extends StatelessWidget {
     required this.onRefreshPiCoreRuntime,
     required this.onChoosePiCoreExecutable,
     required this.onClearPiCoreExecutable,
+    required this.piCoreInstallerStatus,
+    required this.piCoreInstallerBusy,
+    required this.piCoreInstallerProgressPercent,
+    required this.piCoreInstallerSourceUrl,
+    required this.piCoreInstallerScriptPath,
+    required this.piCoreInstallerLogPath,
+    required this.piCoreInstallerActionLabel,
+    required this.onPiCoreInstallerAction,
+    required this.piCoreInstallerSecondaryActionLabel,
+    required this.onPiCoreInstallerSecondaryAction,
     required this.searchController,
     required this.sections,
     required this.selectedCategory,
@@ -54,6 +64,16 @@ class SettingsView extends StatelessWidget {
   final Future<void> Function() onRefreshPiCoreRuntime;
   final Future<void> Function() onChoosePiCoreExecutable;
   final Future<void> Function() onClearPiCoreExecutable;
+  final String piCoreInstallerStatus;
+  final bool piCoreInstallerBusy;
+  final int? piCoreInstallerProgressPercent;
+  final String piCoreInstallerSourceUrl;
+  final String? piCoreInstallerScriptPath;
+  final String? piCoreInstallerLogPath;
+  final String? piCoreInstallerActionLabel;
+  final VoidCallback? onPiCoreInstallerAction;
+  final String? piCoreInstallerSecondaryActionLabel;
+  final VoidCallback? onPiCoreInstallerSecondaryAction;
   final TextEditingController searchController;
   final List<SettingsNavSection> sections;
   final SettingsCategory selectedCategory;
@@ -193,6 +213,18 @@ class SettingsView extends StatelessWidget {
                 onRefreshPiCoreRuntime: onRefreshPiCoreRuntime,
                 onChoosePiCoreExecutable: onChoosePiCoreExecutable,
                 onClearPiCoreExecutable: onClearPiCoreExecutable,
+                piCoreInstallerStatus: piCoreInstallerStatus,
+                piCoreInstallerBusy: piCoreInstallerBusy,
+                piCoreInstallerProgressPercent: piCoreInstallerProgressPercent,
+                piCoreInstallerSourceUrl: piCoreInstallerSourceUrl,
+                piCoreInstallerScriptPath: piCoreInstallerScriptPath,
+                piCoreInstallerLogPath: piCoreInstallerLogPath,
+                piCoreInstallerActionLabel: piCoreInstallerActionLabel,
+                onPiCoreInstallerAction: onPiCoreInstallerAction,
+                piCoreInstallerSecondaryActionLabel:
+                    piCoreInstallerSecondaryActionLabel,
+                onPiCoreInstallerSecondaryAction:
+                    onPiCoreInstallerSecondaryAction,
                 onLanguageChanged: onLanguageChanged,
                 onOpenDestinationChanged: onOpenDestinationChanged,
                 onDefaultPermissionsChanged: onDefaultPermissionsChanged,
@@ -259,6 +291,16 @@ class _GeneralSettingsContent extends StatelessWidget {
     required this.onRefreshPiCoreRuntime,
     required this.onChoosePiCoreExecutable,
     required this.onClearPiCoreExecutable,
+    required this.piCoreInstallerStatus,
+    required this.piCoreInstallerBusy,
+    required this.piCoreInstallerProgressPercent,
+    required this.piCoreInstallerSourceUrl,
+    required this.piCoreInstallerScriptPath,
+    required this.piCoreInstallerLogPath,
+    required this.piCoreInstallerActionLabel,
+    required this.onPiCoreInstallerAction,
+    required this.piCoreInstallerSecondaryActionLabel,
+    required this.onPiCoreInstallerSecondaryAction,
     required this.onLanguageChanged,
     required this.onOpenDestinationChanged,
     required this.onDefaultPermissionsChanged,
@@ -287,6 +329,16 @@ class _GeneralSettingsContent extends StatelessWidget {
   final Future<void> Function() onRefreshPiCoreRuntime;
   final Future<void> Function() onChoosePiCoreExecutable;
   final Future<void> Function() onClearPiCoreExecutable;
+  final String piCoreInstallerStatus;
+  final bool piCoreInstallerBusy;
+  final int? piCoreInstallerProgressPercent;
+  final String piCoreInstallerSourceUrl;
+  final String? piCoreInstallerScriptPath;
+  final String? piCoreInstallerLogPath;
+  final String? piCoreInstallerActionLabel;
+  final VoidCallback? onPiCoreInstallerAction;
+  final String? piCoreInstallerSecondaryActionLabel;
+  final VoidCallback? onPiCoreInstallerSecondaryAction;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<AppOpenDestination> onOpenDestinationChanged;
   final ValueChanged<bool> onDefaultPermissionsChanged;
@@ -316,6 +368,8 @@ class _GeneralSettingsContent extends StatelessWidget {
         ? copy.showInMenuBarDescription
         : copy.showInMenuBarUnsupportedDescription;
     final isUpdateBusy = appUpdateChecking || appUpdateDownloading;
+    final installerScriptPath = piCoreInstallerScriptPath;
+    final installerLogPath = piCoreInstallerLogPath;
     final updateActionLabel = appUpdateReadyToInstall
         ? copy.quitAndInstallActionLabel
         : appUpdateAvailable
@@ -356,6 +410,18 @@ class _GeneralSettingsContent extends StatelessWidget {
                     onRefresh: onRefreshPiCoreRuntime,
                     onChooseExecutable: onChoosePiCoreExecutable,
                     onClearExecutable: onClearPiCoreExecutable,
+                    installerStatus: piCoreInstallerStatus,
+                    installerBusy: piCoreInstallerBusy,
+                    installerProgressPercent: piCoreInstallerProgressPercent,
+                    installerSourceUrl: piCoreInstallerSourceUrl,
+                    installerScriptPath: installerScriptPath,
+                    installerLogPath: installerLogPath,
+                    installerActionLabel: piCoreInstallerActionLabel,
+                    onInstallerAction: onPiCoreInstallerAction,
+                    installerSecondaryActionLabel:
+                        piCoreInstallerSecondaryActionLabel,
+                    onInstallerSecondaryAction:
+                        onPiCoreInstallerSecondaryAction,
                   ),
                 ),
                 const SizedBox(height: 42),
@@ -579,6 +645,16 @@ class _PiCoreRuntimeSettingsCard extends StatelessWidget {
     required this.onRefresh,
     required this.onChooseExecutable,
     required this.onClearExecutable,
+    required this.installerStatus,
+    required this.installerBusy,
+    required this.installerProgressPercent,
+    required this.installerSourceUrl,
+    required this.installerScriptPath,
+    required this.installerLogPath,
+    required this.installerActionLabel,
+    required this.onInstallerAction,
+    required this.installerSecondaryActionLabel,
+    required this.onInstallerSecondaryAction,
   });
 
   final SettingsCopy copy;
@@ -587,6 +663,16 @@ class _PiCoreRuntimeSettingsCard extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Future<void> Function() onChooseExecutable;
   final Future<void> Function() onClearExecutable;
+  final String installerStatus;
+  final bool installerBusy;
+  final int? installerProgressPercent;
+  final String installerSourceUrl;
+  final String? installerScriptPath;
+  final String? installerLogPath;
+  final String? installerActionLabel;
+  final VoidCallback? onInstallerAction;
+  final String? installerSecondaryActionLabel;
+  final VoidCallback? onInstallerSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -681,6 +767,74 @@ class _PiCoreRuntimeSettingsCard extends StatelessWidget {
             value: copy.piCoreRuntimeSourceLabel(snapshot.source),
             valueIsSource: true,
           ),
+          const SizedBox(height: 14),
+          const _SettingsDivider(),
+          const SizedBox(height: 12),
+          Text(
+            copy.piCoreInstallerTitle,
+            style: _AppTypography.settingsGroupLabel(palette),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            installerStatus,
+            key: const Key('pi-core-installer-status'),
+            style: _AppTypography.settingsRowDescription(palette),
+          ),
+          const SizedBox(height: 12),
+          if (installerBusy)
+            SizedBox(
+              width: 164,
+              child: LinearProgressIndicator(
+                key: const Key('pi-core-installer-progress'),
+                value: installerProgressPercent == null
+                    ? null
+                    : installerProgressPercent! / 100,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                if (installerActionLabel != null && onInstallerAction != null)
+                  _SettingsActionButton(
+                    buttonKey: const Key('pi-core-installer-action-button'),
+                    label: installerActionLabel!,
+                    onPressed: onInstallerAction,
+                  ),
+                if (installerSecondaryActionLabel != null &&
+                    onInstallerSecondaryAction != null)
+                  _SettingsActionButton(
+                    buttonKey: const Key(
+                      'pi-core-installer-secondary-action-button',
+                    ),
+                    label: installerSecondaryActionLabel!,
+                    onPressed: onInstallerSecondaryAction,
+                  ),
+              ],
+            ),
+          const SizedBox(height: 14),
+          const _SettingsDivider(),
+          const SizedBox(height: 12),
+          _PiCoreRuntimeMetadataRow(
+            label: copy.piCoreInstallerSourceLabel,
+            value: installerSourceUrl,
+            valueIsSource: true,
+          ),
+          if (installerScriptPath != null) ...[
+            const SizedBox(height: 8),
+            _PiCoreRuntimeMetadataRow(
+              label: copy.piCoreInstallerScriptLabel,
+              value: installerScriptPath!,
+            ),
+          ],
+          if (installerLogPath != null) ...[
+            const SizedBox(height: 8),
+            _PiCoreRuntimeMetadataRow(
+              label: copy.piCoreInstallerLogLabel,
+              value: installerLogPath!,
+            ),
+          ],
         ],
       ),
     );

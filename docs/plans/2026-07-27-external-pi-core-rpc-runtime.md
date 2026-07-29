@@ -1,12 +1,12 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1、R2、I1、P1、ACC-0 已完成；I2 为下一功能实现单元）
+- 状态：进行中（R1、R2、I1、P1、ACC-0 已完成；I2 已实现，待验收）
 - 负责人：Pi
 - 日期：2026-07-27
 - 上层总看板：`docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
 - 计划入口与状态约定：`docs/plans/README.md`
-- 执行门：`docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 ACC-0 与 P1 已完成；I2 可继续，但 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断 I2 / C1 新实现。该验收覆盖层不改变 P1、I2、C1 的功能依赖。
+- 执行门：`docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 ACC-0 与 P1 已完成；I2 的实现与自动化验证已就绪，但 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断 I2 关闭与 C1 新实现。该验收覆盖层不改变 P1、I2、C1 的功能依赖。
 - 依赖文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
@@ -144,7 +144,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### I2：官方 Installer Launcher
 
 - 所属阶段：阶段 4。
-- 状态：可开始；I1 与 P1 已完成。
+- 状态：I2 已实现，待验收；证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`。代码实现、自动化验证和 debug build 已通过，待真实干净环境 smoke test。
 - 目标：下载官方 script、显示下载状态、创建本地日志、在 macOS Terminal 启动并轮询安装结果。
 - 涉及文件 / 模块：runtime controller、macOS platform bridge、settings view、HTTP / process fake、测试。
 - 前置依赖：I1、P1。
@@ -181,7 +181,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 
 ## 当前执行顺序
 
-I1 与 P1 已完成。当前子计划的执行顺序服从总看板：`I2 -> C1`。I2 复用 detector 完成安装后的重新检测；C1 由总看板在 I2 之后安排，不在本文件重复维护。`ACC-A` / `ACC-A1` 继续作为验收覆盖层，其中 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断后续 I2 / C1 新实现。
+I1 与 P1 已完成，I2 已实现，待验收。当前子计划的执行顺序服从总看板：先补 I2 的真实 macOS smoke 证据，再进入 `C1`。`ACC-A` / `ACC-A1` 继续作为验收覆盖层，其中 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断 I2 关闭与后续 C1 新实现。
 
 ## `/goal` 建议作用域
 

@@ -12,6 +12,7 @@ import 'app_runtime.dart';
 import 'app_update_service.dart';
 import 'desktop_design.dart';
 import 'pi_config_store.dart';
+import 'pi_core_installer.dart';
 import 'pi_core_rpc_client.dart';
 import 'pi_core_runtime.dart';
 import 'pi_host_client.dart';
@@ -28,6 +29,7 @@ class PiDesktopApp extends StatefulWidget {
     this.runtimeController,
     this.piConfigStore,
     this.piCoreRuntimeController,
+    this.piCoreInstallerClient,
     this.piHostClient,
     this.appUpdateClient,
     this.projectRegistryStore,
@@ -42,6 +44,7 @@ class PiDesktopApp extends StatefulWidget {
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
   final PiCoreRuntimeController? piCoreRuntimeController;
+  final PiCoreInstallerClient? piCoreInstallerClient;
   final PiHostClient? piHostClient;
   final AppUpdateClient? appUpdateClient;
   final ProjectRegistryStore? projectRegistryStore;
@@ -62,6 +65,8 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.piConfigStore ?? FilePiConfigStore();
   late final PiCoreRuntimeController _piCoreRuntimeController =
       widget.piCoreRuntimeController ?? PiCoreRuntimeController();
+  late final PiCoreInstallerClient _piCoreInstallerClient =
+      widget.piCoreInstallerClient ?? OfficialPiCoreInstallerClient();
   late final PiHostClient _piHostClient =
       widget.piHostClient ??
       PiCoreRpcClient(
@@ -203,6 +208,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         onRefreshPiCoreRuntime: _piCoreRuntimeController.refresh,
         onChoosePiCoreExecutable: _choosePiCoreExecutable,
         onClearPiCoreExecutable: _clearPiCoreExecutable,
+        piCoreInstallerClient: _piCoreInstallerClient,
         piHostClient: _piHostClient,
         enforcePiCoreRuntimeGate:
             widget.enforcePiCoreRuntimeGate ?? widget.piHostClient == null,
@@ -252,6 +258,8 @@ enum _ToolPolicyUpgradeChoice { authorize, keepRestricted }
 
 enum _PiCoreRepairChoice { refresh, openSettings }
 
+const Duration _piCoreInstallerPollInterval = Duration(seconds: 2);
+
 class _PiDesktopShell extends StatefulWidget {
   const _PiDesktopShell({
     required this.preferences,
@@ -263,6 +271,7 @@ class _PiDesktopShell extends StatefulWidget {
     required this.onRefreshPiCoreRuntime,
     required this.onChoosePiCoreExecutable,
     required this.onClearPiCoreExecutable,
+    required this.piCoreInstallerClient,
     required this.piHostClient,
     required this.enforcePiCoreRuntimeGate,
     required this.appUpdateClient,
@@ -283,6 +292,7 @@ class _PiDesktopShell extends StatefulWidget {
   final Future<void> Function() onRefreshPiCoreRuntime;
   final Future<void> Function() onChoosePiCoreExecutable;
   final Future<void> Function() onClearPiCoreExecutable;
+  final PiCoreInstallerClient piCoreInstallerClient;
   final PiHostClient piHostClient;
   final bool enforcePiCoreRuntimeGate;
   final AppUpdateClient appUpdateClient;
@@ -304,6 +314,12 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
   PiConfigSnapshot? _piConfigSnapshot;
   String? _piConfigLoadError;
+  PiCoreInstallerBundle? _preparedPiCoreInstaller;
+  PiCoreInstallerDownloadProgress? _piCoreInstallerDownloadProgress;
+  String? _piCoreInstallerError;
+  bool _isPreparingPiCoreInstaller = false;
+  bool _isWaitingForPiCoreInstaller = false;
+  int _piCoreInstallerWaitGeneration = 0;
   AppUpdateCheck? _appUpdateCheck;
   AppUpdateDownloadProgress? _appUpdateDownloadProgress;
   File? _downloadedUpdateInstaller;
@@ -645,6 +661,124 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     } catch (error) {
       _showNotice(_copy.piConfigSaveFailedNotice(error.toString()));
     }
+  }
+
+  Future<void> _installPiCore() async {
+    if (_isPreparingPiCoreInstaller || _isWaitingForPiCoreInstaller) {
+      return;
+    }
+
+    setState(() {
+      _isPreparingPiCoreInstaller = true;
+      _piCoreInstallerError = null;
+      _piCoreInstallerDownloadProgress = null;
+      _preparedPiCoreInstaller = null;
+    });
+
+    PiCoreInstallerBundle? installer;
+    try {
+      installer = await widget.piCoreInstallerClient.prepareInstaller(
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _piCoreInstallerDownloadProgress = progress;
+          });
+        },
+      );
+      final openResult = await widget.runtimeController.runScriptInTerminal(
+        installer.launcherFile.path,
+      );
+      if (!openResult.launched) {
+        throw PiCoreInstallerException(
+          openResult.errorMessage ??
+              'Could not open Terminal for the Pi installer launcher.',
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isPreparingPiCoreInstaller = false;
+        _preparedPiCoreInstaller = installer;
+      });
+      unawaited(_waitForPiCoreInstaller());
+    } catch (error) {
+      final failedInstaller = installer;
+      if (failedInstaller != null) {
+        unawaited(
+          widget.piCoreInstallerClient.discardInstaller(failedInstaller),
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isPreparingPiCoreInstaller = false;
+        _piCoreInstallerError = _messageForPiCoreInstallerError(error);
+      });
+    }
+  }
+
+  Future<void> _resumeWaitingForPiCoreInstaller() async {
+    if (_preparedPiCoreInstaller == null || _isWaitingForPiCoreInstaller) {
+      return;
+    }
+    unawaited(_waitForPiCoreInstaller());
+  }
+
+  Future<void> _waitForPiCoreInstaller() async {
+    if (_preparedPiCoreInstaller == null) {
+      return;
+    }
+
+    final waitGeneration = ++_piCoreInstallerWaitGeneration;
+    setState(() {
+      _isWaitingForPiCoreInstaller = true;
+      _piCoreInstallerError = null;
+    });
+
+    while (mounted && waitGeneration == _piCoreInstallerWaitGeneration) {
+      await widget.onRefreshPiCoreRuntime();
+      if (!mounted || waitGeneration != _piCoreInstallerWaitGeneration) {
+        return;
+      }
+      if (_currentPiCoreRuntimeSnapshot.isReady) {
+        setState(() {
+          _isWaitingForPiCoreInstaller = false;
+        });
+        return;
+      }
+      await Future<void>.delayed(_piCoreInstallerPollInterval);
+    }
+  }
+
+  void _stopWaitingForPiCoreInstaller() {
+    if (!_isWaitingForPiCoreInstaller) {
+      return;
+    }
+    _piCoreInstallerWaitGeneration += 1;
+    setState(() {
+      _isWaitingForPiCoreInstaller = false;
+    });
+  }
+
+  Future<void> _openPiCoreInstallerLog() async {
+    final logFile = _preparedPiCoreInstaller?.logFile;
+    if (logFile == null) {
+      return;
+    }
+
+    final result = await widget.runtimeController.openSystemFile(logFile.path);
+    if (result.launched || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _piCoreInstallerError =
+          result.errorMessage ?? 'Could not open the Pi installer log.';
+    });
   }
 
   List<String> _hostToolsForPreferences(AppPreferences preferences) {
@@ -1206,6 +1340,9 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 onAddProject: _addProject,
                 onOpenProject: _openProject,
                 onOpenSettings: _openSettings,
+                onDownloadRuntime: () {
+                  _openSettingsCategory(SettingsCategory.general);
+                },
               ),
             ),
             Container(width: 1, color: palette.divider),
@@ -1355,6 +1492,101 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
+  String get _piCoreInstallerStatus {
+    final error = _piCoreInstallerError;
+    if (error != null) {
+      return _copy.piCoreInstallerFailedDescription(error);
+    }
+    if (_isPreparingPiCoreInstaller) {
+      return _copy.piCoreInstallerPreparingDescription(
+        _piCoreInstallerProgressLabel,
+      );
+    }
+    if (_currentPiCoreRuntimeSnapshot.isReady) {
+      return _preparedPiCoreInstaller == null
+          ? _copy.piCoreInstallerIdleDescription
+          : _copy.piCoreInstallerReadyDescription;
+    }
+    if (_isWaitingForPiCoreInstaller) {
+      return _copy.piCoreInstallerWaitingDescription;
+    }
+    if (_preparedPiCoreInstaller != null) {
+      return _copy.piCoreInstallerPausedDescription;
+    }
+    return _copy.piCoreInstallerIdleDescription;
+  }
+
+  String? get _piCoreInstallerPrimaryActionLabel {
+    if (_isPreparingPiCoreInstaller) {
+      return null;
+    }
+    if (_isWaitingForPiCoreInstaller) {
+      return _copy.piCoreInstallerStopWaitingActionLabel;
+    }
+    if (_currentPiCoreRuntimeSnapshot.isReady) {
+      return null;
+    }
+    if (_preparedPiCoreInstaller != null) {
+      return _copy.piCoreInstallerResumeWaitingActionLabel;
+    }
+    return _copy.piCoreInstallerInstallActionLabel;
+  }
+
+  VoidCallback? get _onPiCoreInstallerPrimaryAction {
+    if (_isPreparingPiCoreInstaller) {
+      return null;
+    }
+    if (_isWaitingForPiCoreInstaller) {
+      return _stopWaitingForPiCoreInstaller;
+    }
+    if (_currentPiCoreRuntimeSnapshot.isReady) {
+      return null;
+    }
+    if (_preparedPiCoreInstaller != null) {
+      return () {
+        unawaited(_resumeWaitingForPiCoreInstaller());
+      };
+    }
+    return () {
+      unawaited(_installPiCore());
+    };
+  }
+
+  String? get _piCoreInstallerSecondaryActionLabel {
+    return _preparedPiCoreInstaller == null
+        ? null
+        : _copy.piCoreInstallerOpenLogActionLabel;
+  }
+
+  VoidCallback? get _onPiCoreInstallerSecondaryAction {
+    if (_preparedPiCoreInstaller == null) {
+      return null;
+    }
+    return () {
+      unawaited(_openPiCoreInstallerLog());
+    };
+  }
+
+  String get _piCoreInstallerProgressLabel {
+    final progress = _piCoreInstallerDownloadProgress;
+    if (progress == null) {
+      return _copy.isChinese ? '正在准备下载...' : 'Preparing download...';
+    }
+    final transferred = _formatByteCount(progress.transferredBytes);
+    final total = progress.totalBytes;
+    if (total == null) {
+      return transferred;
+    }
+    return '$transferred / ${_formatByteCount(total)}';
+  }
+
+  String _messageForPiCoreInstallerError(Object error) {
+    if (error is PiCoreInstallerException) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
   String get _appUpdateStatus {
     final error = _appUpdateError;
     if (error != null) {
@@ -1459,6 +1691,17 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       onRefreshPiCoreRuntime: widget.onRefreshPiCoreRuntime,
       onChoosePiCoreExecutable: widget.onChoosePiCoreExecutable,
       onClearPiCoreExecutable: widget.onClearPiCoreExecutable,
+      piCoreInstallerStatus: _piCoreInstallerStatus,
+      piCoreInstallerBusy: _isPreparingPiCoreInstaller,
+      piCoreInstallerProgressPercent: _piCoreInstallerDownloadProgress?.percent,
+      piCoreInstallerSourceUrl: OfficialPiCoreInstallerClient.sourceUri
+          .toString(),
+      piCoreInstallerScriptPath: _preparedPiCoreInstaller?.scriptFile.path,
+      piCoreInstallerLogPath: _preparedPiCoreInstaller?.logFile.path,
+      piCoreInstallerActionLabel: _piCoreInstallerPrimaryActionLabel,
+      onPiCoreInstallerAction: _onPiCoreInstallerPrimaryAction,
+      piCoreInstallerSecondaryActionLabel: _piCoreInstallerSecondaryActionLabel,
+      onPiCoreInstallerSecondaryAction: _onPiCoreInstallerSecondaryAction,
       searchController: _settingsSearchController,
       sections: filteredSections,
       selectedCategory: _selectedSettingsCategory,

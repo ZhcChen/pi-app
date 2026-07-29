@@ -46,6 +46,6 @@ flutter build macos --debug
 ## 残余风险
 
 - Pi `0.82.0` 是当前真实验证证据，不是产品启动上限。上游升级后应重跑 R1 contract、R2 smoke 和本 health smoke，记录结果并修复实际暴露的 schema/语义差异；runtime 不会以版本号拒绝用户已安装的 Pi。
-- I2 尚未实现官方 installer launcher；未安装、路径不可用或 health 失败时，I1 只能提供诊断和路径选择，不能在应用内安装。
+- I2 的代码实现现已存在：设置页可下载官方 `install.sh`、在可见 Terminal 启动并记录本地日志，证据见 `docs/solutions/2026-07-29-pi-core-installer-launcher.md`。但真实外部安装流的干净 macOS smoke 尚未完成，因此 I2 仍处于待验收状态。
 - 超时清理路径已由代码审查和 process lifecycle 实现覆盖，但尚未加入针对真实故意挂起可执行文件的 PID 级回归；后续 runtime reliability 工作可补充此场景。
 - 当前没有真实 GUI 截图驱动的 composer 交互回归；设置卡已有 widget 回归和 macOS debug build 验证。
