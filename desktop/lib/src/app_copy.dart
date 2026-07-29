@@ -105,6 +105,31 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
       isChinese ? '选择 Pi 可执行文件' : 'Choose Pi executable';
   String get piCoreRuntimeClearTooltip =>
       isChinese ? '清除已选路径' : 'Clear selected path';
+  String get toolPolicyUpgradeTitle =>
+      isChinese ? '启用默认编码工具？' : 'Enable default coding tools?';
+  String get toolPolicyUpgradeDescription => isChinese
+      ? '这个设置文件来自旧版 Pi App。新的会话默认会请求 read、grep、find、ls、bash、edit 和 write。\n\n这些只是 Pi App 请求的内置工具，不是操作系统权限、路径沙箱，也不是逐工具审批。你可以现在启用完整工具、继续保持受限模式，或取消这次任务。'
+      : 'This settings file came from an older Pi App build. New sessions now request read, grep, find, ls, bash, edit, and write by default.\n\nThese are only the built-in tools Pi App asks Pi to enable. They are not OS permissions, a path sandbox, or per-tool approval. You can enable the full toolset now, keep the current restricted mode, or cancel this task.';
+  String get toolPolicyUpgradeAuthorizeActionLabel =>
+      isChinese ? '启用完整工具' : 'Enable coding tools';
+  String get toolPolicyUpgradeKeepRestrictedActionLabel =>
+      isChinese ? '保持受限' : 'Keep restricted';
+  String get piCoreRepairTitle =>
+      isChinese ? 'Pi Core 需要先修复' : 'Pi Core needs attention';
+  String piCoreRepairDescription(PiCoreRuntimeSnapshot snapshot) {
+    final status = piCoreRuntimeStatusLabel(snapshot.status);
+    final detail = piCoreRuntimeStatusDescription(
+      snapshot.status,
+      snapshot.diagnosticCode,
+    );
+    return isChinese
+        ? '当前无法为新会话启动官方 pi --mode rpc。\n\n状态：$status\n说明：$detail\n\n你可以先重新检测，或打开设置修复 Pi Core 路径。'
+        : 'Pi App cannot start the official pi --mode rpc for a new session yet.\n\nStatus: $status\nDetail: $detail\n\nRefresh detection first, or open settings to repair the Pi Core path.';
+  }
+
+  String get piCoreRepairRefreshActionLabel =>
+      isChinese ? '重新检测' : 'Refresh Pi Core';
+  String get openSettingsActionLabel => isChinese ? '打开设置' : 'Open settings';
   String get permissionsSectionTitle => isChinese ? '权限' : 'Permissions';
   String get generalSectionTitle => isChinese ? '通用' : 'General';
   String get appearanceTitle => isChinese ? '外观' : 'Appearance';

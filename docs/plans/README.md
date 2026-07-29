@@ -16,12 +16,12 @@
 | --- | --- | --- | --- | --- |
 | 已完成 | I1：Pi Core Detector 与诊断卡 | 已完成 | R1、R2 已完成；证据见 [I1 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
 | 0 | ACC-0：产品完整性与 Pi 原生 contract 审查 | 已完成 | 用户要求先完成多 session、死控件、小型交互和原生 session 语义审查；不实现产品代码 | [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) |
-| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中 | ACC-0 已完成；I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 2 | I2：官方 Pi Core Installer Launcher | 待前置 | P1 完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 1 | P1：完整工具授权与旧偏好修复 UI | 已完成 | ACC-0、R1、R2、I1 已完成；证据见 [P1 工具授权与运行时修复](../solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md) | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 2 | I2：官方 Pi Core Installer Launcher | 可开始 | P1 已完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
 | 3 | C1：Pi CLI 权威的 Session 增强 | 待前置，排在 I2 后 | P1、I2 完成；C1.0 真实 probe 还须满足 ACC-A 环境隔离硬门和独立测试认证 | [Pi CLI 权威的 Session 增强执行计划](2026-07-29-pi-cli-authoritative-session-enhancement.md) |
 | 4 | D1：macOS Production Acceptance 与首个正式 Release | 待前置 | Q1 和 P0-P3 工作流闭环 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) |
 
-P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。ACC-0 已完成，结果见 [ACC-0 产品完整性审查结果](../solutions/2026-07-29-acc-0-product-integrity-audit.md)。P1 重新成为下一功能实现单元；与此同时，`ACC-A` / `ACC-A1` 继续作为验收覆盖层推进，其中 `ACC-A1` 若确认 S1 仍会重新阻断 P1 新实现。
+P1 现已完成：新配置完整 builtin tools 默认、旧无版本/受限偏好的安全迁移、持久化加载期间的受限 bootstrap、旧偏好的三选一授权对话，以及 runtime 失能时的修复入口都已交付，证据见 [P1 完整工具授权与运行时修复](../solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md)。I2 重新成为下一功能实现单元；与此同时，`ACC-A` / `ACC-A1` 继续作为验收覆盖层推进，其中 `ACC-A1` 若确认 S1，仍会重新阻断后续 I2 / C1 新实现。
 
 ## 活跃计划与证据
 
@@ -38,6 +38,7 @@ P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好�
 | [Pi Core RPC R1 能力矩阵](../solutions/2026-07-28-pi-core-rpc-capability-matrix.md) | 兼容性证据 | 记录 Pi CLI 实测版本、RPC 语义、tools/trust 边界；不作为 runtime 版本 gate。 |
 | [Pi Core RPC Adapter 迁移](../solutions/2026-07-28-pi-core-rpc-adapter-migration.md) | R2 交付证据 | 记录 direct RPC adapter、真实 smoke、引入提交和当前限制。 |
 | [Pi Core 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | I1 交付证据 | 记录路径发现、版本信息、受限 health、设置卡、验证和限制。 |
+| [P1 完整工具授权与运行时修复](../solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md) | P1 交付证据 | 记录 legacy 工具策略来源、三选一授权对话、runtime 修复入口、验证结果与残余风险。 |
 | [开发与正式包应用数据隔离](../solutions/2026-07-28-app-data-environment-isolation.md) | 持久化边界证据 | 记录 debug/profile 与 Release 的 Pi App 自有数据根目录和迁移策略。 |
 | [macOS 开发应用身份与图标隔离](../solutions/2026-07-28-macos-development-app-identity.md) | 原生身份证据 | 记录 macOS app identity、开发图标、构建验证和正式交付不变性。 |
 

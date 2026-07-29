@@ -1,12 +1,12 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1、R2、I1、ACC-0 已完成；P1 为下一功能实现单元；I2 待前置）
+- 状态：进行中（R1、R2、I1、P1、ACC-0 已完成；I2 为下一功能实现单元）
 - 负责人：Pi
 - 日期：2026-07-27
 - 上层总看板：`docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
 - 计划入口与状态约定：`docs/plans/README.md`
-- 执行门：`docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 ACC-0 已完成；P1 可继续，但 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断 P1 新实现。该验收覆盖层不改变 P1、I2、C1 的功能依赖。
+- 执行门：`docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 ACC-0 与 P1 已完成；I2 可继续，但 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断 I2 / C1 新实现。该验收覆盖层不改变 P1、I2、C1 的功能依赖。
 - 依赖文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
@@ -144,7 +144,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### I2：官方 Installer Launcher
 
 - 所属阶段：阶段 4。
-- 状态：待前置；在 I1 与 P1 完成后执行。
+- 状态：可开始；I1 与 P1 已完成。
 - 目标：下载官方 script、显示下载状态、创建本地日志、在 macOS Terminal 启动并轮询安装结果。
 - 涉及文件 / 模块：runtime controller、macOS platform bridge、settings view、HTTP / process fake、测试。
 - 前置依赖：I1、P1。
@@ -154,7 +154,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### P1：完整工具默认与迁移授权
 
 - 所属阶段：阶段 5。
-- 状态：进行中；ACC-0 已完成。新配置默认完整 builtin tools、legacy migration 和持久化加载期间的受限 bootstrap 已完成，授权/修复 modal 与 runtime 工具失能路径待实现。
+- 状态：已完成；证据见 `docs/solutions/2026-07-29-p1-tool-policy-upgrade-and-runtime-repair.md`。
 - 目标：完成旧受限策略和 runtime diagnostic 的授权 / 修复交互，保留新 session 的完整 builtin tool 默认与现有安全迁移行为。
 - 涉及文件 / 模块：`app_preferences.dart`、`app_persistence.dart`、desktop shell、settings copy / view、RPC launch arguments、测试。
 - 前置依赖：R2，以及 R1 的 `--no-approve` trust baseline；剩余 runtime diagnostic 修复路径依赖 I1。
@@ -181,14 +181,13 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 
 ## 当前执行顺序
 
-I1 已完成。当前子计划的执行顺序服从总看板：`P1 -> I2`。P1 使用已交付的 runtime 状态完成授权/修复路径；I2 最后复用 detector 完成安装后的重新检测。C1 由总看板在 I2 之后安排，不在本文件重复维护。
+I1 与 P1 已完成。当前子计划的执行顺序服从总看板：`I2 -> C1`。I2 复用 detector 完成安装后的重新检测；C1 由总看板在 I2 之后安排，不在本文件重复维护。`ACC-A` / `ACC-A1` 继续作为验收覆盖层，其中 `ACC-A1` 若确认冷启动 runtime 为 S1，仍会重新阻断后续 I2 / C1 新实现。
 
 ## `/goal` 建议作用域
 
-1. `/goal P1`：仅授权/修复 modal、runtime 工具失能路径与迁移回归；不重做已交付的完整 tools 默认。
-2. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
-3. `/goal W1`：仅可选 workflow profile 入口。
-4. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
+1. `/goal I2`：仅官方 installer launcher 与 macOS smoke test。
+2. `/goal W1`：仅可选 workflow profile 入口。
+3. `/goal S1`：仅显式 project trust 行为与 UI 前置证据；不重复验证 R1 的默认未信任基线。
 
 不应把整个迁移作为单个 `/goal`。
 

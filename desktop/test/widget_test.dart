@@ -143,6 +143,7 @@ void main() {
       );
 
       final migrated = await store.loadPreferences();
+      expect(migrated.toolPolicySource, AppToolPolicySource.migratedLegacy);
       expect(migrated.defaultPermissions, false);
       expect(migrated.fullAccess, false);
 
@@ -160,6 +161,7 @@ void main() {
       expect(saved['toolPolicyVersion'], 1);
       expect(saved['piCoreExecutablePath'], '/mock/pi');
       expect(reloaded.piCoreExecutablePath, '/mock/pi');
+      expect(reloaded.toolPolicySource, AppToolPolicySource.explicit);
       expect(reloaded.defaultPermissions, true);
       expect(reloaded.fullAccess, true);
     },
@@ -181,6 +183,7 @@ void main() {
         rootDirectory: root,
       ).loadPreferences();
 
+      expect(preferences.toolPolicySource, AppToolPolicySource.explicit);
       expect(preferences.defaultPermissions, true);
       expect(preferences.fullAccess, true);
     },
@@ -764,6 +767,411 @@ process.stdin.on('data', (chunk) => {
         const AppPreferences(defaultPermissions: false, fullAccess: false),
       );
       await settleUi(tester);
+    },
+  );
+
+  testWidgets(
+    'legacy restricted preferences can authorize coding tools before a new session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final preferencesStore = MemoryDesktopPreferencesStore(
+        initialPreferences: const AppPreferences(
+          toolPolicySource: AppToolPolicySource.migratedLegacy,
+          defaultPermissions: false,
+          fullAccess: false,
+        ),
+      );
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: preferencesStore,
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: MemoryProjectRegistryStore(),
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Authorize the full coding toolset.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('tool-policy-upgrade-dialog')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('tool-policy-upgrade-authorize-button')),
+      );
+      await settleUi(tester);
+
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.createdSessions.single.tools, <String>[
+        'read',
+        'grep',
+        'find',
+        'ls',
+        'bash',
+        'edit',
+        'write',
+      ]);
+
+      final savedPreferences = await preferencesStore.loadPreferences();
+      expect(savedPreferences.toolPolicySource, AppToolPolicySource.explicit);
+      expect(savedPreferences.defaultPermissions, true);
+      expect(savedPreferences.fullAccess, true);
+    },
+  );
+
+  testWidgets(
+    'legacy restricted preferences can stay restricted for a new session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final preferencesStore = MemoryDesktopPreferencesStore(
+        initialPreferences: const AppPreferences(
+          toolPolicySource: AppToolPolicySource.migratedLegacy,
+          defaultPermissions: false,
+          fullAccess: false,
+        ),
+      );
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: preferencesStore,
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: MemoryProjectRegistryStore(),
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Keep the session restricted.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('tool-policy-upgrade-dialog')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('tool-policy-upgrade-keep-restricted-button')),
+      );
+      await settleUi(tester);
+
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.createdSessions.single.tools, isEmpty);
+
+      final savedPreferences = await preferencesStore.loadPreferences();
+      expect(savedPreferences.toolPolicySource, AppToolPolicySource.explicit);
+      expect(savedPreferences.defaultPermissions, false);
+      expect(savedPreferences.fullAccess, false);
+    },
+  );
+
+  testWidgets(
+    'legacy restricted preferences can cancel before creating a new session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final preferencesStore = MemoryDesktopPreferencesStore(
+        initialPreferences: const AppPreferences(
+          toolPolicySource: AppToolPolicySource.migratedLegacy,
+          defaultPermissions: false,
+          fullAccess: false,
+        ),
+      );
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: preferencesStore,
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: MemoryProjectRegistryStore(),
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Cancel the migration prompt.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('tool-policy-upgrade-dialog')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('tool-policy-upgrade-cancel-button')),
+      );
+      await settleUi(tester);
+
+      expect(piHostClient.createdSessions, isEmpty);
+      expect(piHostClient.promptRequests, isEmpty);
+      expect(find.text('Cancel the migration prompt.'), findsOneWidget);
+
+      final savedPreferences = await preferencesStore.loadPreferences();
+      expect(
+        savedPreferences.toolPolicySource,
+        AppToolPolicySource.migratedLegacy,
+      );
+    },
+  );
+
+  testWidgets(
+    'runtime repair dialog can open settings instead of creating a new session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          enforcePiCoreRuntimeGate: true,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piHostClient: piHostClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Open settings to repair Pi Core.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('pi-core-repair-dialog')), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('pi-core-repair-open-settings-button')),
+      );
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('settings-page-title')), findsOneWidget);
+      expect(piHostClient.createdSessions, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'runtime repair dialog can refresh and continue creating a new session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          enforcePiCoreRuntimeGate: true,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piHostClient: piHostClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Refresh Pi Core and continue.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('pi-core-repair-dialog')), findsOneWidget);
+
+      detector.setSnapshot(
+        const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.ready,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          version: '0.82.0',
+        ),
+      );
+      await tester.tap(find.byKey(const Key('pi-core-repair-refresh-button')));
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('pi-core-repair-dialog')), findsNothing);
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.promptRequests, hasLength(1));
+      expect(piHostClient.createdSessions.single.tools, <String>[
+        'read',
+        'grep',
+        'find',
+        'ls',
+        'bash',
+        'edit',
+        'write',
+      ]);
+    },
+  );
+
+  testWidgets(
+    'runtime repair dialog stays off for injected hosts unless the gate is forced',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piHostClient: piHostClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Use the injected host without runtime gating.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('pi-core-repair-dialog')), findsNothing);
+      expect(piHostClient.createdSessions, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'runtime degradation does not block follow-up prompts on an existing session',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final workspacePath = resolveRepoWorkspacePath();
+      final detector = MemoryPiCoreRuntimeDetector(
+        snapshot: const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.ready,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          version: '0.82.0',
+        ),
+      );
+      final piCoreRuntimeController = PiCoreRuntimeController(
+        detector: detector,
+      );
+      addTearDown(piCoreRuntimeController.dispose);
+      final piHostClient = MemoryPiHostClient();
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          enforcePiCoreRuntimeGate: true,
+          piCoreRuntimeController: piCoreRuntimeController,
+          piHostClient: piHostClient,
+          workspaceRootPath: workspacePath,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Create the first gated session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.promptRequests, hasLength(1));
+      final firstSessionId = piHostClient.promptRequests.single.sessionId;
+
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.runSettled,
+          sessionId: firstSessionId,
+        ),
+      );
+      await settleUi(tester);
+
+      detector.setSnapshot(
+        const PiCoreRuntimeSnapshot(
+          status: PiCoreRuntimeStatus.healthCheckFailed,
+          source: PiCoreRuntimeSource.path,
+          executablePath: '/mock/pi',
+          diagnosticCode: PiCoreRuntimeDiagnosticCode.rpcTimedOut,
+        ),
+      );
+      await piCoreRuntimeController.refresh();
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Send a follow-up through the existing session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(find.byKey(const Key('pi-core-repair-dialog')), findsNothing);
+      expect(piHostClient.createdSessions, hasLength(1));
+      expect(piHostClient.promptRequests, hasLength(2));
+      expect(piHostClient.promptRequests.last.sessionId, firstSessionId);
     },
   );
 

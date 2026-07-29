@@ -137,6 +137,9 @@ class FileDesktopPreferencesStore implements DesktopPreferencesStore {
         piCoreExecutablePath: _decodeNonEmptyString(
           decoded['piCoreExecutablePath'],
         ),
+        toolPolicySource: hasExplicitToolPolicy
+            ? AppToolPolicySource.explicit
+            : AppToolPolicySource.migratedLegacy,
         defaultPermissions: hasExplicitToolPolicy
             ? _decodeBool(decoded['defaultPermissions']) ??
                   defaults.defaultPermissions

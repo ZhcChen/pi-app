@@ -10,6 +10,8 @@ enum AppCodeFont { jetBrainsMono, systemMono }
 
 enum AppOpenDestination { vscode, cursor, terminal }
 
+enum AppToolPolicySource { explicit, migratedLegacy, bootstrapRestricted }
+
 class AppPreferences {
   const AppPreferences({
     this.language = AppLanguage.english,
@@ -19,6 +21,7 @@ class AppPreferences {
     this.codeFont = AppCodeFont.jetBrainsMono,
     this.openDestination = AppOpenDestination.vscode,
     this.piCoreExecutablePath,
+    this.toolPolicySource = AppToolPolicySource.explicit,
     this.defaultPermissions = true,
     this.autoReview = true,
     this.fullAccess = true,
@@ -35,6 +38,7 @@ class AppPreferences {
   final AppCodeFont codeFont;
   final AppOpenDestination openDestination;
   final String? piCoreExecutablePath;
+  final AppToolPolicySource toolPolicySource;
   final bool defaultPermissions;
   final bool autoReview;
   final bool fullAccess;
@@ -52,6 +56,7 @@ class AppPreferences {
     AppOpenDestination? openDestination,
     String? piCoreExecutablePath,
     bool clearPiCoreExecutablePath = false,
+    AppToolPolicySource? toolPolicySource,
     bool? defaultPermissions,
     bool? autoReview,
     bool? fullAccess,
@@ -70,6 +75,7 @@ class AppPreferences {
       piCoreExecutablePath: clearPiCoreExecutablePath
           ? null
           : piCoreExecutablePath ?? this.piCoreExecutablePath,
+      toolPolicySource: toolPolicySource ?? this.toolPolicySource,
       defaultPermissions: defaultPermissions ?? this.defaultPermissions,
       autoReview: autoReview ?? this.autoReview,
       fullAccess: fullAccess ?? this.fullAccess,

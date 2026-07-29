@@ -23,6 +23,7 @@ class PiDesktopApp extends StatefulWidget {
   const PiDesktopApp({
     super.key,
     this.enablePersistence = true,
+    this.enforcePiCoreRuntimeGate,
     this.preferencesStore,
     this.runtimeController,
     this.piConfigStore,
@@ -36,6 +37,7 @@ class PiDesktopApp extends StatefulWidget {
   });
 
   final bool enablePersistence;
+  final bool? enforcePiCoreRuntimeGate;
   final DesktopPreferencesStore? preferencesStore;
   final DesktopRuntimeController? runtimeController;
   final PiConfigStore? piConfigStore;
@@ -73,6 +75,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
 
   // 持久化设置异步加载；在解析出保存策略或新安装默认值前保持受限。
   AppPreferences _preferences = const AppPreferences(
+    toolPolicySource: AppToolPolicySource.bootstrapRestricted,
     defaultPermissions: false,
     fullAccess: false,
   );
@@ -195,11 +198,14 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         runtimeCapabilities: _runtimeController.capabilities,
         runtimeController: _runtimeController,
         piConfigStore: _piConfigStore,
+        piCoreRuntimeController: _piCoreRuntimeController,
         piCoreRuntimeSnapshot: _piCoreRuntimeController.snapshot,
         onRefreshPiCoreRuntime: _piCoreRuntimeController.refresh,
         onChoosePiCoreExecutable: _choosePiCoreExecutable,
         onClearPiCoreExecutable: _clearPiCoreExecutable,
         piHostClient: _piHostClient,
+        enforcePiCoreRuntimeGate:
+            widget.enforcePiCoreRuntimeGate ?? widget.piHostClient == null,
         appUpdateClient: _appUpdateClient,
         ownsPiHostClient: widget.piHostClient == null,
         projectRegistryStore: _projectRegistryStore,
@@ -221,6 +227,7 @@ bool _samePreferences(AppPreferences a, AppPreferences b) {
       a.codeFont == b.codeFont &&
       a.openDestination == b.openDestination &&
       a.piCoreExecutablePath == b.piCoreExecutablePath &&
+      a.toolPolicySource == b.toolPolicySource &&
       a.defaultPermissions == b.defaultPermissions &&
       a.autoReview == b.autoReview &&
       a.fullAccess == b.fullAccess &&
@@ -241,17 +248,23 @@ Future<String?> _pickPiCoreExecutable() async {
 
 enum _DesktopRoute { workspace, settings }
 
+enum _ToolPolicyUpgradeChoice { authorize, keepRestricted }
+
+enum _PiCoreRepairChoice { refresh, openSettings }
+
 class _PiDesktopShell extends StatefulWidget {
   const _PiDesktopShell({
     required this.preferences,
     required this.runtimeCapabilities,
     required this.runtimeController,
     required this.piConfigStore,
+    required this.piCoreRuntimeController,
     required this.piCoreRuntimeSnapshot,
     required this.onRefreshPiCoreRuntime,
     required this.onChoosePiCoreExecutable,
     required this.onClearPiCoreExecutable,
     required this.piHostClient,
+    required this.enforcePiCoreRuntimeGate,
     required this.appUpdateClient,
     required this.ownsPiHostClient,
     required this.projectRegistryStore,
@@ -265,18 +278,20 @@ class _PiDesktopShell extends StatefulWidget {
   final DesktopRuntimeCapabilities runtimeCapabilities;
   final DesktopRuntimeController runtimeController;
   final PiConfigStore piConfigStore;
+  final PiCoreRuntimeController piCoreRuntimeController;
   final PiCoreRuntimeSnapshot piCoreRuntimeSnapshot;
   final Future<void> Function() onRefreshPiCoreRuntime;
   final Future<void> Function() onChoosePiCoreExecutable;
   final Future<void> Function() onClearPiCoreExecutable;
   final PiHostClient piHostClient;
+  final bool enforcePiCoreRuntimeGate;
   final AppUpdateClient appUpdateClient;
   final bool ownsPiHostClient;
   final ProjectRegistryStore projectRegistryStore;
   final bool enableProjectPersistence;
   final String? workspaceRootPath;
   final Future<String?> Function() pickProjectDirectory;
-  final ValueChanged<AppPreferences> onPreferencesChanged;
+  final Future<void> Function(AppPreferences) onPreferencesChanged;
 
   @override
   State<_PiDesktopShell> createState() => _PiDesktopShellState();
@@ -318,6 +333,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   }
 
   AppCopy get _copy => AppCopy(widget.preferences.language);
+  PiCoreRuntimeSnapshot get _currentPiCoreRuntimeSnapshot =>
+      widget.piCoreRuntimeController.snapshot;
   String get _settingsSearchQuery => _settingsSearchController.text.trim();
   WorkspaceSessionState? get _visibleSession {
     final sessionCwd = _selectedProject?.sessionCwd;
@@ -368,6 +385,13 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   void _openSettings() {
     setState(() {
       _route = _DesktopRoute.settings;
+    });
+  }
+
+  void _openSettingsCategory(SettingsCategory category) {
+    setState(() {
+      _route = _DesktopRoute.settings;
+      _selectedSettingsCategory = category;
     });
   }
 
@@ -494,8 +518,12 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
+  Future<void> _persistPreferences(AppPreferences next) {
+    return widget.onPreferencesChanged(next);
+  }
+
   void _updatePreferences(AppPreferences next) {
-    widget.onPreferencesChanged(next);
+    unawaited(_persistPreferences(next));
   }
 
   void _refreshProjects({String? preferredSelectedPath}) {
@@ -619,8 +647,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
   }
 
-  List<String> _hostToolsForPreferences() {
-    if (widget.preferences.fullAccess) {
+  List<String> _hostToolsForPreferences(AppPreferences preferences) {
+    if (preferences.fullAccess) {
       return const <String>[
         'read',
         'grep',
@@ -631,10 +659,128 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         'write',
       ];
     }
-    if (widget.preferences.defaultPermissions) {
+    if (preferences.defaultPermissions) {
       return const <String>['read', 'grep', 'find', 'ls'];
     }
     return const <String>[];
+  }
+
+  bool _needsLegacyToolPolicyUpgrade() {
+    return widget.preferences.toolPolicySource ==
+        AppToolPolicySource.migratedLegacy;
+  }
+
+  Future<AppPreferences?> _resolvePreferencesForNewSession() async {
+    if (!_needsLegacyToolPolicyUpgrade()) {
+      return widget.preferences;
+    }
+
+    final choice = await showDialog<_ToolPolicyUpgradeChoice>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          key: const Key('tool-policy-upgrade-dialog'),
+          title: Text(_copy.toolPolicyUpgradeTitle),
+          content: Text(_copy.toolPolicyUpgradeDescription),
+          actions: [
+            TextButton(
+              key: const Key('tool-policy-upgrade-cancel-button'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(_copy.cancelActionLabel),
+            ),
+            TextButton(
+              key: const Key('tool-policy-upgrade-keep-restricted-button'),
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_ToolPolicyUpgradeChoice.keepRestricted),
+              child: Text(_copy.toolPolicyUpgradeKeepRestrictedActionLabel),
+            ),
+            FilledButton(
+              key: const Key('tool-policy-upgrade-authorize-button'),
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_ToolPolicyUpgradeChoice.authorize),
+              child: Text(_copy.toolPolicyUpgradeAuthorizeActionLabel),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || choice == null) {
+      return null;
+    }
+
+    final updatedPreferences = switch (choice) {
+      _ToolPolicyUpgradeChoice.authorize => widget.preferences.copyWith(
+        toolPolicySource: AppToolPolicySource.explicit,
+        defaultPermissions: true,
+        fullAccess: true,
+      ),
+      _ToolPolicyUpgradeChoice.keepRestricted => widget.preferences.copyWith(
+        toolPolicySource: AppToolPolicySource.explicit,
+      ),
+    };
+    await _persistPreferences(updatedPreferences);
+    return updatedPreferences;
+  }
+
+  Future<bool> _ensureRuntimeReadyForNewSession() async {
+    if (_currentPiCoreRuntimeSnapshot.status == PiCoreRuntimeStatus.checking) {
+      await widget.onRefreshPiCoreRuntime();
+      if (!mounted) {
+        return false;
+      }
+    }
+
+    while (mounted &&
+        _currentPiCoreRuntimeSnapshot.status != PiCoreRuntimeStatus.ready) {
+      if (!mounted) {
+        return false;
+      }
+      final choice = await showDialog<_PiCoreRepairChoice>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            key: const Key('pi-core-repair-dialog'),
+            title: Text(_copy.piCoreRepairTitle),
+            content: Text(
+              _copy.piCoreRepairDescription(_currentPiCoreRuntimeSnapshot),
+            ),
+            actions: [
+              TextButton(
+                key: const Key('pi-core-repair-cancel-button'),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(_copy.cancelActionLabel),
+              ),
+              TextButton(
+                key: const Key('pi-core-repair-open-settings-button'),
+                onPressed: () => Navigator.of(
+                  dialogContext,
+                ).pop(_PiCoreRepairChoice.openSettings),
+                child: Text(_copy.openSettingsActionLabel),
+              ),
+              FilledButton(
+                key: const Key('pi-core-repair-refresh-button'),
+                onPressed: () => Navigator.of(
+                  dialogContext,
+                ).pop(_PiCoreRepairChoice.refresh),
+                child: Text(_copy.piCoreRepairRefreshActionLabel),
+              ),
+            ],
+          );
+        },
+      );
+      if (!mounted || choice == null) {
+        return false;
+      }
+      if (choice == _PiCoreRepairChoice.openSettings) {
+        _openSettingsCategory(SettingsCategory.general);
+        return false;
+      }
+      await widget.onRefreshPiCoreRuntime();
+    }
+
+    return mounted;
   }
 
   WorkspaceSessionState _sessionStateForCwd(String sessionCwd) {
@@ -844,6 +990,22 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       return;
     }
 
+    final existingSessionId = initialState.sessionId;
+    var sessionPreferences = widget.preferences;
+    if (existingSessionId == null || existingSessionId.isEmpty) {
+      final resolvedPreferences = await _resolvePreferencesForNewSession();
+      if (!mounted || resolvedPreferences == null) {
+        return;
+      }
+      sessionPreferences = resolvedPreferences;
+      if (widget.enforcePiCoreRuntimeGate) {
+        final runtimeReady = await _ensureRuntimeReadyForNewSession();
+        if (!mounted || !runtimeReady) {
+          return;
+        }
+      }
+    }
+
     _setSessionState(
       sessionCwd,
       initialState.copyWith(
@@ -855,11 +1017,10 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
     try {
       PiHostSession session;
-      final existingSessionId = initialState.sessionId;
       if (existingSessionId == null || existingSessionId.isEmpty) {
         session = await widget.piHostClient.createSession(
           cwd: sessionCwd,
-          tools: _hostToolsForPreferences(),
+          tools: _hostToolsForPreferences(sessionPreferences),
         );
         if (!mounted) {
           return;
@@ -1329,14 +1490,26 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       },
       onDefaultPermissionsChanged: (value) {
         _updatePreferences(
-          widget.preferences.copyWith(defaultPermissions: value),
+          widget.preferences.copyWith(
+            toolPolicySource: AppToolPolicySource.explicit,
+            defaultPermissions: value,
+            fullAccess: value ? widget.preferences.fullAccess : false,
+          ),
         );
       },
       onAutoReviewChanged: (value) {
         _updatePreferences(widget.preferences.copyWith(autoReview: value));
       },
       onFullAccessChanged: (value) {
-        _updatePreferences(widget.preferences.copyWith(fullAccess: value));
+        _updatePreferences(
+          widget.preferences.copyWith(
+            toolPolicySource: AppToolPolicySource.explicit,
+            defaultPermissions: value
+                ? true
+                : widget.preferences.defaultPermissions,
+            fullAccess: value,
+          ),
+        );
       },
       onShowInMenuBarChanged: (value) {
         _updatePreferences(widget.preferences.copyWith(showInMenuBar: value));
