@@ -15,18 +15,20 @@
 | 顺序 | 单元 | 当前状态 | 进入条件 | 细化计划 |
 | --- | --- | --- | --- | --- |
 | 已完成 | I1：Pi Core Detector 与诊断卡 | 已完成 | R1、R2 已完成；证据见 [I1 运行时检测与诊断](../solutions/2026-07-28-pi-core-runtime-detector.md) | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中，当前下一单元 | I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
+| 0 | ACC-0：产品完整性与 Pi 原生 contract 审查 | 进行中，当前执行单元 | 用户要求先完成多 session、死控件、小型交互和原生 session 语义审查；不实现产品代码 | [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) |
+| 1 | P1：完整工具授权与旧偏好修复 UI | 进行中，等待 ACC-0 质量门 | ACC-0 关闭；I1 已提供 runtime diagnostic 状态 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
 | 2 | I2：官方 Pi Core Installer Launcher | 待前置 | P1 完成 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) |
-| 3 | C1：Session Catalog、New、Resume 与 Fork | 可开始，排在 I2 后 | R2 已完成；先完成受管理 runtime 与权限路径 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) |
+| 3 | C1：Session Catalog、New、Resume 与 Fork | 可开始，排在 I2 后 | R2 已完成；先完成受管理 runtime 与权限路径；C1 delete 语义等待 ACC-0 收敛 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) |
 | 4 | D1：macOS Production Acceptance 与首个正式 Release | 待前置 | Q1 和 P0-P3 工作流闭环 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) |
 
-P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。I1 已提供 runtime diagnostic 状态；P1 因此成为当前下一执行单元，剩余范围是授权/修复 modal、runtime 工具失能路径和相应回归，不能被重新当作“从零开始”的任务。
+P1 已完成新配置的完整 builtin tools 默认、旧无版本/受限偏好的安全迁移，以及持久化加载期间的受限 bootstrap。I1 已提供 runtime diagnostic 状态；P1 仍是 ACC-0 关闭后的下一功能实现单元，剩余范围是授权/修复 modal、runtime 工具失能路径和相应回归，不能被重新当作“从零开始”的任务，也不能绕过 ACC-0 直接开始新实现。
 
 ## 活跃计划与证据
 
 | 文档 | 角色 | 使用方式 |
 | --- | --- | --- |
-| [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) | 草稿验收覆盖层 | 冻结当前基线，验收已声明能力并输出缺陷台账；不替代总看板的功能依赖与状态。 |
+| [当前交付基线验收计划](2026-07-28-current-baseline-acceptance-plan.md) | 草稿验收覆盖层 | 先完成 ACC-0 产品完整性与 Pi 原生 contract 审查，再冻结当前基线、验收已声明能力并输出缺陷台账；不替代总看板的功能依赖与状态。 |
+| [Session 生命周期与产品完整性审查](../brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md) | 收敛中 brainstorm | 盘点多 session、Pi 原生 lifecycle、死控件与小型交互缺口，收敛 C1 catalog、archive/delete 的产品语义。 |
 | [Pi App 完整功能主路线图](2026-07-27-pi-app-complete-feature-roadmap.md) | 唯一总看板 | 更新所有执行单元的状态、依赖、顺序与完成门槛。 |
 | [外置 Pi Core、RPC 与运行时管理执行计划](2026-07-27-external-pi-core-rpc-runtime.md) | runtime 子计划 | 细化 R1/R2/I1/P1/I2/W1/S1；不与总看板竞争状态权威。 |
 | [macOS Ad-hoc 发布与 GitHub 更新执行计划](2026-07-27-macos-ad-hoc-release-and-update.md) | 交付子计划 | 记录发布实现、首个 tag 验证与手动更新约束。 |

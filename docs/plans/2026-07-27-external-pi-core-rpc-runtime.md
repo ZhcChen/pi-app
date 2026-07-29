@@ -1,11 +1,12 @@
 # 外置 Pi Core、RPC 与运行时管理执行计划
 
 - 任务：将 Pi App 的生产运行时从内置 SDK host 迁移为已安装官方 Pi core 的 `pi --mode rpc`，并提供 macOS runtime 检测、官方安装与默认编码工具策略
-- 状态：进行中（R1、R2、I1 已完成；P1 为当前下一单元；I2 待前置）
+- 状态：进行中（R1、R2、I1 已完成；ACC-0 为当前质量门，P1 在其关闭后继续；I2 待前置）
 - 负责人：Pi
 - 日期：2026-07-27
 - 上层总看板：`docs/plans/2026-07-27-pi-app-complete-feature-roadmap.md`
 - 计划入口与状态约定：`docs/plans/README.md`
+- 执行门：在开始 P1 的任何新实现前，必须先关闭 `docs/plans/2026-07-28-current-baseline-acceptance-plan.md` 的 ACC-0；该门不改变 P1、I2、C1 的功能依赖。
 - 依赖文档：
   - `docs/brainstorms/2026-07-27-managed-pi-core-runtime.md`
   - `docs/plans/2026-07-26-desktop-main-feature-roadmap.md`
@@ -153,7 +154,7 @@ Pi App 通过 `pi --mode rpc` 驱动 workspace，不把原始 RPC schema 暴露�
 ### P1：完整工具默认与迁移授权
 
 - 所属阶段：阶段 5。
-- 状态：进行中；新配置默认完整 builtin tools、legacy migration 和持久化加载期间的受限 bootstrap 已完成，授权/修复 modal 与 runtime 工具失能路径待实现。
+- 状态：进行中；等待 ACC-0 关闭后继续。新配置默认完整 builtin tools、legacy migration 和持久化加载期间的受限 bootstrap 已完成，授权/修复 modal 与 runtime 工具失能路径待实现。
 - 目标：完成旧受限策略和 runtime diagnostic 的授权 / 修复交互，保留新 session 的完整 builtin tool 默认与现有安全迁移行为。
 - 涉及文件 / 模块：`app_preferences.dart`、`app_persistence.dart`、desktop shell、settings copy / view、RPC launch arguments、测试。
 - 前置依赖：R2，以及 R1 的 `--no-approve` trust baseline；剩余 runtime diagnostic 修复路径依赖 I1。

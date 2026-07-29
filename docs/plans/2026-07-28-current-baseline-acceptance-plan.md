@@ -1,7 +1,7 @@
 # 当前交付基线验收计划
 
-- 任务：在继续 P1 功能实现前，对当前 Pi App 已声明交付的能力做分层验收，建立可复现缺陷清单与修复优先级。
-- 状态：草稿，待确认后执行。
+- 任务：对当前 Pi App 已声明交付的能力做分层验收，建立可复现缺陷清单与修复优先级；ACC-0 是继续 P1 新实现前的当前质量门，后续 ACC-A 至 ACC-E 是持续执行的基线验证活动。
+- 状态：草稿；必须先完成 ACC-0 产品完整性与 Pi 原生 contract 审查，再进入后续验收执行。
 - 负责人：Pi
 - 日期：2026-07-28
 - 验收基线：`995da58 feat: 支持项目列表展开收起`
@@ -13,11 +13,14 @@
 
 本计划完成后，当前基线中的每一项已声明能力都必须有明确结论：`通过`、`失败`、`受外部条件阻塞` 或 `不适用`。每个失败项必须有最小复现步骤、预期与实际结果、影响范围、严重度、证据位置和后续修复单元。
 
+在 ACC-A 之前，必须执行 ACC-0 产品完整性与 Pi 原生 contract 审查。它不验收未实现路线图能力是否“通过”，而是枚举真实用户路径、可见空操作控件、明确未交付能力与需要产品决策的语义；其中项目多 session、session lifecycle、archive/delete、键盘与小型披露交互必须单列。
+
 本轮不是对“完整日常 coding workflow”做发布签字。当前路线图中 P1 的授权/修复 UI、I2 installer、C1 session catalog、C2 运行恢复、O1/O2 timeline 与变更摘要，以及 P4/P5 功能尚未交付；它们必须作为产品缺口单列，不得被混入已交付能力的回归缺陷统计。
 
 ## 范围
 
 - 验收 R1、R2、I1 已声明完成的 production direct RPC、Pi runtime 发现/诊断、协议边界和工具策略安全基线。
+- 先执行产品完整性审查，覆盖同项目多 session、Pi 原生 session contract、死控件、导航占位、披露控件、键盘/读屏和最小窗口；审查结论见 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md`。
 - 验收当前可见的项目管理、侧栏、composer、单项目会话展示、设置与偏好、错误反馈和中英文/主题等已实现桌面行为。
 - 验收 Pi App 自有数据的 Debug/Profile 与 Release 隔离、macOS 应用身份、Debug/Release 构建产物和已实现的更新客户端状态机。
 - 使用受控 fake runtime 覆盖确定性故障路径；仅在一次性 macOS 测试用户或已验证会向所有子进程注入隔离环境的测试启动器中，使用官方 Pi core 覆盖真实 RPC 主链。
@@ -84,6 +87,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 | ID | 域 | 场景与操作 | 通过条件 | 证据类型 |
 | --- | --- | --- | --- | --- |
+| ACC-0 | 产品完整性与原生 contract | 对照当前代码、路线图、官方 Pi RPC/TUI/SDK 文档，盘点多 session、生命周期、死控件、小型交互、可访问性和未交付功能；逐项检查 Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 的鼠标、Tab/Enter/Space、Semantics 与窄窗口行为。 | 每项归为已交付回归、明确未交付、死控件/误导表面、外部协议缺口或待产品决策；C1 的 catalog、archive/delete 语义明确且不违反 Pi session ownership；固定输出 `C1 = 明确未交付（不计回归）` 与 `产品完整性/发布资格 = 未通过`。 | 只读审查 + 隔离 capability probe + 独立复核 |
 | ACC-RT-01 | 冷启动诊断 | 在默认路径、已保存路径和 `PI_CORE_EXECUTABLE` 三种情况下启动应用并打开设置。 | runtime 自动从 `Checking` 转为 `ready`、`missing`、`invalidExecutable` 或 `healthCheckFailed`；不要求用户先手动刷新。 | widget + fake runtime + macOS 手工 |
 | ACC-RT-02 | runtime 修复 | 分别提供不存在路径、不可执行文件、RPC health 失败文件和健康 fake。 | 状态、来源、绝对路径、诊断文案和刷新/选择/清除操作准确且可恢复。 | client/widget + fake runtime |
 | ACC-RT-03 | 路径优先级 | 同时设置环境 override、保存路径和 PATH；切换路径时保持一个既有会话运行。 | 优先级为环境 override、保存绝对路径、PATH；只影响后续 session，不中断或串流既有会话。 | fake runtime + 手工 |
@@ -93,7 +97,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 | ACC-POL-01 | 权限迁移 | 用新配置、无 `toolPolicyVersion` 配置和显式受限配置各创建一次 session。 | 新配置使用完整 builtin allowlist 且带 `--no-approve`；历史或受限配置不被静默扩大；偏好加载前保持 `--no-tools`。 | launch-argument fake + widget |
 | ACC-POL-02 | tools / trust 边界 | 在未 trust 的隔离 fixture 项目中测试完整 builtin tools 与 project-local resource。 | 不把 allowlist 表示成 sandbox 或 trust；项目资源不因工具默认启用而自动获得执行权限。没有独立测试认证则标为外部阻塞。 | 官方 Pi fixture |
 | ACC-PRJ-01 | 项目 registry | 添加 A/B、重复添加、别名、置顶、移除、选择并重启。 | 不重复、不删除用户项目文件；顺序、别名、置顶和选择的范围符合已声明语义。 | widget + 临时目录 + 手工 |
-| ACC-PRJ-02 | 侧栏交互 | 收起/展开项目、在收起状态按 `+` 添加、窄窗口、键盘聚焦和中英文切换。 | 项目列表可预测显示；`+` 不误触收起；项目标题有 expanded/collapsed 语义；无重叠或裁切。 | widget + macOS 手工 |
+| ACC-PRJ-02 | 侧栏交互 | 收起/展开项目、在收起状态按 `+` 添加、窄窗口、键盘焦点和中英文切换；逐项检查 Projects toggle、Tasks 披露、收起状态的 `+`、项目打开/管理入口。 | 项目列表可预测显示；`+` 不误触收起；项目标题有 expanded/collapsed 语义；关键入口的鼠标、Tab/Enter/Space 和 Semantics 结论明确；无重叠或裁切，未交付入口必须禁用或移除。 | widget + macOS 手工 |
 | ACC-WS-01 | composer 输入 | 无项目、空 prompt、有效 prompt、Pi 未 ready 各提交一次。 | 不创建无效进程；每个拒绝都有可操作反馈；有效 prompt 显示用户输入、流式正文和完成状态。 | fake + 官方 Pi |
 | ACC-WS-02 | 项目会话边界 | 在 A 运行后切至 B，再返回 A；分别制造工具失败和进程错误。 | transcript、运行状态、工具事件和错误不跨项目泄漏；当前产品未实现跨重启 resume 时必须如实表现为内存会话。 | widget + fake/官方 Pi |
 | ACC-SET-01 | 一般偏好 | 修改语言、主题、字号、密度、打开方式、休眠、菜单栏和建议提示后重启。 | 设置即时生效或按文案声明生效；持久化正确；不改写 Pi core auth/session/resources。 | widget + 文件系统隔离 + 手工 |
@@ -125,6 +129,12 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 - Q1/D1/D2：故障矩阵、首个真实 release、Windows/Linux parity。
 
 ## 阶段拆分
+
+### 阶段 0：产品完整性与 Pi 原生 contract 审查
+
+- 目标：在任何基线通过结论之前，先盘点真实用户期待的工作流、现有死控件和 Pi 原生 session 能力边界，特别是一个项目多个 session 的 lifecycle。
+- 边界：不实现 C1，不将 SDK/TUI-only 行为伪装成 RPC，不解析或修改 Pi session JSONL；未决语义必须形成明确问题，不能通过视觉占位跳过。
+- 验收重点：`new_session`、`switch_session`、`fork`、`clone`、`set_session_name`、list/delete/archive 缺口及其产品语义都已记录；Tasks、Projects toggle、收起状态的 `+`、项目打开/管理、顶栏 search、runtime download、Import work 和四个 primary action 都有鼠标、Tab/Enter/Space、Semantics、窄窗口和功能/禁用/移除结论；固定声明 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`。
 
 ### 阶段 A：基线与可复现环境
 
@@ -170,12 +180,21 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 ## 执行单元
 
+### ACC-0：完成产品完整性与原生 session contract 审查
+
+- 所属阶段：0。
+- 目标：完成 `docs/brainstorms/2026-07-29-session-lifecycle-and-product-completeness.md` 中的代码、文档和隔离 capability probe 审查，并收敛 session catalog、archive/delete 与死控件的产品语义。
+- 涉及模块：`desktop/lib/src/desktop_shell.dart`、`workspace_*.dart`、`pi_host_client.dart`、`pi_core_rpc_client.dart`、`desktop/test/`、官方 Pi RPC 文档。
+- 前置依赖：无；真实 prompt session 验证需要通过环境隔离硬门和独立测试认证。
+- 验证方式：只读代码审查、官方协议/实现比对、无认证隔离 probe、对真实 authenticated session 的单独 capability spike 计划。
+- 完成标准：多 session 与删除/归档不再是隐含假设；所有明确未交付项、误导控件和待决策项都有归类、owner 和后续执行单元，且不会将 C1 错计为当前回归；输出固定声明 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`，并逐项记录关键控件的鼠标、键盘、Semantics 和窄窗口结论。
+
 ### ACC-A：建立验收基线与测试夹具
 
 - 所属阶段：A。
 - 目标：记录环境、版本与 commit，准备临时项目、受控 fake、数据清理脚本和证据模板。
 - 涉及模块：`desktop/test/`、`desktop/tool/`、临时目录与验收文档。
-- 前置依赖：无。
+- 前置依赖：ACC-0。
 - 验证方式：夹具运行后无用户目录/项目变更，清理后无残留进程与临时文件。
 - 完成标准：全部后续用例可在独立目录执行。
 
@@ -184,7 +203,7 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 - 所属阶段：A1。
 - 目标：先执行 ACC-RT-01，验证启动后是否自动发起 runtime health，并确认 UI 不会永久停留在 `Checking`。
 - 涉及模块：`desktop/lib/src/desktop_shell.dart`、`desktop/lib/src/pi_core_runtime.dart`、`desktop/test/widget_test.dart`。
-- 前置依赖：ACC-A；仅需要无副作用 fake runtime。
+- 前置依赖：ACC-0、ACC-A；仅需要无副作用 fake runtime。
 - 验证方式：新增或运行聚焦 widget/integration 夹具，记录 cold start 到终态的状态转换，不点击手动刷新按钮。
 - 完成标准：通过则记录证据并进入 ACC-B；失败则登记 S1、暂停后续验收和 P1 新实现，另建最小修复单元。
 
@@ -216,12 +235,13 @@ ACC-A 在任何会启动进程的 fake、runtime health、真实 RPC、Pi config
 
 - 所属阶段：F。
 - 目标：将所有结果汇总为验收报告，更新总路线图仅涉及实际发现的状态变化或新增风险。
-- 前置依赖：ACC-B、ACC-C、ACC-D。
+- 前置依赖：ACC-0、ACC-B、ACC-C、ACC-D。
 - 验证方式：交叉检查每个用例均有结果、证据、严重度和下一步。
-- 完成标准：形成可按 S0/S1 优先顺序执行的独立修复计划，不存在无证据的“很多缺陷”泛化结论。
+- 完成标准：形成可按 S0/S1 优先顺序执行的独立修复计划，不存在无证据的“很多缺陷”泛化结论；报告固定列出 `C1 = 明确未交付（不计回归）`、`产品完整性/发布资格 = 未通过`，并为每项给出 owner、后续执行单元、待决策状态和证据链接。
 
 ## `/goal` 建议作用域
 
+- `/goal ACC-0`：只完成产品完整性、Pi 原生 contract、死控件和 session lifecycle 审查；不实现 C1。
 - `/goal ACC-A`：仅建立可清理的验收基线和夹具。
 - `/goal ACC-A1`：只复现并判定 ACC-RT-01 冷启动 runtime 强制门；确认 S1 后不继续后续验收。
 - `/goal ACC-B`：仅验收当前桌面 UI、项目、composer、设置和持久化。
@@ -260,7 +280,8 @@ Release DMG、真实 tag、GitHub Actions 和更新闭环属于 D1 以后；除�
 2. 当前远程桌面输入和 macOS 截图通道可能无法可靠投递 Flutter 文本输入或呈现前台窗口。遇到该问题应记录为环境阻塞，不能用虚假 UI 状态替代用户路径通过结论。
 3. Finder/Dock 图标可能缓存旧 bundle；原生身份验收需要使用新路径或清理缓存后的可见桌面，并记录该条件。
 4. 当前官方 Pi 实测证据基于 `0.82.0`。上游升级后应将协议差异作为兼容性风险，重新运行 R1/R2 的真实 smoke，不应因版本文本本身拒绝运行。
-5. `ACC-RT-01` 已有静态审阅证据，必须在 ACC-A 后作为 A1 强制门先复现；确认 S1 时先修复并回归，避免在核心诊断失效的状态下扩大验收范围。
+5. `ACC-RT-01` 已有静态审阅证据，必须在 ACC-0、ACC-A 后作为 A1 强制门先复现；确认 S1 时先修复并回归，避免在核心诊断失效的状态下扩大验收范围。
+6. C1 的原生 contract 尚有产品决策：公开 RPC 没有全量 session list、delete 或 archive；在用户确认 catalog 范围和 delete/归档语义前，不能把这些缺口用 JSONL 直改或假控件“补齐”。
 
 ## 沉淀跟进
 
