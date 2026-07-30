@@ -329,6 +329,12 @@ class AppCopy implements WorkspaceCopy, SettingsCopy {
     return isChinese ? 'Pi 运行失败：$reason' : 'Pi run failed: $reason';
   }
 
+  String sessionShortcutOpenedNotice(String sessionTitle) {
+    return isChinese
+        ? '已切换到会话：$sessionTitle'
+        : 'Switched to session: $sessionTitle';
+  }
+
   String sessionStatusLabel(WorkspaceRunStatus status) {
     return switch (status) {
       WorkspaceRunStatus.idle => isChinese ? '会话就绪' : 'Session ready',

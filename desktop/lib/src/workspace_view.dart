@@ -10,6 +10,7 @@ class WorkspaceSidebar extends StatefulWidget {
     required this.selectedProjectIndex,
     required this.selectedProjectSessions,
     required this.onActionSelected,
+    required this.onOpenProjectSession,
     required this.onProjectSelected,
     required this.onRenameProject,
     required this.onToggleProjectPinned,
@@ -29,6 +30,7 @@ class WorkspaceSidebar extends StatefulWidget {
   final int selectedProjectIndex;
   final List<WorkspaceSessionListEntry> selectedProjectSessions;
   final ValueChanged<int> onActionSelected;
+  final ValueChanged<WorkspaceSessionListEntry> onOpenProjectSession;
   final Future<void> Function(int) onProjectSelected;
   final Future<void> Function(WorkspaceProjectGroup project, String alias)
   onRenameProject;
@@ -188,6 +190,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                                 copy: widget.copy,
                                 interfaceDensity: density,
                                 sessions: widget.selectedProjectSessions,
+                                onSessionSelected: widget.onOpenProjectSession,
                               ),
                             ),
                         ],

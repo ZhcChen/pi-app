@@ -271,6 +271,145 @@ void main() {
     );
   });
 
+  test('direct Pi RPC can switch the current session in place', () async {
+    final launches = <PiCoreRpcLaunchCommand>[];
+    final events = <PiHostEvent>[];
+    final workingDirectory = await Directory.systemTemp.createTemp(
+      'pi-core-rpc-switch-session-',
+    );
+    final client = PiCoreRpcClient(
+      readVersion: (_) async => '0.82.0-test',
+      startProcess: (command) {
+        launches.add(command);
+        return startNodeRpc(command, _rpcScript());
+      },
+    );
+    final subscription = client.events.listen(events.add);
+
+    try {
+      final session = await client.createSession(cwd: workingDirectory.path);
+      final switched = await client.switchSession(
+        sessionId: session.id,
+        sessionPath: '/tmp/known-session.jsonl',
+      );
+      final refreshed = await client.getSessionState(sessionId: session.id);
+      final accepted = await client.prompt(
+        sessionId: switched.id,
+        text: 'Continue the switched session.',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+
+      expect(switched.id, session.id);
+      expect(switched.piSessionId, 'pi-switched-session');
+      expect(switched.sessionFile, '/tmp/known-session.jsonl');
+      expect(switched.sessionName, 'Switched session');
+      expect(refreshed.piSessionId, 'pi-switched-session');
+      expect(refreshed.sessionFile, '/tmp/known-session.jsonl');
+      expect(accepted, true);
+      expect(launches, hasLength(1));
+      expect(
+        events.where((event) => event.type == PiHostEventType.sessionCreated),
+        hasLength(1),
+      );
+      expect(
+        events.where(
+          (event) =>
+              event.type == PiHostEventType.runStarted &&
+              event.sessionId == session.id,
+        ),
+        hasLength(1),
+      );
+    } finally {
+      await subscription.cancel();
+      await client.dispose();
+      await workingDirectory.delete(recursive: true);
+    }
+  });
+
+  test(
+    'direct Pi RPC keeps the current binding when switch_session is cancelled',
+    () async {
+      final workingDirectory = await Directory.systemTemp.createTemp(
+        'pi-core-rpc-switch-cancelled-',
+      );
+      final client = PiCoreRpcClient(
+        readVersion: (_) async => '0.82.0-test',
+        startProcess: (command) =>
+            startNodeRpc(command, _rpcScript(switchSessionCancelled: true)),
+      );
+
+      try {
+        final session = await client.createSession(cwd: workingDirectory.path);
+        await expectLater(
+          client.switchSession(
+            sessionId: session.id,
+            sessionPath: '/tmp/cancelled-session.jsonl',
+          ),
+          throwsA(
+            isA<PiHostClientException>().having(
+              (error) => error.message,
+              'message',
+              contains('cancelled'),
+            ),
+          ),
+        );
+        final refreshed = await client.getSessionState(sessionId: session.id);
+        expect(refreshed.piSessionId, 'pi-direct-session');
+        expect(refreshed.sessionFile, '/tmp/direct-pi-session.jsonl');
+      } finally {
+        await client.dispose();
+        await workingDirectory.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'direct Pi RPC rejects switch_session while a prompt is still pending',
+    () async {
+      final workingDirectory = await Directory.systemTemp.createTemp(
+        'pi-core-rpc-switch-pending-',
+      );
+      final client = PiCoreRpcClient(
+        readVersion: (_) async => '0.82.0-test',
+        startProcess: (command) =>
+            startNodeRpc(command, _rpcScript(delayedAgentStart: true)),
+      );
+
+      try {
+        final session = await client.createSession(cwd: workingDirectory.path);
+        expect(
+          await client.prompt(
+            sessionId: session.id,
+            text: 'Keep running for a moment.',
+          ),
+          true,
+        );
+        await expectLater(
+          client.switchSession(
+            sessionId: session.id,
+            sessionPath: '/tmp/too-early-session.jsonl',
+          ),
+          throwsA(
+            isA<PiHostClientException>().having(
+              (error) => error.message,
+              'message',
+              contains('still running'),
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 90));
+        final switched = await client.switchSession(
+          sessionId: session.id,
+          sessionPath: '/tmp/after-settle-session.jsonl',
+        );
+        expect(switched.sessionFile, '/tmp/after-settle-session.jsonl');
+      } finally {
+        await client.dispose();
+        await workingDirectory.delete(recursive: true);
+      }
+    },
+  );
+
   test(
     'direct Pi RPC settles an extension-local prompt without agent events',
     () async {
@@ -569,14 +708,19 @@ String _rpcScript({
   bool dialogThenNormal = false,
   bool exitOnPrompt = false,
   bool extensionThenAgent = false,
+  bool delayedAgentStart = false,
   bool crlf = false,
   bool malformedOnState = false,
   bool oversizedOnState = false,
   bool mismatchedStateResponse = false,
+  bool switchSessionCancelled = false,
 }) {
   return '''
 let buffer = '';
 let promptCount = 0;
+let currentSessionId = 'pi-direct-session';
+let currentSessionFile = '/tmp/direct-pi-session.jsonl';
+let currentSessionName = undefined;
 function send(value) {
   process.stdout.write(JSON.stringify(value) + '${crlf ? '\\r\\n' : '\\n'}');
 }
@@ -585,8 +729,9 @@ function state() {
     model: { provider: 'test', id: 'test-model', name: 'Test model', reasoning: true },
     thinkingLevel: 'medium',
     isStreaming: false,
-    sessionFile: '/tmp/direct-pi-session.jsonl',
-    sessionId: 'pi-direct-session',
+    sessionFile: currentSessionFile,
+    sessionId: currentSessionId,
+    ...(currentSessionName ? { sessionName: currentSessionName } : {}),
   };
 }
 process.stdin.setEncoding('utf8');
@@ -620,6 +765,15 @@ process.stdin.on('data', (chunk) => {
       send({ id: request.id, type: 'response', command: request.type, success: true, data: state().model });
     } else if (request.type === 'set_thinking_level') {
       send({ id: request.id, type: 'response', command: request.type, success: true });
+    } else if (request.type === 'switch_session') {
+      if (${switchSessionCancelled ? 'true' : 'false'}) {
+        send({ id: request.id, type: 'response', command: request.type, success: true, data: { cancelled: true } });
+      } else {
+        currentSessionId = 'pi-switched-session';
+        currentSessionFile = request.sessionPath;
+        currentSessionName = 'Switched session';
+        send({ id: request.id, type: 'response', command: request.type, success: true, data: { cancelled: false } });
+      }
     } else if (request.type === 'prompt') {
       promptCount += 1;
       if (${extensionThenAgent ? 'true' : 'false'}) {
@@ -668,7 +822,7 @@ process.stdin.on('data', (chunk) => {
           send({ type: 'tool_execution_end', toolCallId: 'tool-1', toolName: 'bash', result: { content: [] }, isError: false });
           send({ type: 'agent_end', messages: [] });
           send({ type: 'agent_settled' });
-        }, 0);
+        }, ${delayedAgentStart ? '60' : '0'});
       }
     } else if (request.type === 'abort') {
       send({ type: 'agent_end', messages: [{ role: 'assistant', stopReason: 'aborted' }] });

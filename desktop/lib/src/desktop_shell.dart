@@ -382,9 +382,15 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
 
     final activeSession = _sessionsByCwd[sessionCwd];
+    final activeSessionId = activeSession?.sessionId;
     final activeSessionFile = _normalizeNonEmptySessionFile(
       activeSession?.sessionFile,
     );
+    final canSwitchKnownSession =
+        activeSessionId != null &&
+        activeSessionId.isNotEmpty &&
+        activeSession != null &&
+        !activeSession.isRunning;
     final entries = <WorkspaceSessionListEntry>[];
     final seenKeys = <String>{};
 
@@ -395,7 +401,15 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       entries.add(
         WorkspaceSessionListEntry(
           id: activeKey,
-          title: activeSession.displayTitle ?? _copy.currentSessionLabel,
+          title:
+              activeSession.displayTitle ??
+              _cachedSessionShortcutTitle(
+                projectId: project.registryId,
+                projectPath: sessionCwd,
+                sessionFile: activeSessionFile,
+              ) ??
+              _copy.currentSessionLabel,
+          sessionFile: activeSessionFile,
           isActive: true,
         ),
       );
@@ -415,7 +429,11 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         WorkspaceSessionListEntry(
           id: referenceKey,
           title: reference.displayTitle,
+          sessionFile: reference.sessionFile,
           isActive: activeSessionFile == referenceKey,
+          isEnabled:
+              canSwitchKnownSession &&
+              activeSessionFile != reference.sessionFile,
         ),
       );
     }
@@ -704,6 +722,27 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     return null;
   }
 
+  String? _cachedSessionShortcutTitle({
+    required String? projectId,
+    required String projectPath,
+    required String? sessionFile,
+  }) {
+    if (sessionFile == null || sessionFile.isEmpty) {
+      return null;
+    }
+
+    final references = _sessionReferences.referencesForProject(
+      projectId: projectId,
+      projectPath: projectPath,
+    );
+    for (final reference in references) {
+      if (reference.sessionFile == sessionFile) {
+        return reference.displayTitle;
+      }
+    }
+    return null;
+  }
+
   PiSessionReferenceSnapshot _upsertSessionReferenceSnapshot({
     required String sessionCwd,
     required PiHostSession session,
@@ -714,13 +753,27 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     }
 
     final project = _projectForSessionCwd(sessionCwd);
+    final existingReference = _sessionReferences
+        .referencesForProject(
+          projectId: project?.registryId,
+          projectPath: sessionCwd,
+        )
+        .where((reference) => reference.sessionFile == sessionFile)
+        .cast<PiSessionReference?>()
+        .firstWhere((reference) => reference != null, orElse: () => null);
     final reference = PiSessionReference(
       projectId: project?.registryId,
       projectPath: sessionCwd,
       sessionFile: sessionFile,
-      lastKnownSessionId: _normalizeNonEmptySessionId(session.piSessionId),
-      sessionName: _normalizeNonEmptySessionName(session.sessionName),
+      lastKnownSessionId:
+          _normalizeNonEmptySessionId(session.piSessionId) ??
+          existingReference?.lastKnownSessionId,
+      sessionName:
+          _normalizeNonEmptySessionName(session.sessionName) ??
+          existingReference?.sessionName,
       lastOpenedAt: DateTime.now().toUtc().toIso8601String(),
+      pinned: existingReference?.pinned ?? false,
+      hiddenInPiApp: existingReference?.hiddenInPiApp ?? false,
     );
     return _sessionReferences.upsertReference(reference);
   }
@@ -1305,6 +1358,69 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
+  Future<void> _openKnownSessionShortcut(
+    WorkspaceSessionListEntry entry,
+  ) async {
+    final project = _selectedProject;
+    final sessionCwd = project?.sessionCwd;
+    final currentState = sessionCwd == null ? null : _sessionsByCwd[sessionCwd];
+    final currentSessionId = currentState?.sessionId;
+    final sessionPath = _normalizeNonEmptySessionFile(entry.sessionFile);
+    if (project == null ||
+        sessionCwd == null ||
+        sessionCwd.isEmpty ||
+        currentState == null ||
+        currentSessionId == null ||
+        currentSessionId.isEmpty ||
+        currentState.isRunning ||
+        entry.isActive ||
+        sessionPath == null) {
+      return;
+    }
+
+    try {
+      final switchedSession = await widget.piHostClient.switchSession(
+        sessionId: currentSessionId,
+        sessionPath: sessionPath,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final nextReferences = _upsertSessionReferenceSnapshot(
+        sessionCwd: sessionCwd,
+        session: switchedSession,
+      );
+      final clearedState = WorkspaceSessionState.empty(sessionCwd).copyWith(
+        sessionId: switchedSession.id,
+        piSessionId: switchedSession.piSessionId,
+        sessionFile: switchedSession.sessionFile,
+        sessionName: switchedSession.sessionName,
+        modelProvider: switchedSession.model?.provider,
+        modelName: switchedSession.model?.name,
+        thinkingLevel: switchedSession.thinkingLevel,
+        clearError: true,
+        clearActiveTool: true,
+      );
+
+      setState(() {
+        if (currentSessionId != switchedSession.id) {
+          _sessionCwdById.remove(currentSessionId);
+        }
+        _sessionCwdById[switchedSession.id] = sessionCwd;
+        _sessionsByCwd[sessionCwd] = clearedState;
+        _sessionReferences = nextReferences;
+      });
+      unawaited(_persistSessionReferences(nextReferences));
+      _showNotice(_copy.sessionShortcutOpenedNotice(entry.title));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showNotice(_copy.hostRunFailedNotice(error.toString()));
+    }
+  }
+
   Future<void> _submitComposerTask() async {
     final project = _selectedProject;
     final sessionCwd = project?.sessionCwd;
@@ -1554,6 +1670,9 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                   setState(() {
                     _selectedActionIndex = index;
                   });
+                },
+                onOpenProjectSession: (entry) {
+                  unawaited(_openKnownSessionShortcut(entry));
                 },
                 onProjectSelected: _selectProject,
                 onRenameProject: _renameProject,

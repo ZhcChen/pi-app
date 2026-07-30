@@ -175,12 +175,16 @@ class WorkspaceSessionListEntry {
   const WorkspaceSessionListEntry({
     required this.id,
     required this.title,
+    this.sessionFile,
     this.isActive = false,
+    this.isEnabled = false,
   });
 
   final String id;
   final String title;
+  final String? sessionFile;
   final bool isActive;
+  final bool isEnabled;
 }
 
 class WorkspaceSessionState {

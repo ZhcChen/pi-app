@@ -2025,6 +2025,117 @@ process.stdin.on('data', (chunk) => {
     },
   );
 
+  testWidgets(
+    'selected project can switch the current controller to a known session shortcut',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final projectRoot = Directory.systemTemp.createTempSync(
+        'pi-switch-known-session-project-',
+      );
+      addTearDown(() {
+        projectRoot.deleteSync(recursive: true);
+      });
+      final projectEntry = ProjectRegistryEntry.create(projectRoot.path);
+      final rememberedSessionPath =
+          '${projectRoot.path}${Platform.pathSeparator}.pi-session-remembered.jsonl';
+      final projectRegistryStore = MemoryProjectRegistryStore(
+        initialSnapshot: ProjectRegistrySnapshot(
+          entries: <ProjectRegistryEntry>[projectEntry],
+        ),
+      );
+      final sessionReferenceStore = MemoryPiSessionReferenceStore(
+        initialSnapshot: PiSessionReferenceSnapshot(
+          references: <PiSessionReference>[
+            PiSessionReference(
+              projectId: projectEntry.id,
+              projectPath: projectRoot.path,
+              sessionFile: rememberedSessionPath,
+              sessionName: '最近会话',
+              lastKnownSessionId: 'pi-known-session-2',
+              lastOpenedAt: '2026-07-30T12:30:00.000Z',
+            ),
+          ],
+        ),
+      );
+      final piHostClient = MemoryPiHostClient(settleWithoutRunOnPrompt: true);
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: MemoryDesktopPreferencesStore(),
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          piHostClient: piHostClient,
+          projectRegistryStore: projectRegistryStore,
+          sessionReferenceStore: sessionReferenceStore,
+          workspaceRootPath: null,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Start the current session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      final currentSessionId = piHostClient.promptRequests.single.sessionId;
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sidebar-project-session-tile-1')),
+          matching: find.text('最近会话'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const Key('sidebar-project-session-tile-1')),
+      );
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.byKey(const Key('sidebar-project-session-tile-1')),
+              matching: find.byType(InkWell),
+            )
+            .first,
+      );
+      await settleUi(tester);
+
+      expect(piHostClient.switchedSessions, hasLength(1));
+      expect(piHostClient.switchedSessions.single.sessionId, currentSessionId);
+      expect(
+        piHostClient.switchedSessions.single.sessionPath,
+        rememberedSessionPath,
+      );
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sidebar-project-session-tile-0')),
+          matching: find.text('最近会话'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Continue the remembered session.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      expect(piHostClient.promptRequests, hasLength(2));
+      expect(piHostClient.promptRequests.last.sessionId, currentSessionId);
+      expect(
+        piHostClient.promptRequests.last.text,
+        'Continue the remembered session.',
+      );
+    },
+  );
+
   testWidgets('projects section can collapse and expand its project list', (
     tester,
   ) async {

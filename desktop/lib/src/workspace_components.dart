@@ -1598,11 +1598,13 @@ class _SelectedProjectSessionList extends StatelessWidget {
     required this.copy,
     required this.interfaceDensity,
     required this.sessions,
+    required this.onSessionSelected,
   });
 
   final WorkspaceCopy copy;
   final AppInterfaceDensity interfaceDensity;
   final List<WorkspaceSessionListEntry> sessions;
+  final ValueChanged<WorkspaceSessionListEntry> onSessionSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1626,32 +1628,82 @@ class _SelectedProjectSessionList extends StatelessWidget {
                     )
                   : 0,
             ),
-            child: Container(
-              key: Key('sidebar-project-session-tile-$index'),
-              constraints: BoxConstraints(
-                minHeight: desktopDensityValue(
-                  interfaceDensity,
-                  compact: 28,
-                  comfortable: 30,
-                ),
-              ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Text(
-                sessions[index].title.isEmpty
-                    ? copy.currentSessionLabel
-                    : sessions[index].title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: DesktopTypography.sidebarItem(palette).copyWith(
-                  color: sessions[index].isActive
-                      ? palette.textPrimary
-                      : palette.textSecondary,
-                ),
-              ),
+            child: _SidebarProjectSessionTile(
+              entry: sessions[index],
+              copy: copy,
+              palette: palette,
+              interfaceDensity: interfaceDensity,
+              tileKey: Key('sidebar-project-session-tile-$index'),
+              onTap: sessions[index].isEnabled
+                  ? () => onSessionSelected(sessions[index])
+                  : null,
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SidebarProjectSessionTile extends StatelessWidget {
+  const _SidebarProjectSessionTile({
+    required this.entry,
+    required this.copy,
+    required this.palette,
+    required this.interfaceDensity,
+    required this.tileKey,
+    this.onTap,
+  });
+
+  final WorkspaceSessionListEntry entry;
+  final WorkspaceCopy copy;
+  final DesktopPalette palette;
+  final AppInterfaceDensity interfaceDensity;
+  final Key tileKey;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor = entry.isActive
+        ? palette.textPrimary
+        : onTap != null
+        ? palette.textSecondary
+        : palette.textMuted;
+    final label = entry.title.isEmpty ? copy.currentSessionLabel : entry.title;
+    final content = Container(
+      key: tileKey,
+      constraints: BoxConstraints(
+        minHeight: desktopDensityValue(
+          interfaceDensity,
+          compact: 28,
+          comfortable: 30,
+        ),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: DesktopTypography.sidebarItem(
+          palette,
+        ).copyWith(color: foregroundColor),
+      ),
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+        child: content,
+      ),
     );
   }
 }

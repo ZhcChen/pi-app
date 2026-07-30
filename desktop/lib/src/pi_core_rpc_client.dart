@@ -251,6 +251,45 @@ class PiCoreRpcClient implements PiHostClient {
   }
 
   @override
+  Future<PiHostSession> switchSession({
+    required String sessionId,
+    required String sessionPath,
+  }) async {
+    final session = _requireSession(sessionId);
+    final normalizedPath = sessionPath.trim();
+    if (normalizedPath.isEmpty) {
+      throw const PiHostClientException('Pi session path must not be empty.');
+    }
+    if (session.isStreaming ||
+        session.awaitingAgentStart ||
+        session.agentStartedForPrompt ||
+        session.localCompletionTimer != null) {
+      throw const PiHostClientException(
+        'Cannot switch Pi sessions while the agent is still running.',
+      );
+    }
+    session
+      ..awaitingAgentStart = false
+      ..agentStartedForPrompt = false
+      ..sawExtensionUiRequest = false
+      ..promptResponseReceived = false
+      ..deferredRunFailureMessage = null;
+    session.localCompletionTimer?.cancel();
+    session.localCompletionTimer = null;
+
+    final response = await _request(
+      session,
+      'switch_session',
+      <String, dynamic>{'sessionPath': normalizedPath},
+    );
+    final data = _responseData(response, 'switch_session');
+    if (data['cancelled'] == true) {
+      throw const PiHostClientException('Pi session switch was cancelled.');
+    }
+    return _loadSessionSnapshot(session);
+  }
+
+  @override
   Future<PiHostSession> getSessionState({required String sessionId}) async {
     return _loadSessionSnapshot(_requireSession(sessionId));
   }
@@ -331,7 +370,13 @@ class PiCoreRpcClient implements PiHostClient {
       thinkingResponse,
       'get_available_thinking_levels',
     );
-    return _snapshotFromState(session, state, _stringList(thinking['levels']));
+    final snapshot = _snapshotFromState(
+      session,
+      state,
+      _stringList(thinking['levels']),
+    );
+    session.isStreaming = snapshot.isStreaming;
+    return snapshot;
   }
 
   Future<Map<String, dynamic>> _request(
@@ -474,7 +519,8 @@ class PiCoreRpcClient implements PiHostClient {
         session
           ..agentStartedForPrompt = true
           ..awaitingAgentStart = false
-          ..sawExtensionUiRequest = false;
+          ..sawExtensionUiRequest = false
+          ..isStreaming = true;
         session.localCompletionTimer?.cancel();
         session.localCompletionTimer = null;
         _emitEvent(
@@ -485,7 +531,8 @@ class PiCoreRpcClient implements PiHostClient {
         session
           ..awaitingAgentStart = false
           ..agentStartedForPrompt = false
-          ..sawExtensionUiRequest = false;
+          ..sawExtensionUiRequest = false
+          ..isStreaming = false;
         session.localCompletionTimer?.cancel();
         session.localCompletionTimer = null;
         _emitEvent(
@@ -494,6 +541,7 @@ class PiCoreRpcClient implements PiHostClient {
         break;
       case 'agent_end':
         if (_agentEndWasAborted(record)) {
+          session.isStreaming = false;
           _emitEvent(
             PiHostEvent(
               type: PiHostEventType.runAborted,
@@ -713,6 +761,7 @@ class PiCoreRpcClient implements PiHostClient {
   }
 
   void _emitRunFailed(_PiCoreRpcSession session, String message) {
+    session.isStreaming = false;
     _emitEvent(
       PiHostEvent(
         type: PiHostEventType.runFailed,
@@ -936,6 +985,7 @@ class _PiCoreRpcSession {
   bool agentStartedForPrompt = false;
   bool sawExtensionUiRequest = false;
   bool promptResponseReceived = false;
+  bool isStreaming = false;
   String? deferredRunFailureMessage;
   bool isClosed = false;
 }

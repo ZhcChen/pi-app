@@ -177,6 +177,11 @@ abstract class PiHostClient {
 
   Future<PiHostSession> abort({required String sessionId});
 
+  Future<PiHostSession> switchSession({
+    required String sessionId,
+    required String sessionPath,
+  });
+
   Future<PiHostSession> getSessionState({required String sessionId});
 
   Future<List<PiHostModel>> listModels({required String sessionId});
@@ -329,6 +334,20 @@ class LocalPiHostClient implements PiHostClient {
       'sessionId': sessionId,
     });
     return PiHostSession.fromJson(_asJsonMap(result, 'session.abort result'));
+  }
+
+  @override
+  Future<PiHostSession> switchSession({
+    required String sessionId,
+    required String sessionPath,
+  }) async {
+    final result = await _request('session.switchSession', <String, dynamic>{
+      'sessionId': sessionId,
+      'sessionPath': sessionPath,
+    });
+    return PiHostSession.fromJson(
+      _asJsonMap(result, 'session.switchSession result'),
+    );
   }
 
   @override
@@ -693,6 +712,8 @@ class MemoryPiHostClient implements PiHostClient {
   final List<({String sessionId, String text, PiHostDelivery? delivery})>
   promptRequests =
       <({String sessionId, String text, PiHostDelivery? delivery})>[];
+  final List<({String sessionId, String sessionPath})> switchedSessions =
+      <({String sessionId, String sessionPath})>[];
   final List<String> abortedSessionIds = <String>[];
   int _nextSession = 0;
   bool disposed = false;
@@ -776,6 +797,30 @@ class MemoryPiHostClient implements PiHostClient {
   Future<PiHostSession> abort({required String sessionId}) async {
     abortedSessionIds.add(sessionId);
     return _requireSession(sessionId);
+  }
+
+  @override
+  Future<PiHostSession> switchSession({
+    required String sessionId,
+    required String sessionPath,
+  }) async {
+    final current = _requireSession(sessionId);
+    final normalizedPath = File(sessionPath).absolute.path;
+    final updated = PiHostSession(
+      id: current.id,
+      cwd: current.cwd,
+      piSessionId: 'pi-memory-switched-${_nextSession++}',
+      sessionFile: normalizedPath,
+      sessionName: current.sessionName,
+      model: current.model,
+      thinkingLevel: current.thinkingLevel,
+      availableThinkingLevels: current.availableThinkingLevels,
+      isStreaming: false,
+      isProjectTrusted: current.isProjectTrusted,
+    );
+    _sessions[sessionId] = updated;
+    switchedSessions.add((sessionId: sessionId, sessionPath: normalizedPath));
+    return updated;
   }
 
   @override
