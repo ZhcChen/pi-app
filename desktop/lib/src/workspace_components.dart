@@ -1193,7 +1193,7 @@ class _ProjectTileState extends State<_ProjectTile> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: DesktopSelectionTile(
-        selected: widget.selected,
+        selected: false,
         onTap: widget.onTap,
         height: desktopDensityValue(
           widget.interfaceDensity,
@@ -1599,65 +1599,24 @@ class _SelectedProjectSessionList extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final status = activeSession.status;
-    final detailParts = <String>[
-      copy.sessionStatusLabel(status),
-      ?activeSession.modelLabel,
-    ];
-
-    return DesktopSelectionTile(
-      selected: true,
-      radius: _WorkspaceComponentSpec.projectTileRadius,
-      animated: false,
-      child: Container(
-        key: const Key('sidebar-project-session-tile'),
-        constraints: BoxConstraints(
-          minHeight: desktopDensityValue(
-            interfaceDensity,
-            compact: 34,
-            comfortable: 38,
-          ),
+    return Container(
+      key: const Key('sidebar-project-session-tile'),
+      constraints: BoxConstraints(
+        minHeight: desktopDensityValue(
+          interfaceDensity,
+          compact: 28,
+          comfortable: 30,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: Icon(
-                _statusIcon(status),
-                size: 15,
-                color: _sessionStatusColor(context, status),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    activeSession.displayTitle ?? copy.currentSessionLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: DesktopTypography.sidebarItem(palette),
-                  ),
-                  if (detailParts.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      detailParts.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: DesktopTypography.controlLabel(
-                        palette,
-                      ).copyWith(color: palette.textMuted),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Text(
+        activeSession.displayTitle ?? copy.currentSessionLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: DesktopTypography.sidebarItem(
+          palette,
+        ).copyWith(color: palette.textPrimary),
       ),
     );
   }

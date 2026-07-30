@@ -224,12 +224,29 @@ class WorkspaceSessionState {
     return '$modelProvider/$modelName';
   }
 
+  String? get _firstUserPromptTitle {
+    for (final message in messages) {
+      if (message.role != WorkspaceConversationRole.user) {
+        continue;
+      }
+      final normalized = message.text.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (normalized.isEmpty) {
+        continue;
+      }
+      if (normalized.length <= 36) {
+        return normalized;
+      }
+      return '${normalized.substring(0, 36).trimRight()}...';
+    }
+    return null;
+  }
+
   String? get displayTitle {
     final name = sessionName?.trim();
     if (name != null && name.isNotEmpty) {
       return name;
     }
-    return null;
+    return _firstUserPromptTitle;
   }
 
   WorkspaceSessionState copyWith({

@@ -842,6 +842,25 @@ class MemoryPiHostClient implements PiHostClient {
     }
   }
 
+  void setSessionNameForTesting({
+    required String sessionId,
+    required String? sessionName,
+  }) {
+    final current = _requireSession(sessionId);
+    _sessions[sessionId] = PiHostSession(
+      id: current.id,
+      cwd: current.cwd,
+      piSessionId: current.piSessionId,
+      sessionFile: current.sessionFile,
+      sessionName: sessionName,
+      model: current.model,
+      thinkingLevel: current.thinkingLevel,
+      availableThinkingLevels: current.availableThinkingLevels,
+      isStreaming: current.isStreaming,
+      isProjectTrusted: current.isProjectTrusted,
+    );
+  }
+
   @override
   Future<void> dispose() async {
     disposed = true;

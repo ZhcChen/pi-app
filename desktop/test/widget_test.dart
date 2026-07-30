@@ -1861,13 +1861,73 @@ process.stdin.on('data', (chunk) => {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
 
+      final sessionTile = find.byKey(const Key('sidebar-project-session-tile'));
+      expect(sessionTile, findsOneWidget);
+      expect(find.byKey(const Key('sessions-section-label')), findsNothing);
       expect(
-        find.byKey(const Key('sidebar-project-session-tile')),
+        find.descendant(
+          of: sessionTile,
+          matching: find.text('Start a session.'),
+        ),
         findsOneWidget,
       );
-      expect(find.byKey(const Key('sessions-section-label')), findsNothing);
-      expect(find.text('Current session'), findsOneWidget);
       expect(find.text('Task completed'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'selected project prefers Pi sessionName over the local prompt title',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final piHostClient = MemoryPiHostClient(emitRunStartedOnPrompt: true);
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          enablePersistence: false,
+          workspaceRootPath: resolveRepoWorkspacePath(),
+          piHostClient: piHostClient,
+        ),
+      );
+      await settleUi(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('workspace-composer-input')),
+        'Analyze project structure and summarize it.',
+      );
+      await tester.tap(find.byKey(const Key('submit-composer-task-button')));
+      await settleUi(tester);
+
+      final sessionId = piHostClient.promptRequests.single.sessionId;
+      final sessionTile = find.byKey(const Key('sidebar-project-session-tile'));
+      expect(
+        find.descendant(
+          of: sessionTile,
+          matching: find.text('Analyze project structure and summar...'),
+        ),
+        findsOneWidget,
+      );
+
+      piHostClient.setSessionNameForTesting(
+        sessionId: sessionId,
+        sessionName: '分析项目',
+      );
+      piHostClient.emit(
+        PiHostEvent(type: PiHostEventType.runSettled, sessionId: sessionId),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.descendant(of: sessionTile, matching: find.text('分析项目')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: sessionTile,
+          matching: find.text('Analyze project structure and summar...'),
+        ),
+        findsNothing,
+      );
     },
   );
 
@@ -2105,11 +2165,17 @@ process.stdin.on('data', (chunk) => {
       await settleUi(tester);
       final firstSessionId = piHostClient.promptRequests.single.sessionId;
 
+      final transcriptFinder = find.byKey(
+        const Key('workspace-session-transcript'),
+      );
+      expect(transcriptFinder, findsOneWidget);
       expect(
-        find.byKey(const Key('workspace-session-transcript')),
+        find.descendant(
+          of: transcriptFinder,
+          matching: find.text('Keep this session with project A.'),
+        ),
         findsOneWidget,
       );
-      expect(find.text('Keep this session with project A.'), findsOneWidget);
 
       await tester.tap(find.text(projectBName).first);
       await settleUi(tester);
@@ -2206,7 +2272,16 @@ process.stdin.on('data', (chunk) => {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await tester.pump();
 
-      expect(find.text('Render this immediately.'), findsOneWidget);
+      final transcriptFinder = find.byKey(
+        const Key('workspace-session-transcript'),
+      );
+      expect(
+        find.descendant(
+          of: transcriptFinder,
+          matching: find.text('Render this immediately.'),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('workspace-user-message')), findsOneWidget);
       expect(
         find.byKey(const Key('workspace-assistant-pending-message')),

@@ -977,6 +977,23 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     );
   }
 
+  Future<void> _refreshHostSessionSnapshot({
+    required String sessionId,
+    required String sessionCwd,
+  }) async {
+    try {
+      final session = await widget.piHostClient.getSessionState(
+        sessionId: sessionId,
+      );
+      if (!mounted || _sessionCwdById[sessionId] != sessionCwd) {
+        return;
+      }
+      _applyHostSession(session, projectSessionCwd: sessionCwd);
+    } catch (_) {
+      // Best-effort metadata refresh. Keep the settled transcript even if it fails.
+    }
+  }
+
   void _resetHostSessions(String message, {String? sessionId}) {
     final affectedSessionCwds = _sessionsByCwd.entries
         .where(
@@ -1077,6 +1094,14 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
 
     if (!identical(next, current)) {
       _setSessionState(sessionCwd, next);
+    }
+    if (event.type == PiHostEventType.runSettled && sessionId != null) {
+      unawaited(
+        _refreshHostSessionSnapshot(
+          sessionId: sessionId,
+          sessionCwd: sessionCwd,
+        ),
+      );
     }
   }
 
