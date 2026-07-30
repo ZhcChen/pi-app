@@ -327,6 +327,57 @@ void main() {
   });
 
   test(
+    'direct Pi RPC rebuilds the active transcript from get_entries',
+    () async {
+      final workingDirectory = await Directory.systemTemp.createTemp(
+        'pi-core-rpc-transcript-',
+      );
+      final client = PiCoreRpcClient(
+        readVersion: (_) async => '0.82.0-test',
+        startProcess: (command) => startNodeRpc(command, _rpcScript()),
+      );
+
+      try {
+        final session = await client.createSession(cwd: workingDirectory.path);
+        final transcript = await client.getSessionTranscript(
+          sessionId: session.id,
+        );
+        expect(
+          transcript
+              .map((message) => (message.role, message.text))
+              .toList(growable: false),
+          <(PiHostTranscriptRole, String)>[
+            (PiHostTranscriptRole.user, 'Initial prompt'),
+            (PiHostTranscriptRole.assistant, 'Initial reply'),
+            (PiHostTranscriptRole.user, 'Current branch prompt'),
+            (PiHostTranscriptRole.assistant, 'Current branch reply'),
+          ],
+        );
+
+        await client.switchSession(
+          sessionId: session.id,
+          sessionPath: '/tmp/known-session.jsonl',
+        );
+        final switchedTranscript = await client.getSessionTranscript(
+          sessionId: session.id,
+        );
+        expect(
+          switchedTranscript
+              .map((message) => (message.role, message.text))
+              .toList(growable: false),
+          <(PiHostTranscriptRole, String)>[
+            (PiHostTranscriptRole.user, 'Remembered prompt'),
+            (PiHostTranscriptRole.assistant, 'Remembered reply'),
+          ],
+        );
+      } finally {
+        await client.dispose();
+        await workingDirectory.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'direct Pi RPC keeps the current binding when switch_session is cancelled',
     () async {
       final workingDirectory = await Directory.systemTemp.createTemp(
@@ -721,6 +772,69 @@ let promptCount = 0;
 let currentSessionId = 'pi-direct-session';
 let currentSessionFile = '/tmp/direct-pi-session.jsonl';
 let currentSessionName = undefined;
+let currentLeafId = 'current-assistant';
+let currentEntries = [
+  {
+    type: 'message',
+    id: 'root-user',
+    parentId: null,
+    timestamp: '2026-07-30T10:00:00.000Z',
+    message: { role: 'user', content: 'Initial prompt' },
+  },
+  {
+    type: 'message',
+    id: 'root-assistant',
+    parentId: 'root-user',
+    timestamp: '2026-07-30T10:00:01.000Z',
+    message: { role: 'assistant', content: [{ type: 'text', text: 'Initial reply' }] },
+  },
+  {
+    type: 'message',
+    id: 'branch-user',
+    parentId: 'root-assistant',
+    timestamp: '2026-07-30T10:00:02.000Z',
+    message: { role: 'user', content: 'Abandoned branch prompt' },
+  },
+  {
+    type: 'message',
+    id: 'branch-assistant',
+    parentId: 'branch-user',
+    timestamp: '2026-07-30T10:00:03.000Z',
+    message: { role: 'assistant', content: [{ type: 'text', text: 'Abandoned branch reply' }] },
+  },
+  {
+    type: 'message',
+    id: 'current-user',
+    parentId: 'root-assistant',
+    timestamp: '2026-07-30T10:00:04.000Z',
+    message: { role: 'user', content: 'Current branch prompt' },
+  },
+  {
+    type: 'message',
+    id: 'current-assistant',
+    parentId: 'current-user',
+    timestamp: '2026-07-30T10:00:05.000Z',
+    message: { role: 'assistant', content: [{ type: 'text', text: 'Current branch reply' }] },
+  },
+];
+function switchedEntries() {
+  return [
+    {
+      type: 'message',
+      id: 'switched-user',
+      parentId: null,
+      timestamp: '2026-07-30T12:00:00.000Z',
+      message: { role: 'user', content: 'Remembered prompt' },
+    },
+    {
+      type: 'message',
+      id: 'switched-assistant',
+      parentId: 'switched-user',
+      timestamp: '2026-07-30T12:00:01.000Z',
+      message: { role: 'assistant', content: [{ type: 'text', text: 'Remembered reply' }] },
+    },
+  ];
+}
 function send(value) {
   process.stdout.write(JSON.stringify(value) + '${crlf ? '\\r\\n' : '\\n'}');
 }
@@ -761,6 +875,14 @@ process.stdin.on('data', (chunk) => {
       send({ id: request.id, type: 'response', command: request.type, success: true, data: { levels: ['off', 'medium', 'high'] } });
     } else if (request.type === 'get_available_models') {
       send({ id: request.id, type: 'response', command: request.type, success: true, data: { models: [state().model] } });
+    } else if (request.type === 'get_entries') {
+      send({
+        id: request.id,
+        type: 'response',
+        command: request.type,
+        success: true,
+        data: { entries: currentEntries, leafId: currentLeafId },
+      });
     } else if (request.type === 'set_model') {
       send({ id: request.id, type: 'response', command: request.type, success: true, data: state().model });
     } else if (request.type === 'set_thinking_level') {
@@ -772,6 +894,8 @@ process.stdin.on('data', (chunk) => {
         currentSessionId = 'pi-switched-session';
         currentSessionFile = request.sessionPath;
         currentSessionName = 'Switched session';
+        currentEntries = switchedEntries();
+        currentLeafId = 'switched-assistant';
         send({ id: request.id, type: 'response', command: request.type, success: true, data: { cancelled: false } });
       }
     } else if (request.type === 'prompt') {

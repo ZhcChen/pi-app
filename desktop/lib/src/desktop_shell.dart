@@ -332,6 +332,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   bool _isWaitingForPiCoreInstaller = false;
   int _piCoreInstallerWaitGeneration = 0;
   int _sessionViewGeneration = 0;
+  int _sessionShortcutOpenGeneration = 0;
   AppUpdateCheck? _appUpdateCheck;
   AppUpdateDownloadProgress? _appUpdateDownloadProgress;
   File? _downloadedUpdateInstaller;
@@ -741,6 +742,23 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       }
     }
     return null;
+  }
+
+  List<WorkspaceConversationMessage> _workspaceMessagesFromHostTranscript(
+    List<PiHostTranscriptMessage> transcript,
+  ) {
+    return transcript
+        .map((message) {
+          return WorkspaceConversationMessage(
+            role: switch (message.role) {
+              PiHostTranscriptRole.user => WorkspaceConversationRole.user,
+              PiHostTranscriptRole.assistant =>
+                WorkspaceConversationRole.assistant,
+            },
+            text: message.text,
+          );
+        })
+        .toList(growable: false);
   }
 
   PiSessionReferenceSnapshot _upsertSessionReferenceSnapshot({
@@ -1378,20 +1396,38 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       return;
     }
 
+    final sessionViewGeneration = _sessionViewGeneration;
+    final shortcutOpenGeneration = ++_sessionShortcutOpenGeneration;
+
     try {
       final switchedSession = await widget.piHostClient.switchSession(
         sessionId: currentSessionId,
         sessionPath: sessionPath,
       );
-      if (!mounted) {
+      if (!_isCurrentSessionView(sessionViewGeneration) ||
+          shortcutOpenGeneration != _sessionShortcutOpenGeneration ||
+          _selectedProject?.sessionCwd != sessionCwd) {
         return;
       }
+
+      var restoredMessages = const <WorkspaceConversationMessage>[];
+      try {
+        final transcript = await widget.piHostClient.getSessionTranscript(
+          sessionId: switchedSession.id,
+        );
+        if (!_isCurrentSessionView(sessionViewGeneration) ||
+            shortcutOpenGeneration != _sessionShortcutOpenGeneration ||
+            _selectedProject?.sessionCwd != sessionCwd) {
+          return;
+        }
+        restoredMessages = _workspaceMessagesFromHostTranscript(transcript);
+      } catch (_) {}
 
       final nextReferences = _upsertSessionReferenceSnapshot(
         sessionCwd: sessionCwd,
         session: switchedSession,
       );
-      final clearedState = WorkspaceSessionState.empty(sessionCwd).copyWith(
+      final restoredState = WorkspaceSessionState.empty(sessionCwd).copyWith(
         sessionId: switchedSession.id,
         piSessionId: switchedSession.piSessionId,
         sessionFile: switchedSession.sessionFile,
@@ -1399,6 +1435,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         modelProvider: switchedSession.model?.provider,
         modelName: switchedSession.model?.name,
         thinkingLevel: switchedSession.thinkingLevel,
+        messages: restoredMessages,
         clearError: true,
         clearActiveTool: true,
       );
@@ -1408,13 +1445,15 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
           _sessionCwdById.remove(currentSessionId);
         }
         _sessionCwdById[switchedSession.id] = sessionCwd;
-        _sessionsByCwd[sessionCwd] = clearedState;
+        _sessionsByCwd[sessionCwd] = restoredState;
         _sessionReferences = nextReferences;
       });
       unawaited(_persistSessionReferences(nextReferences));
       _showNotice(_copy.sessionShortcutOpenedNotice(entry.title));
     } catch (error) {
-      if (!mounted) {
+      if (!_isCurrentSessionView(sessionViewGeneration) ||
+          shortcutOpenGeneration != _sessionShortcutOpenGeneration ||
+          _selectedProject?.sessionCwd != sessionCwd) {
         return;
       }
       _showNotice(_copy.hostRunFailedNotice(error.toString()));

@@ -295,6 +295,28 @@ class PiCoreRpcClient implements PiHostClient {
   }
 
   @override
+  Future<List<PiHostTranscriptMessage>> getSessionTranscript({
+    required String sessionId,
+  }) async {
+    final response = await _request(
+      _requireSession(sessionId),
+      'get_entries',
+      const <String, dynamic>{},
+    );
+    final data = _responseData(response, 'get_entries');
+    final entries = data['entries'];
+    if (entries is! List) {
+      throw const PiHostClientException(
+        'Pi core returned invalid get_entries data.',
+      );
+    }
+    return _transcriptMessagesFromEntries(
+      entries,
+      _nullableNonEmptyString(data['leafId']),
+    );
+  }
+
+  @override
   Future<List<PiHostModel>> listModels({required String sessionId}) async {
     final response = await _request(
       _requireSession(sessionId),
@@ -990,6 +1012,22 @@ class _PiCoreRpcSession {
   bool isClosed = false;
 }
 
+class _PiCoreRpcTranscriptNode {
+  const _PiCoreRpcTranscriptNode({
+    required this.id,
+    required this.parentId,
+    required this.timestamp,
+    this.role,
+    this.text,
+  });
+
+  final String id;
+  final String? parentId;
+  final String timestamp;
+  final PiHostTranscriptRole? role;
+  final String? text;
+}
+
 Map<String, dynamic> _responseData(
   Map<String, dynamic> response,
   String command,
@@ -999,6 +1037,140 @@ Map<String, dynamic> _responseData(
     throw PiHostClientException('Pi core returned invalid $command data.');
   }
   return Map<String, dynamic>.from(data);
+}
+
+List<PiHostTranscriptMessage> _transcriptMessagesFromEntries(
+  List<dynamic> entries,
+  String? leafId,
+) {
+  final parsedEntries = <_PiCoreRpcTranscriptNode>[];
+  final byId = <String, _PiCoreRpcTranscriptNode>{};
+  for (final entry in entries) {
+    final parsed = _parseTranscriptNode(entry);
+    if (parsed == null) {
+      continue;
+    }
+    parsedEntries.add(parsed);
+    byId[parsed.id] = parsed;
+  }
+  if (parsedEntries.isEmpty) {
+    return const <PiHostTranscriptMessage>[];
+  }
+
+  final resolvedLeafId = leafId != null && byId.containsKey(leafId)
+      ? leafId
+      : parsedEntries.last.id;
+  final branch = <_PiCoreRpcTranscriptNode>[];
+  final seenIds = <String>{};
+  String? currentId = resolvedLeafId;
+  while (currentId != null) {
+    if (!seenIds.add(currentId)) {
+      break;
+    }
+    final entry = byId[currentId];
+    if (entry == null) {
+      break;
+    }
+    branch.add(entry);
+    currentId = entry.parentId;
+  }
+
+  final messages = <PiHostTranscriptMessage>[];
+  for (final entry in branch.reversed) {
+    final role = entry.role;
+    final text = entry.text;
+    if (role == null || text == null) {
+      continue;
+    }
+    final normalized = text.trim();
+    if (normalized.isEmpty) {
+      continue;
+    }
+    messages.add(
+      PiHostTranscriptMessage(
+        id: entry.id,
+        parentId: entry.parentId,
+        role: role,
+        text: text,
+        timestamp: entry.timestamp,
+      ),
+    );
+  }
+  return messages;
+}
+
+_PiCoreRpcTranscriptNode? _parseTranscriptNode(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  final entry = Map<String, dynamic>.from(value);
+  final id = _nullableNonEmptyString(entry['id']);
+  if (id == null) {
+    return null;
+  }
+
+  final type = entry['type']?.toString() ?? '';
+  final message = entry['message'];
+  if (type != 'message' || message is! Map) {
+    return _PiCoreRpcTranscriptNode(
+      id: id,
+      parentId: _nullableNonEmptyString(entry['parentId']),
+      timestamp: entry['timestamp']?.toString() ?? '',
+    );
+  }
+
+  final messageMap = Map<String, dynamic>.from(message);
+  return _PiCoreRpcTranscriptNode(
+    id: id,
+    parentId: _nullableNonEmptyString(entry['parentId']),
+    timestamp: entry['timestamp']?.toString() ?? '',
+    role: _transcriptRole(messageMap['role']),
+    text: _extractTranscriptText(messageMap['content']),
+  );
+}
+
+PiHostTranscriptRole? _transcriptRole(Object? value) {
+  return switch (value?.toString()) {
+    'user' => PiHostTranscriptRole.user,
+    'assistant' => PiHostTranscriptRole.assistant,
+    _ => null,
+  };
+}
+
+String? _extractTranscriptText(Object? content) {
+  if (content is String) {
+    return content;
+  }
+  if (content is! List) {
+    return null;
+  }
+
+  final chunks = <String>[];
+  for (final block in content) {
+    if (block is! Map) {
+      continue;
+    }
+    if (block['type'] != 'text') {
+      continue;
+    }
+    final text = block['text']?.toString();
+    if (text == null || text.isEmpty) {
+      continue;
+    }
+    chunks.add(text);
+  }
+  if (chunks.isEmpty) {
+    return null;
+  }
+  return chunks.join('\n');
+}
+
+String? _nullableNonEmptyString(Object? value) {
+  final normalized = value?.toString().trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return normalized;
 }
 
 bool _agentEndWasAborted(Map<String, dynamic> record) {

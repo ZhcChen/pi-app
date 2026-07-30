@@ -2058,7 +2058,27 @@ process.stdin.on('data', (chunk) => {
           ],
         ),
       );
-      final piHostClient = MemoryPiHostClient(settleWithoutRunOnPrompt: true);
+      final piHostClient = MemoryPiHostClient(
+        settleWithoutRunOnPrompt: true,
+        sessionTranscriptsByPath: <String, List<PiHostTranscriptMessage>>{
+          rememberedSessionPath: <PiHostTranscriptMessage>[
+            const PiHostTranscriptMessage(
+              id: 'remembered-user',
+              parentId: null,
+              role: PiHostTranscriptRole.user,
+              text: 'Remembered session prompt',
+              timestamp: '2026-07-30T12:30:00.000Z',
+            ),
+            const PiHostTranscriptMessage(
+              id: 'remembered-assistant',
+              parentId: 'remembered-user',
+              role: PiHostTranscriptRole.assistant,
+              text: 'Remembered session reply',
+              timestamp: '2026-07-30T12:31:00.000Z',
+            ),
+          ],
+        },
+      );
 
       await tester.pumpWidget(
         PiDesktopApp(
@@ -2110,12 +2130,26 @@ process.stdin.on('data', (chunk) => {
       );
       expect(
         find.byKey(const Key('workspace-session-transcript')),
-        findsNothing,
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('workspace-session-transcript')),
+          matching: find.text('Remembered session prompt'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('workspace-session-transcript')),
+          matching: find.text('Remembered session reply'),
+        ),
+        findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(const Key('sidebar-project-session-tile-0')),
-          matching: find.text('最近会话'),
+          matching: find.text('Remembered session prompt'),
         ),
         findsOneWidget,
       );

@@ -125,6 +125,24 @@ class PiHostSession {
   }
 }
 
+enum PiHostTranscriptRole { user, assistant }
+
+class PiHostTranscriptMessage {
+  const PiHostTranscriptMessage({
+    required this.id,
+    required this.parentId,
+    required this.role,
+    required this.text,
+    required this.timestamp,
+  });
+
+  final String id;
+  final String? parentId;
+  final PiHostTranscriptRole role;
+  final String text;
+  final String timestamp;
+}
+
 class PiHostEvent {
   const PiHostEvent({
     required this.type,
@@ -183,6 +201,10 @@ abstract class PiHostClient {
   });
 
   Future<PiHostSession> getSessionState({required String sessionId});
+
+  Future<List<PiHostTranscriptMessage>> getSessionTranscript({
+    required String sessionId,
+  });
 
   Future<List<PiHostModel>> listModels({required String sessionId});
 
@@ -356,6 +378,15 @@ class LocalPiHostClient implements PiHostClient {
       'sessionId': sessionId,
     });
     return PiHostSession.fromJson(_asJsonMap(result, 'session state result'));
+  }
+
+  @override
+  Future<List<PiHostTranscriptMessage>> getSessionTranscript({
+    required String sessionId,
+  }) {
+    throw const PiHostClientException(
+      'Legacy local Pi host does not support session transcript restore.',
+    );
   }
 
   @override
@@ -697,7 +728,16 @@ class MemoryPiHostClient implements PiHostClient {
     this.emitRunStartedOnPrompt = true,
     this.settleWithoutRunOnPrompt = false,
     this.promptResponseCompleter,
-  });
+    Map<String, List<PiHostTranscriptMessage>>? sessionTranscriptsByPath,
+  }) : _sessionTranscriptsByPath = <String, List<PiHostTranscriptMessage>>{
+         for (final entry
+             in (sessionTranscriptsByPath ??
+                     const <String, List<PiHostTranscriptMessage>>{})
+                 .entries)
+           File(entry.key).absolute.path: List<PiHostTranscriptMessage>.from(
+             entry.value,
+           ),
+       };
 
   final PiHostHealth health;
   bool promptAccepted;
@@ -707,6 +747,9 @@ class MemoryPiHostClient implements PiHostClient {
   final StreamController<PiHostEvent> _events =
       StreamController<PiHostEvent>.broadcast();
   final Map<String, PiHostSession> _sessions = <String, PiHostSession>{};
+  final Map<String, List<PiHostTranscriptMessage>> _sessionTranscripts =
+      <String, List<PiHostTranscriptMessage>>{};
+  final Map<String, List<PiHostTranscriptMessage>> _sessionTranscriptsByPath;
   final List<({String sessionId, List<String> tools})> createdSessions =
       <({String sessionId, List<String> tools})>[];
   final List<({String sessionId, String text, PiHostDelivery? delivery})>
@@ -749,6 +792,7 @@ class MemoryPiHostClient implements PiHostClient {
       isProjectTrusted: false,
     );
     _sessions[session.id] = session;
+    _sessionTranscripts[session.id] = const <PiHostTranscriptMessage>[];
     createdSessions.add((
       sessionId: session.id,
       tools: List<String>.from(tools),
@@ -819,6 +863,10 @@ class MemoryPiHostClient implements PiHostClient {
       isProjectTrusted: current.isProjectTrusted,
     );
     _sessions[sessionId] = updated;
+    _sessionTranscripts[sessionId] = List<PiHostTranscriptMessage>.from(
+      _sessionTranscriptsByPath[normalizedPath] ??
+          const <PiHostTranscriptMessage>[],
+    );
     switchedSessions.add((sessionId: sessionId, sessionPath: normalizedPath));
     return updated;
   }
@@ -826,6 +874,16 @@ class MemoryPiHostClient implements PiHostClient {
   @override
   Future<PiHostSession> getSessionState({required String sessionId}) async {
     return _requireSession(sessionId);
+  }
+
+  @override
+  Future<List<PiHostTranscriptMessage>> getSessionTranscript({
+    required String sessionId,
+  }) async {
+    _requireSession(sessionId);
+    return List<PiHostTranscriptMessage>.from(
+      _sessionTranscripts[sessionId] ?? const <PiHostTranscriptMessage>[],
+    );
   }
 
   @override
