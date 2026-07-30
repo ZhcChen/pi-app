@@ -127,6 +127,18 @@ class _ProjectSessionTranscript extends StatelessWidget {
   final WorkspaceCopy copy;
   final WorkspaceSessionState session;
 
+  bool get _showsPendingAssistantMessage {
+    if (!session.isRunning) {
+      return false;
+    }
+    if (session.messages.isEmpty) {
+      return true;
+    }
+    final lastMessage = session.messages.last;
+    return lastMessage.role != WorkspaceConversationRole.assistant ||
+        !lastMessage.isStreaming;
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
@@ -169,6 +181,10 @@ class _ProjectSessionTranscript extends StatelessWidget {
             ),
             if (index < session.messages.length - 1) const SizedBox(height: 18),
           ],
+        ],
+        if (_showsPendingAssistantMessage) ...[
+          const SizedBox(height: 18),
+          _PendingAssistantConversationMessage(copy: copy),
         ],
       ],
     );
@@ -511,6 +527,124 @@ class _AssistantConversationMessage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PendingAssistantConversationMessage extends StatelessWidget {
+  const _PendingAssistantConversationMessage({required this.copy});
+
+  final WorkspaceCopy copy;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.desktopPalette;
+
+    return Container(
+      key: const Key('workspace-assistant-pending-message'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 2,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            color: palette.accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ConversationRoleLabel(
+                  icon: Icons.auto_awesome_rounded,
+                  label: copy.sessionAssistantLabel,
+                  iconColor: palette.accent,
+                  textColor: palette.textPrimary,
+                ),
+                const SizedBox(height: 8),
+                Semantics(
+                  liveRegion: true,
+                  label: copy.sessionStreamingLabel,
+                  child: Row(
+                    key: const Key('workspace-assistant-pending-indicator'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _AssistantLoadingDots(color: palette.accent),
+                      const SizedBox(width: 8),
+                      Text(
+                        copy.sessionStreamingLabel,
+                        style: DesktopTypography.conversationStreaming(palette),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssistantLoadingDots extends StatefulWidget {
+  const _AssistantLoadingDots({required this.color});
+
+  final Color color;
+
+  @override
+  State<_AssistantLoadingDots> createState() => _AssistantLoadingDotsState();
+}
+
+class _AssistantLoadingDotsState extends State<_AssistantLoadingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          key: const Key('workspace-assistant-pending-dots'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var index = 0; index < 3; index++) ...[
+              Opacity(
+                opacity:
+                    0.28 +
+                    0.72 *
+                        ((math.sin(
+                                  (_controller.value - index * 0.18) *
+                                      math.pi *
+                                      2,
+                                ) +
+                                1) /
+                            2),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              if (index < 2) const SizedBox(width: 4),
+            ],
+          ],
+        );
+      },
     );
   }
 }

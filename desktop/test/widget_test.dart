@@ -2209,6 +2209,18 @@ process.stdin.on('data', (chunk) => {
       expect(find.text('Render this immediately.'), findsOneWidget);
       expect(find.byKey(const Key('workspace-user-message')), findsOneWidget);
       expect(
+        find.byKey(const Key('workspace-assistant-pending-message')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('workspace-assistant-pending-dots')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('workspace-assistant-message')),
+        findsNothing,
+      );
+      expect(
         tester.widget<TextField>(composerFinder).controller?.text,
         isEmpty,
       );
@@ -2350,6 +2362,14 @@ process.stdin.on('data', (chunk) => {
         find.byKey(const Key('abort-composer-task-button')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('workspace-assistant-pending-message')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('workspace-assistant-message')),
+        findsNothing,
+      );
 
       piHostClient.emit(
         PiHostEvent(
@@ -2370,6 +2390,10 @@ process.stdin.on('data', (chunk) => {
       expect(
         find.byKey(const Key('workspace-streaming-indicator')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('workspace-assistant-pending-message')),
+        findsNothing,
       );
 
       piHostClient.emit(
