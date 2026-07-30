@@ -1192,159 +1192,172 @@ class _ProjectTileState extends State<_ProjectTile> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: DesktopSelectionTile(
-        selected: false,
-        onTap: widget.onTap,
-        height: desktopDensityValue(
-          widget.interfaceDensity,
-          compact: 36,
-          comfortable: 40,
-        ),
-        radius: _WorkspaceComponentSpec.projectTileRadius,
-        animated: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            children: [
-              Icon(
-                Icons.folder_outlined,
-                size: 16,
-                color: palette.textSecondary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.project.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: DesktopTypography.sidebarItem(palette),
-                ),
-              ),
-              if (widget.isPinned) ...[
-                const SizedBox(width: 6),
-                Icon(Icons.push_pin_outlined, size: 13, color: palette.accent),
-              ],
-              if ((_isHovered || widget.selected) &&
-                  widget.project.workspacePath != null) ...[
-                const SizedBox(width: 8),
-                DesktopIconActionButton(
-                  key: Key('open-project-button-${widget.project.name}'),
-                  onPressed: widget.onOpenProject,
-                  tooltip: widget.copy.openTargetTooltip(
-                    widget.openDestination,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(
+            _WorkspaceComponentSpec.projectTileRadius,
+          ),
+          overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+          hoverColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          child: SizedBox(
+            height: desktopDensityValue(
+              widget.interfaceDensity,
+              compact: 36,
+              comfortable: 40,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.folder_outlined,
+                    size: 16,
+                    color: palette.textSecondary,
                   ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                  backgroundColor: palette.settingsField,
-                  foregroundColor: palette.textSecondary,
-                  buttonSize: const Size(24, 24),
-                ),
-              ],
-              if (widget.isManaged && (_isHovered || widget.selected)) ...[
-                const SizedBox(width: 6),
-                PopupMenuButton<_ProjectMenuAction>(
-                  key: Key('manage-project-button-${widget.project.name}'),
-                  tooltip: widget.copy.manageProjectTooltip,
-                  icon: const Icon(Icons.more_horiz_rounded, size: 16),
-                  iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  color: palette.panelRaised,
-                  position: PopupMenuPosition.under,
-                  style: IconButton.styleFrom(
-                    backgroundColor: palette.settingsField,
-                    foregroundColor: palette.textSecondary,
-                    minimumSize: const Size(24, 24),
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.project.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesktopTypography.sidebarItem(palette),
+                    ),
                   ),
-                  onSelected: (action) async {
-                    switch (action) {
-                      case _ProjectMenuAction.rename:
-                        await _showRenameProjectDialog();
-                        break;
-                      case _ProjectMenuAction.togglePin:
-                        await widget.onTogglePinned();
-                        break;
-                      case _ProjectMenuAction.remove:
-                        await widget.onRemove();
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem<_ProjectMenuAction>(
-                      key: const Key('rename-project-menu-item'),
-                      value: _ProjectMenuAction.rename,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.drive_file_rename_outline_rounded,
-                            size: 16,
-                            color: palette.textSecondary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              widget.copy.renameProjectLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: DesktopTypography.sidebarItem(palette),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<_ProjectMenuAction>(
-                      value: _ProjectMenuAction.togglePin,
-                      child: Row(
-                        children: [
-                          Icon(
-                            widget.isPinned
-                                ? Icons.push_pin_outlined
-                                : Icons.push_pin_rounded,
-                            size: 16,
-                            color: palette.textSecondary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              widget.isPinned
-                                  ? widget.copy.unpinProjectLabel
-                                  : widget.copy.pinProjectLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: DesktopTypography.sidebarItem(palette),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<_ProjectMenuAction>(
-                      value: _ProjectMenuAction.remove,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.remove_circle_outline_rounded,
-                            size: 16,
-                            color: Color(0xFFE97878),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              widget.copy.removeProjectLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: DesktopTypography.sidebarItem(
-                                palette,
-                              ).copyWith(color: const Color(0xFFE97878)),
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (widget.isPinned) ...[
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.push_pin_outlined,
+                      size: 13,
+                      color: palette.accent,
                     ),
                   ],
-                ),
-              ],
-            ],
+                  if ((_isHovered || widget.selected) &&
+                      widget.project.workspacePath != null) ...[
+                    const SizedBox(width: 8),
+                    DesktopIconActionButton(
+                      key: Key('open-project-button-${widget.project.name}'),
+                      onPressed: widget.onOpenProject,
+                      tooltip: widget.copy.openTargetTooltip(
+                        widget.openDestination,
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                      backgroundColor: palette.settingsField,
+                      foregroundColor: palette.textSecondary,
+                      buttonSize: const Size(24, 24),
+                    ),
+                  ],
+                  if (widget.isManaged && (_isHovered || widget.selected)) ...[
+                    const SizedBox(width: 6),
+                    PopupMenuButton<_ProjectMenuAction>(
+                      key: Key('manage-project-button-${widget.project.name}'),
+                      tooltip: widget.copy.manageProjectTooltip,
+                      icon: const Icon(Icons.more_horiz_rounded, size: 16),
+                      iconSize: 16,
+                      padding: EdgeInsets.zero,
+                      color: palette.panelRaised,
+                      position: PopupMenuPosition.under,
+                      style: IconButton.styleFrom(
+                        backgroundColor: palette.settingsField,
+                        foregroundColor: palette.textSecondary,
+                        minimumSize: const Size(24, 24),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onSelected: (action) async {
+                        switch (action) {
+                          case _ProjectMenuAction.rename:
+                            await _showRenameProjectDialog();
+                            break;
+                          case _ProjectMenuAction.togglePin:
+                            await widget.onTogglePinned();
+                            break;
+                          case _ProjectMenuAction.remove:
+                            await widget.onRemove();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<_ProjectMenuAction>(
+                          key: const Key('rename-project-menu-item'),
+                          value: _ProjectMenuAction.rename,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.drive_file_rename_outline_rounded,
+                                size: 16,
+                                color: palette.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  widget.copy.renameProjectLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: DesktopTypography.sidebarItem(palette),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem<_ProjectMenuAction>(
+                          value: _ProjectMenuAction.togglePin,
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.isPinned
+                                    ? Icons.push_pin_outlined
+                                    : Icons.push_pin_rounded,
+                                size: 16,
+                                color: palette.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  widget.isPinned
+                                      ? widget.copy.unpinProjectLabel
+                                      : widget.copy.pinProjectLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: DesktopTypography.sidebarItem(palette),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<_ProjectMenuAction>(
+                          value: _ProjectMenuAction.remove,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.remove_circle_outline_rounded,
+                                size: 16,
+                                color: Color(0xFFE97878),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  widget.copy.removeProjectLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: DesktopTypography.sidebarItem(
+                                    palette,
+                                  ).copyWith(color: const Color(0xFFE97878)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

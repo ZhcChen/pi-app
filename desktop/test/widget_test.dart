@@ -1833,6 +1833,33 @@ process.stdin.on('data', (chunk) => {
     expect(find.byKey(const Key('sessions-section-label')), findsNothing);
   });
 
+  testWidgets('project tiles keep hover overlay transparent', (tester) async {
+    configureWindow(tester);
+    addTearDown(() => resetWindow(tester));
+
+    await tester.pumpWidget(
+      PiDesktopApp(
+        enablePersistence: false,
+        workspaceRootPath: resolveRepoWorkspacePath(),
+      ),
+    );
+    await settleUi(tester);
+
+    final projectTile = find.byKey(const Key('sidebar-project-tile-0'));
+    final inkWell = tester.widget<InkWell>(
+      find.descendant(of: projectTile, matching: find.byType(InkWell)).first,
+    );
+
+    expect(
+      inkWell.overlayColor?.resolve(const <WidgetState>{WidgetState.hovered}),
+      Colors.transparent,
+    );
+    expect(
+      inkWell.overlayColor?.resolve(const <WidgetState>{WidgetState.pressed}),
+      Colors.transparent,
+    );
+  });
+
   testWidgets(
     'selected project nests the active session directly beneath the project',
     (tester) async {
