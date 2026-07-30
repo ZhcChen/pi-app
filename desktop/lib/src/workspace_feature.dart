@@ -171,6 +171,18 @@ class WorkspaceConversationMessage {
   }
 }
 
+class WorkspaceSessionListEntry {
+  const WorkspaceSessionListEntry({
+    required this.id,
+    required this.title,
+    this.isActive = false,
+  });
+
+  final String id;
+  final String title;
+  final bool isActive;
+}
+
 class WorkspaceSessionState {
   const WorkspaceSessionState({
     required this.sessionCwd,

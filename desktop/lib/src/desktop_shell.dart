@@ -17,6 +17,7 @@ import 'pi_core_rpc_client.dart';
 import 'pi_core_runtime.dart';
 import 'pi_host_client.dart';
 import 'project_registry_store.dart';
+import 'session_reference_store.dart';
 import 'settings_feature.dart';
 import 'workspace_feature.dart';
 
@@ -33,6 +34,7 @@ class PiDesktopApp extends StatefulWidget {
     this.piHostClient,
     this.appUpdateClient,
     this.projectRegistryStore,
+    this.sessionReferenceStore,
     this.workspaceRootPath,
     this.pickProjectDirectory,
     this.pickPiCoreExecutable,
@@ -48,6 +50,7 @@ class PiDesktopApp extends StatefulWidget {
   final PiHostClient? piHostClient;
   final AppUpdateClient? appUpdateClient;
   final ProjectRegistryStore? projectRegistryStore;
+  final PiSessionReferenceStore? sessionReferenceStore;
   final String? workspaceRootPath;
   final Future<String?> Function()? pickProjectDirectory;
   final Future<String?> Function()? pickPiCoreExecutable;
@@ -77,6 +80,11 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
       widget.appUpdateClient ?? GitHubAppUpdateClient();
   late final ProjectRegistryStore _projectRegistryStore =
       widget.projectRegistryStore ?? FileProjectRegistryStore();
+  late final PiSessionReferenceStore _sessionReferenceStore =
+      widget.sessionReferenceStore ??
+      (widget.enablePersistence
+          ? FilePiSessionReferenceStore()
+          : MemoryPiSessionReferenceStore());
 
   // 持久化设置异步加载；在解析出保存策略或新安装默认值前保持受限。
   AppPreferences _preferences = const AppPreferences(
@@ -215,6 +223,7 @@ class _PiDesktopAppState extends State<PiDesktopApp> {
         appUpdateClient: _appUpdateClient,
         ownsPiHostClient: widget.piHostClient == null,
         projectRegistryStore: _projectRegistryStore,
+        sessionReferenceStore: _sessionReferenceStore,
         enableProjectPersistence: widget.enablePersistence,
         workspaceRootPath: widget.workspaceRootPath,
         pickProjectDirectory:
@@ -277,6 +286,7 @@ class _PiDesktopShell extends StatefulWidget {
     required this.appUpdateClient,
     required this.ownsPiHostClient,
     required this.projectRegistryStore,
+    required this.sessionReferenceStore,
     required this.enableProjectPersistence,
     required this.workspaceRootPath,
     required this.pickProjectDirectory,
@@ -298,6 +308,7 @@ class _PiDesktopShell extends StatefulWidget {
   final AppUpdateClient appUpdateClient;
   final bool ownsPiHostClient;
   final ProjectRegistryStore projectRegistryStore;
+  final PiSessionReferenceStore sessionReferenceStore;
   final bool enableProjectPersistence;
   final String? workspaceRootPath;
   final Future<String?> Function() pickProjectDirectory;
@@ -333,6 +344,8 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   final Map<String, String> _sessionCwdById = <String, String>{};
   StreamSubscription<PiHostEvent>? _piHostSubscription;
   ProjectRegistrySnapshot _projectRegistry = const ProjectRegistrySnapshot();
+  PiSessionReferenceSnapshot _sessionReferences =
+      const PiSessionReferenceSnapshot();
 
   _DesktopRoute _route = _DesktopRoute.workspace;
   SettingsCategory _selectedSettingsCategory = SettingsCategory.general;
@@ -361,6 +374,55 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     return _sessionsByCwd[sessionCwd];
   }
 
+  List<WorkspaceSessionListEntry> get _visibleSessionEntries {
+    final project = _selectedProject;
+    final sessionCwd = project?.sessionCwd;
+    if (project == null || sessionCwd == null || sessionCwd.isEmpty) {
+      return const <WorkspaceSessionListEntry>[];
+    }
+
+    final activeSession = _sessionsByCwd[sessionCwd];
+    final activeSessionFile = _normalizeNonEmptySessionFile(
+      activeSession?.sessionFile,
+    );
+    final entries = <WorkspaceSessionListEntry>[];
+    final seenKeys = <String>{};
+
+    if (activeSession != null && activeSession.hasActivity) {
+      final activeKey =
+          activeSessionFile ??
+          'active:${activeSession.sessionId ?? activeSession.piSessionId ?? sessionCwd}';
+      entries.add(
+        WorkspaceSessionListEntry(
+          id: activeKey,
+          title: activeSession.displayTitle ?? _copy.currentSessionLabel,
+          isActive: true,
+        ),
+      );
+      seenKeys.add(activeKey);
+    }
+
+    final references = _sessionReferences.referencesForProject(
+      projectId: project.registryId,
+      projectPath: sessionCwd,
+    );
+    for (final reference in references) {
+      final referenceKey = reference.sessionFile;
+      if (!seenKeys.add(referenceKey)) {
+        continue;
+      }
+      entries.add(
+        WorkspaceSessionListEntry(
+          id: referenceKey,
+          title: reference.displayTitle,
+          isActive: activeSessionFile == referenceKey,
+        ),
+      );
+    }
+
+    return entries;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -368,6 +430,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
     _settingsSearchController.addListener(_onSettingsSearchChanged);
     _piHostSubscription = widget.piHostClient.events.listen(_handlePiHostEvent);
     _loadPiConfig();
+    unawaited(_loadSessionReferences());
     unawaited(_loadAppUpdateCurrentVersion());
     if (widget.enableProjectPersistence) {
       _loadProjectRegistry();
@@ -618,6 +681,80 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
       }
       _applyProjectSnapshot(snapshot);
     } catch (_) {}
+  }
+
+  Future<void> _loadSessionReferences() async {
+    try {
+      final snapshot = await widget.sessionReferenceStore.loadSnapshot();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sessionReferences = _sessionReferences.mergedWith(snapshot);
+      });
+    } catch (_) {}
+  }
+
+  WorkspaceProjectGroup? _projectForSessionCwd(String sessionCwd) {
+    for (final project in _projects) {
+      if (project.sessionCwd == sessionCwd) {
+        return project;
+      }
+    }
+    return null;
+  }
+
+  PiSessionReferenceSnapshot _upsertSessionReferenceSnapshot({
+    required String sessionCwd,
+    required PiHostSession session,
+  }) {
+    final sessionFile = _normalizeNonEmptySessionFile(session.sessionFile);
+    if (sessionFile == null) {
+      return _sessionReferences;
+    }
+
+    final project = _projectForSessionCwd(sessionCwd);
+    final reference = PiSessionReference(
+      projectId: project?.registryId,
+      projectPath: sessionCwd,
+      sessionFile: sessionFile,
+      lastKnownSessionId: _normalizeNonEmptySessionId(session.piSessionId),
+      sessionName: _normalizeNonEmptySessionName(session.sessionName),
+      lastOpenedAt: DateTime.now().toUtc().toIso8601String(),
+    );
+    return _sessionReferences.upsertReference(reference);
+  }
+
+  Future<void> _persistSessionReferences(
+    PiSessionReferenceSnapshot snapshot,
+  ) async {
+    try {
+      await widget.sessionReferenceStore.saveSnapshot(snapshot);
+    } catch (_) {}
+  }
+
+  String? _normalizeNonEmptySessionFile(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return File(normalized).absolute.path;
+  }
+
+  String? _normalizeNonEmptySessionId(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  String? _normalizeNonEmptySessionName(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
   }
 
   Future<void> _loadPiConfig() async {
@@ -961,20 +1098,30 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
   void _applyHostSession(PiHostSession session, {String? projectSessionCwd}) {
     final sessionCwd =
         projectSessionCwd ?? _sessionCwdById[session.id] ?? session.cwd;
-    _sessionCwdById[session.id] = sessionCwd;
     final current = _sessionStateForCwd(sessionCwd);
-    _setSessionState(
-      sessionCwd,
-      current.copyWith(
-        sessionId: session.id,
-        piSessionId: session.piSessionId,
-        sessionFile: session.sessionFile,
-        sessionName: session.sessionName,
-        modelProvider: session.model?.provider,
-        modelName: session.model?.name,
-        thinkingLevel: session.thinkingLevel,
-      ),
+    final nextState = current.copyWith(
+      sessionId: session.id,
+      piSessionId: session.piSessionId,
+      sessionFile: session.sessionFile,
+      sessionName: session.sessionName,
+      modelProvider: session.model?.provider,
+      modelName: session.model?.name,
+      thinkingLevel: session.thinkingLevel,
     );
+    final nextReferences = _upsertSessionReferenceSnapshot(
+      sessionCwd: sessionCwd,
+      session: session,
+    );
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _sessionCwdById[session.id] = sessionCwd;
+      _sessionsByCwd[sessionCwd] = nextState;
+      _sessionReferences = nextReferences;
+    });
+    unawaited(_persistSessionReferences(nextReferences));
   }
 
   Future<void> _refreshHostSessionSnapshot({
@@ -1402,7 +1549,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
                 preferences: widget.preferences,
                 selectedActionIndex: _selectedActionIndex,
                 selectedProjectIndex: _selectedProjectIndex,
-                selectedProjectSession: _visibleSession,
+                selectedProjectSessions: _visibleSessionEntries,
                 onActionSelected: (index) {
                   setState(() {
                     _selectedActionIndex = index;

@@ -1877,7 +1877,7 @@ process.stdin.on('data', (chunk) => {
       await settleUi(tester);
 
       expect(
-        find.byKey(const Key('sidebar-project-session-tile')),
+        find.byKey(const Key('sidebar-project-session-list')),
         findsNothing,
       );
 
@@ -1888,7 +1888,9 @@ process.stdin.on('data', (chunk) => {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
 
-      final sessionTile = find.byKey(const Key('sidebar-project-session-tile'));
+      final sessionTile = find.byKey(
+        const Key('sidebar-project-session-tile-0'),
+      );
       expect(sessionTile, findsOneWidget);
       expect(find.byKey(const Key('sessions-section-label')), findsNothing);
       expect(
@@ -1926,7 +1928,9 @@ process.stdin.on('data', (chunk) => {
       await settleUi(tester);
 
       final sessionId = piHostClient.promptRequests.single.sessionId;
-      final sessionTile = find.byKey(const Key('sidebar-project-session-tile'));
+      final sessionTile = find.byKey(
+        const Key('sidebar-project-session-tile-0'),
+      );
       expect(
         find.descendant(
           of: sessionTile,
@@ -1954,6 +1958,69 @@ process.stdin.on('data', (chunk) => {
           matching: find.text('Analyze project structure and summar...'),
         ),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'selected project loads known session shortcuts from the local reference store',
+    (tester) async {
+      configureWindow(tester);
+      addTearDown(() => resetWindow(tester));
+      final projectRoot = Directory.systemTemp.createTempSync(
+        'pi-known-session-project-',
+      );
+      addTearDown(() {
+        projectRoot.deleteSync(recursive: true);
+      });
+      final projectEntry = ProjectRegistryEntry.create(projectRoot.path);
+      final projectRegistryStore = MemoryProjectRegistryStore(
+        initialSnapshot: ProjectRegistrySnapshot(
+          entries: <ProjectRegistryEntry>[projectEntry],
+        ),
+      );
+      final sessionReferenceStore = MemoryPiSessionReferenceStore(
+        initialSnapshot: PiSessionReferenceSnapshot(
+          references: <PiSessionReference>[
+            PiSessionReference(
+              projectId: projectEntry.id,
+              projectPath: projectRoot.path,
+              sessionFile:
+                  '${projectRoot.path}${Platform.pathSeparator}.pi-session-known.jsonl',
+              sessionName: '最近会话',
+              lastKnownSessionId: 'pi-known-session-1',
+              lastOpenedAt: '2026-07-30T12:00:00.000Z',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        PiDesktopApp(
+          preferencesStore: MemoryDesktopPreferencesStore(),
+          runtimeController: MemoryDesktopRuntimeController(),
+          piConfigStore: MemoryPiConfigStore(),
+          projectRegistryStore: projectRegistryStore,
+          sessionReferenceStore: sessionReferenceStore,
+          workspaceRootPath: null,
+        ),
+      );
+      await settleUi(tester);
+
+      expect(
+        find.byKey(const Key('workspace-session-transcript')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('sidebar-project-session-list')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sidebar-project-session-list')),
+          matching: find.text('最近会话'),
+        ),
+        findsOneWidget,
       );
     },
   );
@@ -2191,6 +2258,17 @@ process.stdin.on('data', (chunk) => {
       await tester.tap(find.byKey(const Key('submit-composer-task-button')));
       await settleUi(tester);
       final firstSessionId = piHostClient.promptRequests.single.sessionId;
+      piHostClient.setSessionNameForTesting(
+        sessionId: firstSessionId,
+        sessionName: '分析项目A',
+      );
+      piHostClient.emit(
+        PiHostEvent(
+          type: PiHostEventType.runSettled,
+          sessionId: firstSessionId,
+        ),
+      );
+      await settleUi(tester);
 
       final transcriptFinder = find.byKey(
         const Key('workspace-session-transcript'),
@@ -2222,6 +2300,17 @@ process.stdin.on('data', (chunk) => {
         findsNothing,
       );
       expect(find.text('Keep this session with project A.'), findsNothing);
+      expect(
+        find.byKey(const Key('sidebar-project-session-list')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sidebar-project-session-list')),
+          matching: find.text('分析项目A'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.enterText(
         find.byKey(const Key('workspace-composer-input')),

@@ -1597,40 +1597,61 @@ class _SelectedProjectSessionList extends StatelessWidget {
   const _SelectedProjectSessionList({
     required this.copy,
     required this.interfaceDensity,
-    required this.session,
+    required this.sessions,
   });
 
   final WorkspaceCopy copy;
   final AppInterfaceDensity interfaceDensity;
-  final WorkspaceSessionState? session;
+  final List<WorkspaceSessionListEntry> sessions;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
-    final activeSession = session;
-    if (activeSession == null || !activeSession.hasActivity) {
+    if (sessions.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      key: const Key('sidebar-project-session-tile'),
-      constraints: BoxConstraints(
-        minHeight: desktopDensityValue(
-          interfaceDensity,
-          compact: 28,
-          comfortable: 30,
-        ),
-      ),
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      child: Text(
-        activeSession.displayTitle ?? copy.currentSessionLabel,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: DesktopTypography.sidebarItem(
-          palette,
-        ).copyWith(color: palette.textPrimary),
-      ),
+    return Column(
+      key: const Key('sidebar-project-session-list'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < sessions.length; index++)
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: index < sessions.length - 1
+                  ? desktopDensityValue(
+                      interfaceDensity,
+                      compact: 4,
+                      comfortable: 5,
+                    )
+                  : 0,
+            ),
+            child: Container(
+              key: Key('sidebar-project-session-tile-$index'),
+              constraints: BoxConstraints(
+                minHeight: desktopDensityValue(
+                  interfaceDensity,
+                  compact: 28,
+                  comfortable: 30,
+                ),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              child: Text(
+                sessions[index].title.isEmpty
+                    ? copy.currentSessionLabel
+                    : sessions[index].title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesktopTypography.sidebarItem(palette).copyWith(
+                  color: sessions[index].isActive
+                      ? palette.textPrimary
+                      : palette.textSecondary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

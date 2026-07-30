@@ -712,7 +712,9 @@ class MemoryPiHostClient implements PiHostClient {
       id: 'memory-session-${_nextSession++}',
       cwd: cwd,
       piSessionId: 'pi-memory-$_nextSession',
-      sessionFile: null,
+      sessionFile: Directory.systemTemp.uri
+          .resolve('pi-memory-session-$_nextSession.jsonl')
+          .toFilePath(),
       sessionName: null,
       model: const PiHostModel(
         provider: 'test',

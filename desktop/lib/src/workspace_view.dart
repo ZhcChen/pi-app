@@ -8,7 +8,7 @@ class WorkspaceSidebar extends StatefulWidget {
     required this.preferences,
     required this.selectedActionIndex,
     required this.selectedProjectIndex,
-    required this.selectedProjectSession,
+    required this.selectedProjectSessions,
     required this.onActionSelected,
     required this.onProjectSelected,
     required this.onRenameProject,
@@ -27,7 +27,7 @@ class WorkspaceSidebar extends StatefulWidget {
   final AppPreferences preferences;
   final int selectedActionIndex;
   final int selectedProjectIndex;
-  final WorkspaceSessionState? selectedProjectSession;
+  final List<WorkspaceSessionListEntry> selectedProjectSessions;
   final ValueChanged<int> onActionSelected;
   final Future<void> Function(int) onProjectSelected;
   final Future<void> Function(WorkspaceProjectGroup project, String alias)
@@ -173,8 +173,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                             ),
                           ),
                           if (i == widget.selectedProjectIndex &&
-                              widget.selectedProjectSession?.hasActivity ==
-                                  true)
+                              widget.selectedProjectSessions.isNotEmpty)
                             Padding(
                               padding: EdgeInsets.only(
                                 left: 30,
@@ -188,7 +187,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                               child: _SelectedProjectSessionList(
                                 copy: widget.copy,
                                 interfaceDensity: density,
-                                session: widget.selectedProjectSession,
+                                sessions: widget.selectedProjectSessions,
                               ),
                             ),
                         ],

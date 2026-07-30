@@ -20,6 +20,7 @@ export 'src/pi_core_rpc_client.dart';
 export 'src/pi_core_runtime.dart';
 export 'src/pi_host_client.dart';
 export 'src/project_registry_store.dart';
+export 'src/session_reference_store.dart';
 export 'src/workspace_feature.dart';
 export 'src/settings_feature.dart';
 export 'src/desktop_shell.dart';
