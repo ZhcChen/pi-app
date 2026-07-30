@@ -85,6 +85,7 @@ class PiHostSession {
     required this.cwd,
     required this.piSessionId,
     required this.sessionFile,
+    required this.sessionName,
     required this.model,
     required this.thinkingLevel,
     required this.availableThinkingLevels,
@@ -96,6 +97,7 @@ class PiHostSession {
   final String cwd;
   final String piSessionId;
   final String? sessionFile;
+  final String? sessionName;
   final PiHostModel? model;
   final String thinkingLevel;
   final List<String> availableThinkingLevels;
@@ -111,6 +113,7 @@ class PiHostSession {
       sessionFile: modelValue == null
           ? json['sessionFile']?.toString()
           : json['sessionFile']?.toString(),
+      sessionName: json['sessionName']?.toString(),
       model: modelValue is Map
           ? PiHostModel.fromJson(Map<String, dynamic>.from(modelValue))
           : null,
@@ -710,6 +713,7 @@ class MemoryPiHostClient implements PiHostClient {
       cwd: cwd,
       piSessionId: 'pi-memory-$_nextSession',
       sessionFile: null,
+      sessionName: null,
       model: const PiHostModel(
         provider: 'test',
         id: 'test-model',
@@ -794,6 +798,7 @@ class MemoryPiHostClient implements PiHostClient {
       cwd: current.cwd,
       piSessionId: current.piSessionId,
       sessionFile: current.sessionFile,
+      sessionName: current.sessionName,
       model: PiHostModel(
         provider: provider,
         id: modelId,
@@ -820,6 +825,7 @@ class MemoryPiHostClient implements PiHostClient {
       cwd: current.cwd,
       piSessionId: current.piSessionId,
       sessionFile: current.sessionFile,
+      sessionName: current.sessionName,
       model: current.model,
       thinkingLevel: level,
       availableThinkingLevels: current.availableThinkingLevels,
@@ -898,6 +904,7 @@ Map<String, dynamic> _sessionToJson(PiHostSession session) {
     'cwd': session.cwd,
     'piSessionId': session.piSessionId,
     'sessionFile': session.sessionFile,
+    'sessionName': session.sessionName,
     'model': session.model == null
         ? null
         : <String, dynamic>{

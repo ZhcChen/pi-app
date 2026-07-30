@@ -15,9 +15,7 @@ abstract interface class WorkspaceCopy {
   String get expandProjectsTooltip;
   String get collapseProjectsTooltip;
   String get addProjectTooltip;
-  String get sessionsLabel;
   String get currentSessionLabel;
-  String get noActiveSessionLabel;
   String get tasksLabel;
   String get settingsLabel;
   String get downloadRuntimeTooltip;
@@ -177,6 +175,7 @@ class WorkspaceSessionState {
     this.sessionId,
     this.piSessionId,
     this.sessionFile,
+    this.sessionName,
     this.modelProvider,
     this.modelName,
     this.thinkingLevel = 'off',
@@ -194,6 +193,7 @@ class WorkspaceSessionState {
   final String? sessionId;
   final String? piSessionId;
   final String? sessionFile;
+  final String? sessionName;
   final String? modelProvider;
   final String? modelName;
   final String thinkingLevel;
@@ -222,10 +222,19 @@ class WorkspaceSessionState {
     return '$modelProvider/$modelName';
   }
 
+  String? get displayTitle {
+    final name = sessionName?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+    return null;
+  }
+
   WorkspaceSessionState copyWith({
     String? sessionId,
     String? piSessionId,
     String? sessionFile,
+    String? sessionName,
     String? modelProvider,
     String? modelName,
     String? thinkingLevel,
@@ -242,6 +251,7 @@ class WorkspaceSessionState {
       sessionId: clearHostSession ? null : sessionId ?? this.sessionId,
       piSessionId: clearHostSession ? null : piSessionId ?? this.piSessionId,
       sessionFile: clearHostSession ? null : sessionFile ?? this.sessionFile,
+      sessionName: clearHostSession ? null : sessionName ?? this.sessionName,
       modelProvider: modelProvider ?? this.modelProvider,
       modelName: modelName ?? this.modelName,
       thinkingLevel: thinkingLevel ?? this.thinkingLevel,

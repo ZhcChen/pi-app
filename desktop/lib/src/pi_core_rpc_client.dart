@@ -853,6 +853,7 @@ class PiCoreRpcClient implements PiHostClient {
       cwd: session.cwd,
       piSessionId: state['sessionId']?.toString() ?? '',
       sessionFile: state['sessionFile']?.toString(),
+      sessionName: state['sessionName']?.toString(),
       model: model is Map
           ? PiHostModel.fromJson(Map<String, dynamic>.from(model))
           : null,
@@ -983,6 +984,7 @@ Map<String, dynamic> _sessionToJson(PiHostSession session) {
     'cwd': session.cwd,
     'piSessionId': session.piSessionId,
     'sessionFile': session.sessionFile,
+    'sessionName': session.sessionName,
     'model': session.model == null
         ? null
         : <String, dynamic>{

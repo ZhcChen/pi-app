@@ -172,7 +172,9 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                                   widget.onRemoveProject(widget.projects[i]),
                             ),
                           ),
-                          if (i == widget.selectedProjectIndex)
+                          if (i == widget.selectedProjectIndex &&
+                              widget.selectedProjectSession?.hasActivity ==
+                                  true)
                             Padding(
                               padding: EdgeInsets.only(
                                 left: 30,

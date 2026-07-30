@@ -1829,16 +1829,12 @@ process.stdin.on('data', (chunk) => {
       text: 'Projects',
       icon: Icons.expand_more_rounded,
     );
-    expectCenteredLabel(
-      key: const Key('sessions-section-label'),
-      text: 'Sessions',
-      icon: Icons.chat_bubble_outline_rounded,
-    );
     expect(find.byKey(const Key('tasks-section-label')), findsNothing);
+    expect(find.byKey(const Key('sessions-section-label')), findsNothing);
   });
 
   testWidgets(
-    'selected project shows the current session region in the sidebar',
+    'selected project nests the active session directly beneath the project',
     (tester) async {
       configureWindow(tester);
       addTearDown(() => resetWindow(tester));
@@ -1854,14 +1850,9 @@ process.stdin.on('data', (chunk) => {
       await settleUi(tester);
 
       expect(
-        find.byKey(const Key('sidebar-project-session-list')),
-        findsOneWidget,
+        find.byKey(const Key('sidebar-project-session-tile')),
+        findsNothing,
       );
-      expect(
-        find.byKey(const Key('sidebar-project-session-empty')),
-        findsOneWidget,
-      );
-      expect(find.text('No active session'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('workspace-composer-input')),
@@ -1874,6 +1865,7 @@ process.stdin.on('data', (chunk) => {
         find.byKey(const Key('sidebar-project-session-tile')),
         findsOneWidget,
       );
+      expect(find.byKey(const Key('sessions-section-label')), findsNothing);
       expect(find.text('Current session'), findsOneWidget);
       expect(find.text('Task completed'), findsWidgets);
     },

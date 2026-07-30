@@ -1461,89 +1461,70 @@ class _SelectedProjectSessionList extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.desktopPalette;
     final activeSession = session;
-    final status = activeSession?.status ?? WorkspaceRunStatus.idle;
-    final statusLabel = activeSession == null
-        ? null
-        : copy.sessionStatusLabel(activeSession.status);
+    if (activeSession == null || !activeSession.hasActivity) {
+      return const SizedBox.shrink();
+    }
+
+    final status = activeSession.status;
     final detailParts = <String>[
-      ?statusLabel,
-      ?activeSession?.modelLabel,
+      copy.sessionStatusLabel(status),
+      ?activeSession.modelLabel,
     ];
 
-    return Column(
-      key: const Key('sidebar-project-session-list'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SidebarSectionLabel(
-          label: copy.sessionsLabel,
-          icon: Icons.chat_bubble_outline_rounded,
-          labelKey: const Key('sessions-section-label'),
-        ),
-        const SizedBox(height: 6),
-        DesktopSelectionTile(
-          selected: activeSession != null,
-          radius: _WorkspaceComponentSpec.projectTileRadius,
-          animated: false,
-          child: Container(
-            key: activeSession == null
-                ? const Key('sidebar-project-session-empty')
-                : const Key('sidebar-project-session-tile'),
-            constraints: BoxConstraints(
-              minHeight: desktopDensityValue(
-                interfaceDensity,
-                compact: 34,
-                comfortable: 38,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 1),
-                  child: Icon(
-                    activeSession == null
-                        ? Icons.remove_circle_outline_rounded
-                        : _statusIcon(status),
-                    size: 15,
-                    color: activeSession == null
-                        ? palette.textMuted
-                        : _sessionStatusColor(context, status),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        activeSession == null
-                            ? copy.noActiveSessionLabel
-                            : copy.currentSessionLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DesktopTypography.sidebarItem(palette),
-                      ),
-                      if (detailParts.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          detailParts.join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: DesktopTypography.controlLabel(
-                            palette,
-                          ).copyWith(color: palette.textMuted),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return DesktopSelectionTile(
+      selected: true,
+      radius: _WorkspaceComponentSpec.projectTileRadius,
+      animated: false,
+      child: Container(
+        key: const Key('sidebar-project-session-tile'),
+        constraints: BoxConstraints(
+          minHeight: desktopDensityValue(
+            interfaceDensity,
+            compact: 34,
+            comfortable: 38,
           ),
         ),
-      ],
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(
+                _statusIcon(status),
+                size: 15,
+                color: _sessionStatusColor(context, status),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    activeSession.displayTitle ?? copy.currentSessionLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DesktopTypography.sidebarItem(palette),
+                  ),
+                  if (detailParts.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detailParts.join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesktopTypography.controlLabel(
+                        palette,
+                      ).copyWith(color: palette.textMuted),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -969,6 +969,7 @@ class _PiDesktopShellState extends State<_PiDesktopShell> {
         sessionId: session.id,
         piSessionId: session.piSessionId,
         sessionFile: session.sessionFile,
+        sessionName: session.sessionName,
         modelProvider: session.model?.provider,
         modelName: session.model?.name,
         thinkingLevel: session.thinkingLevel,
